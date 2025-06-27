@@ -1,0 +1,964 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>IF Visual Planner</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      font-family: monospace;
+      overflow: auto;
+    }
+    #toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #222;
+      padding: 5px;
+      z-index: 10;
+    }
+    #toolbar button {
+      margin-right: 5px;
+      border: solid 1px #444;
+      background: #222;
+      color: #ddd;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: black;
+      transform-origin: 0 0;
+      overflow-x: auto;
+      overflow-y: auto;
+      min-width: 500000px;
+      min-height: 500000px;
+    }
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      right: 0;
+      bottom: 0;
+      cursor: se-resize;
+      background: #444;
+      z-index: 2;
+    }
+    .zoom-controls {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+    }
+    .zoom-controls button {
+      background: #333;
+      color: white;
+      border: 1px solid #666;
+      margin-left: 2px;
+      cursor: pointer;
+    }
+    .node {
+      position: absolute;
+      border: 1px solid #aaa;
+      background: #111;
+      color: white;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 100px;
+      min-height: 60px;
+      z-index: 1;
+    }
+    .node-header {
+      font-weight: bold;
+      padding: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: red;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .node-content {
+      background: #111;
+      color: white;
+      border: none;
+      resize: none;
+      font-family: monospace;
+      padding: 4px;
+      font-size: 12px;
+      height: 150px;
+    }
+    .dropzone {
+      position: relative;
+      border-top: 1px dashed gray;
+      flex: 1;
+      background: #111;
+      padding: 4px;
+      overflow: auto;
+    }
+    .connector {
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+<style type="text/css" id="operaUserStyle"></style></head>
+<body>
+  <div id="toolbar" style="display: none; height: 0px;">
+    <button onclick="addNode('Room')">Add Room</button>
+    <button onclick="addNode('Item/NPC')">Add Item/NPC</button>
+    <button onclick="addNode('Note')">Add Note</button>
+    <button onclick="startConnector()">Room Connector</button>
+    <button onclick="download()">Save</button>
+  </div>
+  <div id="canvas" tabindex="0"></div>
+  <div class="zoom-controls" style="display: none;">
+    <button onclick="setZoom(zoom + 0.1)">Zoom In</button>
+    <button onclick="setZoom(zoom - 0.1)">Zoom Out</button>
+  </div>
+
+  <div id="helpDialog" style="
+    display: none;
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    color: white;
+    border: 2px solid #555;
+    padding: 20px;
+    z-index: 9999;
+    font-family: monospace;
+    max-width: 400px;
+    text-align: left;
+  ">
+    <h3>Key Bindings</h3>
+    <p>
+      <pre>
+a = Add a new node.
+c = Start connection (select a room and hit Enter,
+    select the second room and hit Enter).
+X = Disconnects two nodes in the same manner as
+    connecting them.
+D = Delete the selected node.
+h = Move selected node left.
+H = Reduce width of selected node.
+i = Select current node's text field.
+j = Move selected node down.
+J = Increase selected node's height.
+k = Move selected node up.
+K = Reduce selected node's height.
+l = Move selected node right.
+L = Increase selected node's width.
+< = Move selected node left by half a step.
+> = Move selected node right by half a step.
+^ = Move selected node up by half a step.
+- = Move selected node down by half a step.
+z = Increase selected node's text area.
+Z = Decrease selected node's text area.
+w = Cycles through the nodes.
+s = Save the current diagram.
+G = Scroll to the top left.
+, = Zoom out.
+. = Zoom in.
+0 = Reset zoom.
+/ = Search and select a node.
+Escape = Deselect the current note's text field.
+      </pre>
+    </p>
+    <p>Press ESC to close.</p>
+  </div>
+
+<script>
+let canvas = document.getElementById('canvas');
+let selectedNode = null;
+let offsetX, offsetY;
+let nodes = [];
+let connectors = [];
+let connecting = false;
+let connectStart = null;
+let disconnecting = false;
+let disconnectStart = null;
+let zoom = 1;
+let dragging = false;
+
+function setZoom(z) {
+  zoom = Math.max(0.2, Math.min(z, 3));
+  canvas.style.transform = `scale(${zoom})`;
+}
+
+function findEmptySpot() {
+  const step = 40;
+  const width = 160;
+  const height = 120;
+
+  // Determine parent container to search in
+  let container = canvas;
+  if (selectedNode) {
+    const dropzone = selectedNode.querySelector('.dropzone');
+    if (dropzone && dropzone.children.length > 0) {
+      container = dropzone;
+    } else if (dropzone && dropzone.children.length === 0) {
+      // Dropzone exists but is empty — use top-left
+      return { left: 0, top: 0 };
+    }
+  }
+
+  const allNodes = Array.from(container.querySelectorAll('.node'));
+
+  if (allNodes.length === 0) {
+    return { left: 0, top: 0 };
+  }
+
+  const maxCols = Math.floor(container.clientWidth / (width + step));
+  const maxRows = Math.floor(container.clientHeight / (height + step));
+
+  for (let row = 0; row < maxRows; row++) {
+    for (let col = 0; col < maxCols; col++) {
+      const left = col * (width + step);
+      const top = row * (height + step);
+
+      const snappedLeft = Math.round(left / step) * step;
+      const snappedTop = Math.round(top / step) * step;
+
+      const overlap = allNodes.some(n => {
+        const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
+        const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
+        const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
+        const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
+        return (
+          snappedLeft < nRight &&
+          snappedLeft + width > nLeft &&
+          snappedTop < nBottom &&
+          snappedTop + height > nTop
+        );
+      });
+
+      if (!overlap) return { left: snappedLeft, top: snappedTop };
+    }
+  }
+
+  // Fallback position
+  return {
+    left: Math.round(100 / step) * step,
+    top: Math.round(100 / step) * step
+  };
+}
+
+canvas.onclick = e => {
+  if (e.target === canvas) {
+    setSelectedNode(null);
+  }
+};
+
+function addNode() {
+  const input = prompt("Enter node type:");
+  if (!input) return;
+  const type = input.trim();
+
+  let div = document.createElement('div');
+  div.className = 'node';
+  div.style.width = '150px';
+  div.style.height = '100px';
+  div.dataset.type = type;
+  div.id = 'node-' + crypto.randomUUID();
+
+  const header = document.createElement('div');
+  header.className = 'node-header';
+  header.textContent = type;
+  div.appendChild(header);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'node-content';
+  textarea.placeholder = 'Enter notes...';
+  div.appendChild(textarea);
+
+  const dropzone = document.createElement('div');
+  dropzone.className = 'dropzone';
+  dropzone.ondragover = e => e.preventDefault();
+  dropzone.ondrop = e => {
+    const id = e.dataTransfer.getData("text/plain");
+    const item = document.getElementById(id);
+    if (item && !item.contains(div)) dropzone.appendChild(item);
+  };
+  div.appendChild(dropzone);
+
+  setupNode(div);
+
+  // === Nesting logic ===
+  if (selectedNode) {
+    const parentDropzone = selectedNode.querySelector('.dropzone');
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+
+    if (parentDropzone && !div.contains(parentDropzone)) {
+      parentDropzone.appendChild(div);
+    } else {
+      const { left, top } = findEmptySpot();
+      div.style.left = left + 'px';
+      div.style.top = top + 'px';
+      canvas.appendChild(div);
+    }
+  } else {
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+    canvas.appendChild(div);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nodes.push(div);
+
+  attachChild(div);
+}
+
+function getAllNodes() {
+  return Array.from(document.querySelectorAll('.node'));
+}
+
+function setSelectedNode(node) {
+  selectedNode = node;
+  nodes.forEach(n => {
+    n.style.borderColor = (n === selectedNode) ? '#B5DBFA' : '#aaa';
+    n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
+  });
+
+  if (selectedNode) {
+    selectedNode.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center'
+    });
+  }
+}
+
+
+
+
+function showNodeSelectorDialog() {
+  // Remove any existing popup
+  const existing = document.getElementById('nodeSelectorDialog');
+  if (existing) existing.remove();
+
+  const dialog = document.createElement('div');
+  dialog.id = 'nodeSelectorDialog';
+  dialog.style.position = 'fixed';
+  dialog.style.top = '10%';
+  dialog.style.left = '50%';
+  dialog.style.transform = 'translateX(-50%)';
+  dialog.style.width = '400px';
+  dialog.style.maxHeight = '70%';
+  dialog.style.overflow = 'hidden';
+  dialog.style.background = '#222';
+  dialog.style.color = '#fff';
+  dialog.style.border = '2px solid #444';
+  dialog.style.borderRadius = '10px';
+  dialog.style.zIndex = 9999;
+  dialog.style.fontFamily = 'monospace';
+  dialog.style.padding = '10px';
+  dialog.style.display = 'flex';
+  dialog.style.flexDirection = 'column';
+  dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+  const filter = document.createElement('input');
+  filter.type = 'text';
+  filter.placeholder = 'Filter by type or text...';
+  filter.style.padding = '5px';
+  filter.style.marginBottom = '10px';
+  filter.style.background = '#111';
+  filter.style.color = '#fff';
+  filter.style.border = '1px solid #555';
+
+  const listContainer = document.createElement('div');
+  listContainer.style.overflowY = 'auto';
+  listContainer.style.flex = '1';
+  listContainer.style.borderTop = '1px solid #333';
+  listContainer.style.borderBottom = '1px solid #333';
+
+  const nodesList = Array.from(document.querySelectorAll('.node'));
+  let filteredList = [];
+  let selectedIndex = 0;
+
+  function renderList() {
+    listContainer.innerHTML = '';
+    const search = filter.value.toLowerCase();
+    filteredList = nodesList.filter(n => {
+      const type = n.dataset.type?.toLowerCase() || '';
+      const text = n.querySelector('textarea')?.value.toLowerCase() || '';
+      return type.includes(search) || text.includes(search);
+    });
+
+    filteredList.forEach((node, index) => {
+      const id = node.id || '(no id)';
+      const type = node.dataset.type || '(no type)';
+      const text = node.querySelector('textarea')?.value || '';
+      const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+
+      const item = document.createElement('div');
+      item.textContent = `[${type}] — "${preview}"`;
+      item.style.padding = '5px 8px';
+      item.style.cursor = 'pointer';
+      item.style.whiteSpace = 'nowrap';
+      item.style.overflow = 'hidden';
+      item.style.textOverflow = 'ellipsis';
+
+      if (index === selectedIndex) {
+        item.style.background = '#444';
+      }
+
+      item.addEventListener('mouseenter', () => {
+        selectedIndex = index;
+        renderList();
+      });
+
+      item.addEventListener('click', () => {
+        setSelectedNode(filteredList[selectedIndex]);
+        dialog.remove();
+      });
+
+      listContainer.appendChild(item);
+    });
+
+    if (filteredList.length === 0) {
+      const empty = document.createElement('div');
+      empty.textContent = '(no matching nodes)';
+      empty.style.padding = '5px';
+      empty.style.color = '#888';
+      listContainer.appendChild(empty);
+    }
+  }
+
+  filter.addEventListener('input', () => {
+    selectedIndex = 0;
+    renderList();
+  });
+
+  filter.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
+      renderList();
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      renderList();
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      if (filteredList[selectedIndex]) {
+        setSelectedNode(filteredList[selectedIndex]);
+        e.preventDefault();
+        e.stopPropagation();
+        dialog.remove();
+      }
+    } else if (e.key === 'Escape') {
+      dialog.remove();
+      e.stopPropagation();
+    }
+  });
+
+  dialog.appendChild(filter);
+  dialog.appendChild(listContainer);
+  document.body.appendChild(dialog);
+  filter.focus();
+
+  renderList();
+}
+
+
+
+
+
+function setupNode(div) {
+  const type = div.dataset.type;
+  const textarea = div.querySelector('textarea');
+
+  const header = div.querySelector('.node-header');
+  const deleteBtn = header?.querySelector('.delete-btn');
+  if (deleteBtn) {
+    deleteBtn.onclick = e => {
+      e.stopPropagation();
+      removeNode(div);
+    };
+  }
+
+  div.draggable = false;
+  div.ondragstart = e => {
+    e.dataTransfer.setData("text/plain", div.id);
+  };
+
+  const dropzone = div.querySelector('.dropzone');
+  if (dropzone) {
+    dropzone.ondragover = e => e.preventDefault();
+    dropzone.ondrop = e => {
+      const id = e.dataTransfer.getData("text/plain");
+      const item = document.getElementById(id);
+      if (item) dropzone.appendChild(item);
+    };
+  }
+
+  if (!nodes.includes(div)) nodes.push(div);
+}
+
+function removeNode(node) {
+  connectors = connectors.filter(c => c.a !== node && c.b !== node);
+  updateConnectors();
+  if (node.parentElement) {
+    node.parentElement.removeChild(node);
+  }
+  nodes = nodes.filter(n => n !== node);
+  if (selectedNode === node) selectedNode = null;
+}
+
+function getNodeDepth(node) {
+  let depth = 0;
+  while (node.parentElement) {
+    node = node.parentElement;
+    if (nodes.includes(node)) {
+      depth++;
+    }
+  }
+  return depth;
+}
+
+function attachChild(selectedNode) {
+  const selectedRect = selectedNode.getBoundingClientRect();
+  let bestTarget = null;
+  let bestOverlapArea = 0;
+  let prevDepth = 0;
+  let curDepth = 0;
+
+  for (let node of nodes) {
+
+    if (node === selectedNode || node.contains(selectedNode)) continue;
+
+    const nodeRect = node.getBoundingClientRect();
+    const overlapX = Math.max(0, Math.min(selectedRect.right, nodeRect.right) - Math.max(selectedRect.left, nodeRect.left));
+    const overlapY = Math.max(0, Math.min(selectedRect.bottom, nodeRect.bottom) - Math.max(selectedRect.top, nodeRect.top));
+    const overlapArea = overlapX * overlapY;
+
+    if (overlapArea > bestOverlapArea) {
+      curDepth = getNodeDepth(node);
+
+      if (curDepth === 0 || curDepth > prevDepth) {
+        bestOverlapArea = overlapArea;
+        bestTarget = node;
+        prevDepth = curDepth;
+      }
+    }
+  }
+
+  if (bestTarget && selectedNode !== null) {
+    const dropzone = bestTarget.querySelector('.dropzone');
+    if (dropzone && !dropzone.contains(selectedNode)) {
+      // Remove from current parent
+      if (selectedNode.parentElement) {
+        selectedNode.parentElement.removeChild(selectedNode);
+      }
+
+      // Calculate position relative to new parent
+      const parentRect = dropzone.getBoundingClientRect();
+      const newLeft = selectedRect.left - parentRect.left;
+      const newTop = selectedRect.top - parentRect.top;
+
+      selectedNode.style.left = newLeft + 'px';
+      selectedNode.style.top = newTop + 'px';
+
+      dropzone.appendChild(selectedNode);
+    }
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    if (e.key === 'Escape' && selectedNode) {
+      const txt = selectedNode.querySelector('textarea');
+      txt.blur();
+      e.stopPropagation();
+      return;
+    }
+  }
+
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+  if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    document.getElementById('helpDialog').style.display = 'block';
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    if (document.getElementById('helpDialog').style.display === 'block') {
+      document.getElementById('helpDialog').style.display = 'none';
+      e.stopPropagation();
+      return;
+    } else {
+      selectedNode = null;
+      setSelectedNode(null);
+    }
+  }
+
+  switch (e.key) {
+    case 'a':
+      addNode();
+      break;
+    case 's':
+      download();
+      break;
+    case '/':
+      showNodeSelectorDialog();
+      e.preventDefault();
+      break;
+    case ',':
+      setZoom(zoom - 0.1);
+      break;
+    case '.':
+      setZoom(zoom + 0.1);
+      break;
+    case '0':
+      setZoom(1);
+      break;
+    case 'G':
+      setSelectedNode(null);
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      break;
+  }
+
+  if (e.key === 'w' || e.key === 'W') {
+    const nodes = getAllNodes();
+    if (nodes.length === 0) return;
+
+    const index = nodes.indexOf(selectedNode);
+    let nextIndex;
+    if (e.shiftKey) {
+      nextIndex = (index - 1 + nodes.length) % nodes.length;
+    } else {
+      nextIndex = (index + 1) % nodes.length;
+    }
+
+    setSelectedNode(nodes[nextIndex]);
+    return;
+  }
+
+  if (!selectedNode) {
+    return;
+  }
+
+  const step = 40;
+  const style = selectedNode.style;
+  const width = parseInt(style.width);
+  const height = parseInt(style.height);
+  const left = parseInt(style.left);
+  const top = parseInt(style.top);
+  const dropzone = selectedNode.querySelector('.dropzone');
+  const textarea = selectedNode.querySelector('textarea');
+
+  const resize = (dw, dh) => {
+    const width = parseInt(selectedNode.style.width);
+    const height = parseInt(selectedNode.style.height);
+    selectedNode.style.width = Math.max(50, width + dw) + 'px';
+    selectedNode.style.height = Math.max(40, height + dh) + 'px';
+    updateConnectors();
+  };
+
+  const resizeDropzone = (dh) => {
+    if (!dropzone) return;
+    const dzStyle = dropzone.style;
+    const txStyle = textarea.style;
+    const dzWidth = parseFloat(dzStyle.width) || 0;
+    let dzHeight = parseFloat(dzStyle.height) || 0;
+    const txHeight = parseFloat(txStyle.height) || 0;
+
+    if (!dzHeight) {
+      dzHeight = parseFloat(selectedNode.style.height) - txStyle.height;
+      dzStyle.height = dzHeight + 'px';
+    }
+
+    dzStyle.height = Math.max(10, dzHeight + dh) + 'px';
+    txStyle.height = Math.max(10, parseFloat(window.getComputedStyle(textarea).height) - dh) + 'px';
+  };
+  
+  const move = (dx, dy) => {
+    const parent = selectedNode.offsetParent;
+    const currentLeft = selectedNode.offsetLeft;
+    const currentTop = selectedNode.offsetTop;
+    selectedNode.style.left = (currentLeft + dx) + 'px';
+    selectedNode.style.top = (currentTop + dy) + 'px';
+    updateConnectors();
+  };
+
+  switch (e.key) {
+    case 'c':
+      startConnector()
+      break;
+    case 'D':
+      removeNode(selectedNode);
+      break;
+    case 'X':
+      startDisconnector();
+      break;
+    case 'h':
+      move(-step, 0);
+      break;
+    case '<':
+      move(-(step/2), 0);
+      break;
+    case 'H':
+      resize(-step, 0);
+      break;
+    case 'i':
+      if (textarea) {
+        textarea.focus();
+        e.preventDefault();
+      }
+      break;
+    case 'j':
+      move(0, step);
+      break;
+    case '-':
+      move(0, (step/2));
+      break;
+    case 'J':
+      resize(0, step);
+      break;
+    case 'k':
+      move(0, -step);
+      break;
+    case '^':
+      move(0, -(step/2));
+      break;
+    case 'K':
+      resize(0, -step);
+      break;
+    case 'l':
+      move(step, 0);
+      break;
+    case '>':
+      move((step/2), 0);
+      break;
+    case 'L':
+      resize(step, 0);
+      break;
+    case 'm':
+      resize(step, step);
+      break;
+    case 'z':
+      resizeDropzone(-10);
+      break;
+    case 'Z':
+      resizeDropzone(10);
+      break;
+    case 'Enter':
+      if (disconnecting) {
+        if (!disconnectStart) {
+          disconnectStart = selectedNode;
+        } else {
+          // Remove connector if it exists
+          connectors = connectors.filter(conn => {
+            return !(
+              (conn.a === disconnectStart && conn.b === selectedNode) ||
+              (conn.b === disconnectStart && conn.a === selectedNode)
+            );
+          });
+          updateConnectors();
+          disconnecting = false;
+          disconnectStart = null;
+        }
+        e.stopPropagation();
+      } else if (connecting) {
+        if (!connectStart) {
+          connectStart = selectedNode;
+        } else {
+          drawConnector(connectStart, selectedNode);
+          connectStart = null;
+          connecting = false;
+        }
+        e.stopPropagation();
+      } else {
+        attachChild(selectedNode);
+      }
+      break;
+    default:
+      return; // Don't prevent default for unrelated keys
+  }
+
+  e.preventDefault();
+});
+
+function drawConnector(a, b) {
+  connectors.push({a, b});
+  updateConnectors();
+}
+
+function updateConnectors() {
+  document.querySelectorAll('svg.connector').forEach(c => c.remove());
+
+  function getAncestors(node) {
+    const ancestors = [];
+    while (node && node !== canvas.parentElement) {  // go up until canvas parent, in case canvas is root
+      ancestors.push(node);
+      node = node.parentElement;
+    }
+    return ancestors.reverse();
+  }
+
+  function findLCA(a, b) {
+    const aAncestors = getAncestors(a);
+    const bAncestors = getAncestors(b);
+    let lca = null;
+    const len = Math.min(aAncestors.length, bAncestors.length);
+    for (let i = 0; i < len; i++) {
+      if (aAncestors[i] === bAncestors[i]) {
+        lca = aAncestors[i];
+      } else {
+        break;
+      }
+    }
+    return lca || canvas;
+  }
+
+  function getNodeCenterRelativeToElement(node, element) {
+    const nodeRect = node.getBoundingClientRect();
+    const elemRect = element.getBoundingClientRect();
+  
+    // Undo the zoom transformation
+    const scale = zoom || 1;
+  
+    return {
+      x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
+      y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
+    };
+  }
+
+  connectors.forEach(({ a, b }) => {
+    const lca = findLCA(a, b);
+
+    const aCenter = getNodeCenterRelativeToElement(a, lca);
+    const bCenter = getNodeCenterRelativeToElement(b, lca);
+
+    const minX = Math.min(aCenter.x, bCenter.x);
+    const minY = Math.min(aCenter.y, bCenter.y);
+    const maxX = Math.max(aCenter.x, bCenter.x);
+    const maxY = Math.max(aCenter.y, bCenter.y);
+
+    const width = Math.max(maxX - minX, 2);
+    const height = Math.max(maxY - minY, 2);
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("connector");
+    svg.style.position = 'absolute';
+    svg.style.left = `${minX}px`;
+    svg.style.top = `${minY}px`;
+    svg.style.width = `${width}px`;
+    svg.style.height = `${height}px`;
+    svg.style.zIndex = '0';
+    svg.style.pointerEvents = 'none';
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", aCenter.x - minX);
+    line.setAttribute("y1", aCenter.y - minY);
+    line.setAttribute("x2", bCenter.x - minX);
+    line.setAttribute("y2", bCenter.y - minY);
+    line.setAttribute("stroke", "#333");
+    line.setAttribute("stroke-width", "2");
+    svg.appendChild(line);
+
+    // Insert SVG into LCA before a or b if direct child, else append
+    const children = Array.from(lca.children);
+    let insertBefore = null;
+    if (children.includes(a)) insertBefore = a;
+    else if (children.includes(b)) insertBefore = b;
+
+    if (insertBefore) {
+      lca.insertBefore(svg, insertBefore);
+    } else {
+      lca.appendChild(svg);
+    }
+  });
+}
+
+function startConnector() {
+  connecting = true;
+  connectStart = null;
+}
+
+function startDisconnector() {
+  disconnecting = true;
+  disconnectStart = null;
+}
+
+function download() {
+  document.querySelectorAll('textarea.node-content').forEach(t => {
+    t.textContent = t.value;
+  });
+
+  // Remove any previous connector data
+  document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+
+  // Serialize connectors using node IDs
+  const connectorData = connectors.map(({ a, b }) => ({
+    a: a.id,
+    b: b.id
+  }));
+
+  const script = document.createElement('script');
+  script.type = 'application/json';
+  script.dataset.connectors = 'true';
+  script.id = 'connector-data';
+  script.textContent = JSON.stringify(connectorData, null, 2);
+
+  document.body.appendChild(script);
+
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'plotter.html';
+  a.click();
+
+  script.remove(); // Remove after save to avoid duplicate
+}
+
+function initializeNodes() {
+  document.querySelectorAll('.node').forEach(setupNode);
+}
+
+function restoreConnectorsFromDOM() {
+  const script = document.getElementById('connector-data');
+  if (!script) return;
+
+  try {
+    const saved = JSON.parse(script.textContent);
+    connectors = [];
+
+    saved.forEach(({ a, b }) => {
+      const nodeA = document.getElementById(a);
+      const nodeB = document.getElementById(b);
+      if (nodeA && nodeB) {
+        connectors.push({ a: nodeA, b: nodeB });
+      }
+    });
+
+    updateConnectors();
+  } catch (err) {
+    console.error('Failed to restore connectors:', err);
+  }
+}
+
+window.onload = () => {
+  initializeNodes();
+  restoreConnectorsFromDOM();
+  updateConnectors();
+  canvas.focus();
+};
+</script>
+
+
+</body></html>
