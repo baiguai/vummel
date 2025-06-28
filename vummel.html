@@ -321,6 +321,67 @@ function addNode() {
   attachChild(div);
 }
 
+function addLinkNode() {
+  const displayText = prompt("Enter link display text:");
+  if (!displayText) return;
+
+  const url = prompt("Enter the full URL (include https://):");
+  if (!url) return;
+
+  const div = document.createElement('div');
+  div.className = 'node';
+  div.style.width = '150px';
+  div.style.height = '60px';
+  div.dataset.type = 'Link';
+  div.id = 'node-' + crypto.randomUUID();
+
+  const header = document.createElement('div');
+  header.className = 'node-header';
+  header.textContent = displayText;
+  div.appendChild(header);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.textContent = url;
+  link.style.color = '#7af';
+  link.style.padding = '6px';
+  link.style.fontSize = '12px';
+  link.style.textDecoration = 'underline';
+  link.style.wordBreak = 'break-word';
+  div.appendChild(link);
+
+  const { left, top } = findEmptySpot();
+  div.style.left = left + 'px';
+  div.style.top = top + 'px';
+
+  // === Nesting logic ===
+  if (selectedNode) {
+    const parentDropzone = selectedNode.querySelector('.dropzone');
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+
+    if (parentDropzone && !div.contains(parentDropzone)) {
+      parentDropzone.appendChild(div);
+    } else {
+      const { left, top } = findEmptySpot();
+      div.style.left = left + 'px';
+      div.style.top = top + 'px';
+      canvas.appendChild(div);
+    }
+  } else {
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+    canvas.appendChild(div);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nodes.push(div);
+  setSelectedNode(div);
+}
+
 function getAllNodes() {
   return Array.from(document.querySelectorAll('.node'));
 }
@@ -608,6 +669,9 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'a':
       addNode();
+      break;
+    case 'u':
+      addLinkNode();
       break;
     case 's':
       download();
