@@ -144,6 +144,7 @@
     <p>
       </p><pre>a = Add a new node.
 u = Add a new link node.
+r = Change current node's type (rename).
 c = Start connection (select a room and hit Enter,
     select the second room and hit Enter).
 X = Disconnects two nodes in the same manner as
@@ -319,6 +320,22 @@ function addNode() {
   nodes.push(div);
 
   attachChild(div);
+}
+
+function renameNode() {
+  if (!selectedNode) return;
+
+  const input = prompt("Enter new node type:");
+  if (!input) return;
+
+  const newType = input.trim();
+  selectedNode.dataset.type = newType;
+
+  // Update the header text too
+  const header = selectedNode.querySelector('.node-header');
+  if (header) {
+    header.textContent = newType;
+  }
 }
 
 function addLinkNode() {
@@ -810,6 +827,9 @@ document.addEventListener('keydown', e => {
       break;
     case 'l':
       move(step, 0);
+      break;
+    case 'r':
+      renameNode();
       break;
     case '>':
       move((step/2), 0);
