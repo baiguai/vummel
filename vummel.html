@@ -142,8 +142,7 @@
   ">
     <h3>Key Bindings</h3>
     <p>
-      <pre>
-a = Add a new node.
+      </p><pre>a = Add a new node.
 u = Add a new link node.
 c = Start connection (select a room and hit Enter,
     select the second room and hit Enter).
@@ -159,8 +158,8 @@ k = Move selected node up.
 K = Reduce selected node's height.
 l = Move selected node right.
 L = Increase selected node's width.
-< = Move selected node left by half a step.
-> = Move selected node right by half a step.
+&lt; = Move selected node left by half a step.
+&gt; = Move selected node right by half a step.
 ^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
 z = Increase selected node's text area.
@@ -174,7 +173,7 @@ G = Scroll to the top left.
 / = Search and select a node.
 Escape = Deselect the current note's text field.
       </pre>
-    </p>
+    <p></p>
     <p>Press ESC to close.</p>
   </div>
 
@@ -394,8 +393,12 @@ function setSelectedNode(node) {
     n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
   });
 
-  if (selectedNode) {
-    selectedNode.scrollIntoView({
+  setScroll(selectedNode);
+}
+
+function setScroll(currentNode) {
+  if (currentNode) {
+    currentNode.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
       inline: 'center'
@@ -756,6 +759,9 @@ document.addEventListener('keydown', e => {
     const currentTop = selectedNode.offsetTop;
     selectedNode.style.left = (currentLeft + dx) + 'px';
     selectedNode.style.top = (currentTop + dy) + 'px';
+
+    setScroll(selectedNode);
+
     updateConnectors();
   };
 
@@ -1026,4 +1032,54 @@ window.onload = () => {
 </script>
 
 
-</body></html>
+
+<script type="application/json" data-connectors="true" id="connector-data">[
+  {
+    "a": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989",
+    "b": "node-85571647-97d3-4cd3-b6cc-0855036d6e93"
+  },
+  {
+    "a": "node-5bc7ca87-d32f-4318-9918-9fac668144e5",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  },
+  {
+    "a": "node-42e7f385-c5c2-4c6a-ab17-979377c5058d",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  },
+  {
+    "a": "node-8fc0cf34-8056-408b-9ab0-f0a4465eca5a",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-5c504614-3ca6-4810-85ee-31ad3e687fc5",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-89aa467f-68b5-4eec-8750-7eb646a3affc",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-5e3e0944-7b2f-447b-a857-f9e965e981a1",
+    "b": "node-8fc0cf34-8056-408b-9ab0-f0a4465eca5a"
+  },
+  {
+    "a": "node-fcbe27aa-c862-460d-b4c8-09afd052a624",
+    "b": "node-5c504614-3ca6-4810-85ee-31ad3e687fc5"
+  },
+  {
+    "a": "node-e1a38328-ee70-42e7-b48a-fbd47b1a8f23",
+    "b": "node-89aa467f-68b5-4eec-8750-7eb646a3affc"
+  },
+  {
+    "a": "node-57a83523-608d-4cea-9423-bff1b4a058ee",
+    "b": "node-89aa467f-68b5-4eec-8750-7eb646a3affc"
+  },
+  {
+    "a": "node-49c364ee-26fe-4933-a611-c212938bafaf",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  },
+  {
+    "a": "node-713fe59d-cc6c-413e-ad4c-7e8a8f8228ac",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  }
+]</script></body></html>
