@@ -838,32 +838,7 @@ document.addEventListener('keydown', e => {
       resizeDropzone(10);
       break;
     case '#':
-      if (selectedNode) {
-        const baseColor = prompt("Enter an HTML color (e.g., #3366ff or red):");
-        if (!baseColor) break;
-    
-        selectedNode.dataset.color = baseColor;
-    
-        const bg = darken(baseColor, 0.6);     // Node background
-        const contentBg = darken(baseColor, 0.4); // Textarea and dropzone
-        const fg = lighten(baseColor, 1.6);    // Foreground text
-    
-        selectedNode.style.background = bg;
-    
-        const header = selectedNode.querySelector('.node-header');
-        const textarea = selectedNode.querySelector('textarea');
-        const dropzone = selectedNode.querySelector('.dropzone');
-    
-        if (header) header.style.color = fg;
-        if (textarea) {
-          textarea.style.background = contentBg;
-          textarea.style.color = fg;
-        }
-        if (dropzone) {
-          dropzone.style.background = contentBg;
-          dropzone.style.color = fg;
-        }
-      }
+      setNodeColor();
       break;
 
     case 'Enter':
@@ -907,6 +882,47 @@ document.addEventListener('keydown', e => {
 
   e.preventDefault();
 });
+
+function setNodeColor() {
+  // Create a hidden color input if it doesn't already exist
+  let colorInput = document.getElementById('hidden-color-input');
+  if (!colorInput) {
+    colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.id = 'hidden-color-input';
+    colorInput.style.display = 'none';
+    document.body.appendChild(colorInput);
+  }
+
+  // When user selects a color
+  colorInput.oninput = () => {
+    const baseColor = colorInput.value;
+    selectedNode.dataset.color = baseColor;
+
+    const bg = darken(baseColor, 0.6);     // Node background
+    const contentBg = darken(baseColor, 0.4); // Textarea and dropzone
+    const fg = lighten(baseColor, 1.6);    // Foreground text
+
+    selectedNode.style.background = bg;
+
+    const header = selectedNode.querySelector('.node-header');
+    const textarea = selectedNode.querySelector('textarea');
+    const dropzone = selectedNode.querySelector('.dropzone');
+
+    if (header) header.style.color = fg;
+    if (textarea) {
+      textarea.style.background = contentBg;
+      textarea.style.color = fg;
+    }
+    if (dropzone) {
+      dropzone.style.background = contentBg;
+      dropzone.style.color = fg;
+    }
+  };
+
+  // Open the color picker dialog
+  colorInput.click();
+}
 
 function drawConnector(a, b) {
   connectors.push({a, b});
