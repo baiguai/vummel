@@ -763,6 +763,12 @@ document.addEventListener('keydown', e => {
     selectedNode.style.left = (currentLeft + dx) + 'px';
     selectedNode.style.top = (currentTop + dy) + 'px';
     updateConnectors();
+
+    selectedNode.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center'
+    });
   };
 
   switch (e.key) {
