@@ -869,6 +869,8 @@ document.addEventListener('keydown', e => {
 
          setSelectedNode(snapTarget);
 
+         updateConnectors();
+
          snapTarget = null;
          snapping = false;
       } else {
