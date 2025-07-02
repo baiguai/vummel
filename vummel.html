@@ -210,11 +210,13 @@ function findEmptySpot() {
   const height = 120;
 
   let container = canvas;
+  let isInDropzone = false;
 
   if (selectedNode) {
     const dropzone = selectedNode.querySelector('.dropzone');
     if (dropzone && dropzone.children.length > 0) {
       container = dropzone;
+      isInDropzone = true;
     } else if (dropzone && dropzone.children.length === 0) {
       return { left: 0, top: 0 };
     }
@@ -225,13 +227,26 @@ function findEmptySpot() {
     return { left: 0, top: 0 };
   }
 
-  // ✅ Viewport center translated into canvas-local coordinates
-  const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
-  const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+  let snappedCenterX, snappedCenterY;
 
-  const snappedCenterX = Math.round(centerX / step) * step;
-  const snappedCenterY = Math.round(centerY / step) * step;
+  if (isInDropzone) {
+    // 🟢 For dropzones, just use center of the dropzone itself (no scroll involved)
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
 
+    snappedCenterX = Math.round((containerWidth / 2) / step) * step;
+    snappedCenterY = Math.round((containerHeight / 2) / step) * step;
+  } else {
+    // 🟡 For canvas/global, center based on scroll position
+    const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
+    const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+
+    snappedCenterX = Math.round(centerX / step) * step;
+    snappedCenterY = Math.round(centerY / step) * step;
+  }
+
+  // 🔁 Spiral search for a free spot
   const maxRadius = 20;
   for (let radius = 0; radius <= maxRadius; radius++) {
     for (let dy = -radius; dy <= radius; dy++) {
@@ -262,6 +277,7 @@ function findEmptySpot() {
     }
   }
 
+  // 🧯 Fallback
   return {
     left: Math.round(100 / step) * step,
     top: Math.round(100 / step) * step
