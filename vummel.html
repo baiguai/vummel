@@ -230,7 +230,7 @@ function findEmptySpot() {
   let snappedCenterX, snappedCenterY;
 
   if (isInDropzone) {
-    // 🟢 For dropzones, just use center of the dropzone itself (no scroll involved)
+    // For dropzones, just use center of the dropzone itself (no scroll involved)
     const containerRect = container.getBoundingClientRect();
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
@@ -238,7 +238,7 @@ function findEmptySpot() {
     snappedCenterX = Math.round((containerWidth / 2) / step) * step;
     snappedCenterY = Math.round((containerHeight / 2) / step) * step;
   } else {
-    // 🟡 For canvas/global, center based on scroll position
+    // For canvas/global, center based on scroll position
     const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
     const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
 
@@ -246,7 +246,7 @@ function findEmptySpot() {
     snappedCenterY = Math.round(centerY / step) * step;
   }
 
-  // 🔁 Spiral search for a free spot
+  // Spiral search for a free spot
   const maxRadius = 20;
   for (let radius = 0; radius <= maxRadius; radius++) {
     for (let dy = -radius; dy <= radius; dy++) {
@@ -277,7 +277,7 @@ function findEmptySpot() {
     }
   }
 
-  // 🧯 Fallback
+  // Fallback
   return {
     left: Math.round(100 / step) * step,
     top: Math.round(100 / step) * step
