@@ -144,6 +144,7 @@
     <p>
       </p><pre>
 a = Add a new node.
+r = Rename node (change its type).
 u = Add a new link node.
 c = Start connection (select the second node
     and hit Enter).
@@ -328,6 +329,22 @@ function addNode() {
   nodes.push(div);
 
   attachChild(div);
+}
+
+function renameNode() {
+  if (!selectedNode) return;
+
+  const input = prompt("Enter new node type:");
+  if (!input) return;
+
+  const newType = input.trim();
+  selectedNode.dataset.type = newType;
+
+  // Update the header text too
+  const header = selectedNode.querySelector('.node-header');
+  if (header) {
+    header.textContent = newType;
+  }
 }
 
 function addLinkNode() {
@@ -822,6 +839,8 @@ document.addEventListener('keydown', e => {
     case 'l':
       move(step, 0);
       break;
+    case 'r':
+      renameNode();
     case '>':
       move((step/2), 0);
       break;
