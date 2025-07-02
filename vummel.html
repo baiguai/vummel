@@ -209,53 +209,59 @@ function findEmptySpot() {
   const width = 160;
   const height = 120;
 
-  // Determine parent container to search in
   let container = canvas;
+
   if (selectedNode) {
     const dropzone = selectedNode.querySelector('.dropzone');
     if (dropzone && dropzone.children.length > 0) {
       container = dropzone;
     } else if (dropzone && dropzone.children.length === 0) {
-      // Dropzone exists but is empty — use top-left
       return { left: 0, top: 0 };
     }
   }
 
   const allNodes = Array.from(container.querySelectorAll('.node'));
-
   if (allNodes.length === 0) {
     return { left: 0, top: 0 };
   }
 
-  const maxCols = Math.floor(container.clientWidth / (width + step));
-  const maxRows = Math.floor(container.clientHeight / (height + step));
+  // ✅ Viewport center translated into canvas-local coordinates
+  const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
+  const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
 
-  for (let row = 0; row < maxRows; row++) {
-    for (let col = 0; col < maxCols; col++) {
-      const left = col * (width + step);
-      const top = row * (height + step);
+  const snappedCenterX = Math.round(centerX / step) * step;
+  const snappedCenterY = Math.round(centerY / step) * step;
 
-      const snappedLeft = Math.round(left / step) * step;
-      const snappedTop = Math.round(top / step) * step;
+  const maxRadius = 20;
+  for (let radius = 0; radius <= maxRadius; radius++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
 
-      const overlap = allNodes.some(n => {
-        const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
-        const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
-        const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
-        const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
-        return (
-          snappedLeft < nRight &&
-          snappedLeft + width > nLeft &&
-          snappedTop < nBottom &&
-          snappedTop + height > nTop
-        );
-      });
+        const left = snappedCenterX + dx * (width + step);
+        const top = snappedCenterY + dy * (height + step);
 
-      if (!overlap) return { left: snappedLeft, top: snappedTop };
+        const snappedLeft = Math.round(left / step) * step;
+        const snappedTop = Math.round(top / step) * step;
+
+        const overlap = allNodes.some(n => {
+          const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
+          const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
+          const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
+          const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
+          return (
+            snappedLeft < nRight &&
+            snappedLeft + width > nLeft &&
+            snappedTop < nBottom &&
+            snappedTop + height > nTop
+          );
+        });
+
+        if (!overlap) return { left: snappedLeft, top: snappedTop };
+      }
     }
   }
 
-  // Fallback position
   return {
     left: Math.round(100 / step) * step,
     top: Math.round(100 / step) * step
