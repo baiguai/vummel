@@ -930,25 +930,102 @@ document.addEventListener('keydown', e => {
 function showColorPaletteMenu() {
   if (!selectedNode) return;
 
-  const names = Object.keys(colorPalettes);
-  let menu = names.map(name => `• ${name}`).join('\n');
-  menu += names.length ? '\n\n' : '';
-  menu += 'Enter "+" to create a new color palette.';
+  // Overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
 
-  const choice = prompt(`Choose a color palette:\n\n${menu}`);
-  if (!choice) return;
+  // Modal
+  const modal = document.createElement('div');
+  modal.style.background = 'black';
+  modal.style.color = 'white';
+  modal.style.border = '2px solid white';
+  modal.style.padding = '20px';
+  modal.style.textAlign = 'center';
+  modal.style.fontFamily = 'monospace';
+  modal.tabIndex = -1; // allow focus
+  modal.style.outline = 'none'; // remove focus border
 
-if (choice.trim() === '+') {
-  const name = prompt("Enter a name for the new color palette:");
-  if (!name) return;
+  const label = document.createElement('p');
+  label.textContent = 'Select a color palette:';
+  label.style.marginBottom = '10px';
+  modal.appendChild(label);
 
-  createNewColorPaletteWithPrompt(name);
-  } else {
-    // Use existing named palette
-    const cleanedName = choice.replace(/^•\s*/, '');
-    const hex = colorPalettes[cleanedName];
-    if (hex) applyColorToNode(hex);
+  const select = document.createElement('select');
+  select.style.fontSize = '16px';
+  select.style.padding = '5px';
+  select.style.minWidth = '200px';
+  select.style.background = 'black';
+  select.style.color = 'white';
+  select.style.border = '1px solid white';
+  select.style.marginBottom = '10px';
+
+  const optionNew = document.createElement('option');
+  optionNew.value = '+';
+  optionNew.textContent = '+ Create new palette';
+  select.appendChild(optionNew);
+
+  Object.entries(colorPalettes).forEach(([name]) => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'OK';
+  okBtn.style.padding = '5px 15px';
+  okBtn.style.marginTop = '10px';
+  okBtn.style.background = 'white';
+  okBtn.style.color = 'black';
+  okBtn.style.border = 'none';
+  okBtn.style.cursor = 'pointer';
+
+  modal.appendChild(select);
+  modal.appendChild(document.createElement('br'));
+  modal.appendChild(okBtn);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Focus dropdown by default
+  setTimeout(() => select.focus(), 0);
+
+  // OK button logic
+  function confirm() {
+    const selected = select.value;
+    document.body.removeChild(overlay);
+
+    if (selected === '+') {
+      const name = prompt("Enter a name for the new color palette:");
+      if (name) createNewColorPaletteWithPrompt(name);
+    } else {
+      const hex = colorPalettes[selected];
+      if (hex) applyColorToNode(hex);
+    }
   }
+
+  okBtn.onclick = confirm;
+
+  // Keyboard support
+  overlay.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirm();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      document.body.removeChild(overlay);
+    }
+  });
+
+  modal.focus(); // enable keydown listening
 }
 
 function createNewColorPaletteWithPrompt(name) {
