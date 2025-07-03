@@ -186,6 +186,7 @@ Escape = Deselect the current note's text field.
 
 <script>
 let canvas = document.getElementById('canvas');
+let colorPalettes = {};
 let selectedNode = null;
 let offsetX, offsetY;
 let nodes = [];
@@ -879,7 +880,7 @@ document.addEventListener('keydown', e => {
       resizeDropzone(10);
       break;
     case '#':
-      setNodeColor();
+      showColorPaletteMenu();
       break;
 
     case 'Enter':
@@ -926,45 +927,100 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
 });
 
-function setNodeColor() {
-  // Create a hidden color input if it doesn't already exist
-  let colorInput = document.getElementById('hidden-color-input');
-  if (!colorInput) {
-    colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.id = 'hidden-color-input';
-    colorInput.style.display = 'none';
-    document.body.appendChild(colorInput);
+function showColorPaletteMenu() {
+  if (!selectedNode) return;
+
+  const names = Object.keys(colorPalettes);
+  let menu = names.map(name => `• ${name}`).join('\n');
+  menu += names.length ? '\n\n' : '';
+  menu += 'Enter "+" to create a new color palette.';
+
+  const choice = prompt(`Choose a color palette:\n\n${menu}`);
+  if (!choice) return;
+
+if (choice.trim() === '+') {
+  const name = prompt("Enter a name for the new color palette:");
+  if (!name) return;
+
+  createNewColorPaletteWithPrompt(name);
+  } else {
+    // Use existing named palette
+    const cleanedName = choice.replace(/^•\s*/, '');
+    const hex = colorPalettes[cleanedName];
+    if (hex) applyColorToNode(hex);
   }
+}
 
-  // When user selects a color
-  colorInput.oninput = () => {
-    const baseColor = colorInput.value;
-    selectedNode.dataset.color = baseColor;
+function createNewColorPaletteWithPrompt(name) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
 
-    const bg = darken(baseColor, 0.6);     // Node background
-    const contentBg = darken(baseColor, 0.4); // Textarea and dropzone
-    const fg = lighten(baseColor, 1.6);    // Foreground text
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.background = 'white';
+  modal.style.padding = '20px';
+  modal.style.borderRadius = '8px';
+  modal.style.textAlign = 'center';
+  modal.style.color = 'black';
+  modal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
 
-    selectedNode.style.background = bg;
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.value = '#3399ff';
+  colorInput.style.marginBottom = '10px';
 
-    const header = selectedNode.querySelector('.node-header');
-    const textarea = selectedNode.querySelector('textarea');
-    const dropzone = selectedNode.querySelector('.dropzone');
+  const button = document.createElement('button');
+  button.textContent = 'OK';
+  button.style.marginLeft = '10px';
 
-    if (header) header.style.color = fg;
-    if (textarea) {
-      textarea.style.background = contentBg;
-      textarea.style.color = fg;
-    }
-    if (dropzone) {
-      dropzone.style.background = contentBg;
-      dropzone.style.color = fg;
-    }
+  modal.appendChild(colorInput);
+  modal.appendChild(document.createElement('br'));
+  modal.appendChild(button);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  button.onclick = () => {
+    const hex = colorInput.value;
+    colorPalettes[name] = hex;
+    applyColorToNode(hex);
+    document.body.removeChild(overlay);
   };
+}
 
-  // Open the color picker dialog
-  colorInput.click();
+function applyColorToNode(baseColor) {
+  if (!selectedNode) return;
+
+  selectedNode.dataset.color = baseColor;
+
+  const bg = darken(baseColor, 0.6);
+  const contentBg = darken(baseColor, 0.4);
+  const fg = lighten(baseColor, 1.6);
+
+  selectedNode.style.background = bg;
+
+  const header = selectedNode.querySelector('.node-header');
+  const textarea = selectedNode.querySelector('textarea');
+  const dropzone = selectedNode.querySelector('.dropzone');
+
+  if (header) header.style.color = fg;
+  if (textarea) {
+    textarea.style.background = contentBg;
+    textarea.style.color = fg;
+  }
+  if (dropzone) {
+    dropzone.style.background = contentBg;
+    dropzone.style.color = fg;
+  }
 }
 
 function drawConnector(a, b) {
@@ -1059,86 +1115,109 @@ function updateConnectors() {
   });
 }
 
-function startConnector() {
-  connecting = true;
-  connectStart = selectedNode;
-}
-
-function startDisconnector() {
-  disconnecting = true;
-  disconnectStart = selectedNode;
-}
-
-function startSnapping() {
-  snapping = true;
-  snapTarget = selectedNode;
-}
-
-function download() {
-  document.querySelectorAll('textarea.node-content').forEach(t => {
-    t.textContent = t.value;
-  });
-
-  // Remove any previous connector data
-  document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
-
-  // Serialize connectors using node IDs
-  const connectorData = connectors.map(({ a, b }) => ({
-    a: a.id,
-    b: b.id
-  }));
-
-  const script = document.createElement('script');
-  script.type = 'application/json';
-  script.dataset.connectors = 'true';
-  script.id = 'connector-data';
-  script.textContent = JSON.stringify(connectorData, null, 2);
-
-  document.body.appendChild(script);
-
-  const html = document.documentElement.outerHTML;
-  const blob = new Blob([html], { type: 'text/html' });
-  const a = document.createElement('a');
-  let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
-  a.href = URL.createObjectURL(blob);
-  a.download = currentFileName;
-  a.click();
-
-  script.remove(); // Remove after save to avoid duplicate
-}
-
-function initializeNodes() {
-  document.querySelectorAll('.node').forEach(setupNode);
-}
-
-function restoreConnectorsFromDOM() {
-  const script = document.getElementById('connector-data');
-  if (!script) return;
-
-  try {
-    const saved = JSON.parse(script.textContent);
-    connectors = [];
-
-    saved.forEach(({ a, b }) => {
-      const nodeA = document.getElementById(a);
-      const nodeB = document.getElementById(b);
-      if (nodeA && nodeB) {
-        connectors.push({ a: nodeA, b: nodeB });
-      }
-    });
-
-    updateConnectors();
-  } catch (err) {
-    console.error('Failed to restore connectors:', err);
+  function startConnector() {
+    connecting = true;
+    connectStart = selectedNode;
   }
-}
+  
+  function startDisconnector() {
+    disconnecting = true;
+    disconnectStart = selectedNode;
+  }
+  
+  function startSnapping() {
+    snapping = true;
+    snapTarget = selectedNode;
+  }
 
-window.onload = () => {
-  initializeNodes();
-  restoreConnectorsFromDOM();
-  updateConnectors();
-  canvas.focus();
-};
+  function download() {
+    document.querySelectorAll('textarea.node-content').forEach(t => {
+      t.textContent = t.value;
+    });
+  
+    // Remove any previous connector data
+    document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+  
+    // Serialize connectors using node IDs
+    const connectorData = connectors.map(({ a, b }) => ({
+      a: a.id,
+      b: b.id
+    }));
+  
+    const script = document.createElement('script');
+    script.type = 'application/json';
+    script.dataset.connectors = 'true';
+    script.id = 'connector-data';
+    script.textContent = JSON.stringify(connectorData, null, 2);
+  
+    document.body.appendChild(script);
+  
+    // Save color palette data
+    const paletteScript = document.createElement('script');
+    paletteScript.type = 'application/json';
+    paletteScript.dataset.colorpalettes = 'true';
+    paletteScript.id = 'color-palettes';
+    paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+    document.body.appendChild(paletteScript);
+  
+    const html = document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
+    a.href = URL.createObjectURL(blob);
+    a.download = currentFileName;
+    a.click();
+  
+    script.remove(); // Remove after save to avoid duplicate
+    paletteScript.remove();
+  }
+
+  function initializeNodes() {
+    document.querySelectorAll('.node').forEach(setupNode);
+  }
+  
+  function restoreConnectorsFromDOM() {
+    const script = document.getElementById('connector-data');
+    if (!script) return;
+  
+    try {
+      const saved = JSON.parse(script.textContent);
+      connectors = [];
+  
+      saved.forEach(({ a, b }) => {
+        const nodeA = document.getElementById(a);
+        const nodeB = document.getElementById(b);
+        if (nodeA && nodeB) {
+          connectors.push({ a: nodeA, b: nodeB });
+        }
+      });
+  
+      updateConnectors();
+    } catch (err) {
+      console.error('Failed to restore connectors:', err);
+    }
+  }
+  
+  window.onload = () => {
+    initializeNodes();
+    restoreConnectorsFromDOM();
+    updateConnectors();
+    canvas.focus();
+  };
+  
+  window.addEventListener('DOMContentLoaded', () => {
+    const paletteScript = document.querySelector('script[data-colorpalettes]');
+    if (paletteScript) {
+      try {
+        const data = JSON.parse(paletteScript.textContent);
+        if (typeof data === 'object') {
+          colorPalettes = data;
+        }
+      } catch (e) {
+        console.warn('Could not parse color palette data');
+      }
+    }
+  });
 
   function hexToRgb(hex) {
     const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
