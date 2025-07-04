@@ -1311,12 +1311,15 @@ function updateConnectors() {
     document.body.appendChild(script);
   
     // Save color palette data
-    const paletteScript = document.createElement('script');
-    paletteScript.type = 'application/json';
-    paletteScript.dataset.colorpalettes = 'true';
-    paletteScript.id = 'color-palettes';
+    let paletteScript = document.querySelector('script[data-colorpalettes]');
+    if (!paletteScript) {
+      paletteScript = document.createElement('script');
+      paletteScript.type = 'application/json';
+      paletteScript.dataset.colorpalettes = 'true';
+      paletteScript.id = 'color-palettes';
+      document.body.appendChild(paletteScript);
+    }
     paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
-    document.body.appendChild(paletteScript);
   
     const html = document.documentElement.outerHTML;
     const blob = new Blob([html], { type: 'text/html' });
