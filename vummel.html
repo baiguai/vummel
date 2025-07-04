@@ -142,7 +142,9 @@
   ">
     <h3>Key Bindings</h3>
     <p>
-      </p><pre>a = Add a new node.
+      </p><pre>
+a = Add a new node.
+= = Duplicate current node.
 r = Rename node (change its type).
 u = Add a new link node.
 c = Start connection (select the second node
@@ -351,6 +353,45 @@ function addNode() {
   nodes.push(div);
 
   attachChild(div);
+}
+
+function duplicateSelectedNode() {
+  if (!selectedNode) return;
+
+  const clone = selectedNode.cloneNode(true);
+  clone.id = 'node-' + crypto.randomUUID();
+
+  // Offset position (to the right by 1 step)
+  const step = 40;
+  const parent = selectedNode.offsetParent;
+  const currentLeft = selectedNode.offsetLeft;
+  const currentTop = selectedNode.offsetTop;
+
+  clone.style.left = (currentLeft + parseInt(selectedNode.style.width) + step) + 'px';
+  clone.style.top = currentTop + 'px';
+
+  // Preserve data attributes
+  clone.dataset.type = selectedNode.dataset.type;
+  clone.dataset.color = selectedNode.dataset.color;
+
+  // Set textarea value properly
+  const origTextarea = selectedNode.querySelector('textarea');
+  const cloneTextarea = clone.querySelector('textarea');
+  if (origTextarea && cloneTextarea) {
+    cloneTextarea.value = origTextarea.value;
+    cloneTextarea.textContent = origTextarea.value; // for saving
+  }
+
+  // Add to same container (canvas or dropzone)
+  if (parent && parent.classList.contains('dropzone')) {
+    parent.appendChild(clone);
+  } else {
+    canvas.appendChild(clone);
+  }
+
+  setupNode(clone); // apply event handlers etc.
+  nodes.push(clone);
+  setSelectedNode(clone);
 }
 
 function renameNode() {
@@ -717,6 +758,9 @@ document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'a':
       addNode();
+      break;
+    case '=':
+      duplicateSelectedNode();
       break;
     case 'u':
       addLinkNode();
