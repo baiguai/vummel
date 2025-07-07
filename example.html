@@ -1,0 +1,1720 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>IF Visual Planner</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      font-family: monospace;
+      overflow: auto;
+    }
+    #toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #222;
+      padding: 5px;
+      z-index: 10;
+    }
+    #toolbar button {
+      margin-right: 5px;
+      border: solid 1px #444;
+      background: #222;
+      color: #ddd;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: black;
+      transform-origin: 0 0;
+      overflow-x: auto;
+      overflow-y: auto;
+      min-width: 500000px;
+      min-height: 500000px;
+    }
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      right: 0;
+      bottom: 0;
+      cursor: se-resize;
+      background: #444;
+      z-index: 2;
+    }
+    .zoom-controls {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+    }
+    .zoom-controls button {
+      background: #333;
+      color: white;
+      border: 1px solid #666;
+      margin-left: 2px;
+      cursor: pointer;
+    }
+    .node {
+      position: absolute;
+      border: 1px solid #aaa;
+      background: #111;
+      color: white;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 100px;
+      min-height: 60px;
+      z-index: 1;
+    }
+    .node-header {
+      font-weight: bold;
+      padding: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: red;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .node-content {
+      background: #111;
+      color: white;
+      border: none;
+      resize: none;
+      font-family: monospace;
+      padding: 4px;
+      font-size: 12px;
+      height: 150px;
+    }
+    .dropzone {
+      position: relative;
+      border-top: 1px dashed gray;
+      flex: 1;
+      background: #111;
+      padding: 4px;
+      overflow: auto;
+    }
+    .connector {
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+<style type="text/css" id="operaUserStyle"></style></head>
+<body>
+  <div id="toolbar" style="display: none; height: 0px;">
+    <button onclick="addNode('Room')">Add Room</button>
+    <button onclick="addNode('Item/NPC')">Add Item/NPC</button>
+    <button onclick="addNode('Note')">Add Note</button>
+    <button onclick="startConnector()">Room Connector</button>
+    <button onclick="download()">Save</button>
+  </div>
+  <div id="canvas" tabindex="0" style="transform: scale(1);"><div class="node" data-type="Bedroom" id="node-85571647-97d3-4cd3-b6cc-0855036d6e93" style="width: 550px; height: 260px; left: 40px; top: 200px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Bedroom</div><textarea class="node-content" placeholder="Enter notes..." style="height: 80px;">- You've just received the final piece to hack into a virtual world.
+- Open the envelope, plug the USB into your computer.
+- Execute your 'plugin' app.</textarea><div class="dropzone" style="height: 530px;"><div class="node" data-type="Envelope" id="node-5452010d-a313-46aa-9fcd-d01d181b0ee2" style="width: 230px; height: 100px; left: 20px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Envelope</div><textarea class="node-content" placeholder="Enter notes...">- Open
+- Plug in USB</textarea><div class="dropzone"></div></div><div class="node" data-type="Computer" id="node-9847edad-162f-4672-9c3f-51916284c435" style="width: 230px; height: 100px; left: 280px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Computer</div><textarea class="node-content" placeholder="Enter notes...">- If USB plugged in...
+- plugin
+- Go to darkworld</textarea><div class="dropzone"></div></div></div></div><div class="node" data-type="Overview" id="node-ddfc529e-081e-41b8-ab5b-2626291ee26a" style="width: 1750px; height: 140px; left: 40px; top: 0px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Overview</div><textarea class="node-content" placeholder="Enter notes...">The player is a hacker who has JUST received the USB they need to enter The Shellspace a VR darkweb, they just want to level up their pirating. In there they encounter factions, and realize something isn't right. The protection protocols are actually killing people - in real life. A hacker organization is behind it - RMRF. As the player solves puzzles, they are actually solving them for RMRF also. Ironically their goal is to bring down Shellspace by applying meatspace pressure on it.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 316px; top: 331px; width: 180px; height: 240px; z-index: 0; pointer-events: none;"><line x1="180" y1="240" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Shellspace Port" id="node-affb587e-fd6c-4501-a5ae-2b6b302a0989" style="width: 270px; height: 100px; left: 360px; top: 520px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Shellspace Port</div><textarea class="node-content" placeholder="Enter notes..." style="height: 90px;">You see an escalator up to the monorail, moving ramp down to the street.</textarea><div class="dropzone" style="height: 280px;"></div></div><svg class="connector" style="position: absolute; left: 496px; top: 571px; width: 20px; height: 800px; z-index: 0; pointer-events: none;"><line x1="20" y1="800" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Street Level" id="node-5bc7ca87-d32f-4318-9918-9fac668144e5" style="width: 950px; height: 820px; left: 40px; top: 960px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Street Level</div><textarea class="node-content" placeholder="Enter notes..." style="height: 80px;">The street level at the Port splits off into five different main roads.</textarea><div class="dropzone" style="height: 330px;"><div class="node" data-type="Switchblade Hustler" id="node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881" style="width: 150px; height: 100px; left: 20px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Switchblade Hustler</div><textarea class="node-content" placeholder="Enter notes...">Player encounters a switchblade hustler.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 96px; top: 72px; width: 200px; height: 40px; z-index: 0; pointer-events: none;"><line x1="200" y1="40" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Ask About Mono Tix" id="node-8fc0cf34-8056-408b-9ab0-f0a4465eca5a" style="width: 150px; height: 100px; left: 220px; top: 60px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Ask About Mono Tix</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 96px; top: 72px; width: 200px; height: 200px; z-index: 0; pointer-events: none;"><line x1="200" y1="200" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Ask About Roads" id="node-5c504614-3ca6-4810-85ee-31ad3e687fc5" style="width: 150px; height: 100px; left: 220px; top: 220px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Ask About Roads</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 96px; top: 72px; width: 200px; height: 360px; z-index: 0; pointer-events: none;"><line x1="200" y1="360" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Ask About Piracy" id="node-89aa467f-68b5-4eec-8750-7eb646a3affc" style="width: 150px; height: 100px; left: 220px; top: 380px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Ask About Piracy</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 296px; top: 112px; width: 260px; height: 2px; z-index: 0; pointer-events: none;"><line x1="260" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Work Or..." id="node-5e3e0944-7b2f-447b-a857-f9e965e981a1" style="width: 230px; height: 100px; left: 440px; top: 60px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Work Or...</div><textarea class="node-content" placeholder="Enter notes...">Get a job... OR, I know a guy. He does plugin work. He's on the north side of the park.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 296px; top: 272px; width: 260px; height: 2px; z-index: 0; pointer-events: none;"><line x1="260" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Describe Roads" id="node-fcbe27aa-c862-460d-b4c8-09afd052a624" style="width: 230px; height: 100px; left: 440px; top: 220px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Describe Roads</div><textarea class="node-content" placeholder="Enter notes...">See the map for this.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 296px; top: 432px; width: 260px; height: 20px; z-index: 0; pointer-events: none;"><line x1="260" y1="20" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Find Retrograde" id="node-e1a38328-ee70-42e7-b48a-fbd47b1a8f23" style="width: 230px; height: 140px; left: 440px; top: 380px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Find Retrograde</div><textarea class="node-content" placeholder="Enter notes...">A hacker uncovered a comment that appears to be made by Retrograde. The software was produced by Advanced Holographic LTD.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 296px; top: 432px; width: 260px; height: 200px; z-index: 0; pointer-events: none;"><line x1="260" y1="200" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Slums" id="node-57a83523-608d-4cea-9423-bff1b4a058ee" style="width: 230px; height: 100px; left: 440px; top: 580px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Slums</div><textarea class="node-content" placeholder="Enter notes...">Hit the slums. Good luck.</textarea><div class="dropzone"></div></div></div></div><svg class="connector" style="position: absolute; left: 496px; top: 571px; width: 360px; height: 20px; z-index: 0; pointer-events: none;"><line x1="360" y1="20" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Monorail" id="node-42e7f385-c5c2-4c6a-ab17-979377c5058d" style="width: 190px; height: 220px; left: 760px; top: 480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Monorail</div><textarea class="node-content" placeholder="Enter notes..." style="height: 40px;"></textarea><div class="dropzone" style="height: 410px;"><div class="node" data-type="Ticket Booth" id="node-72354f13-64fc-4623-a4aa-a4f89e20b701" style="width: 150px; height: 100px; left: 20px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Ticket Booth</div><textarea class="node-content" placeholder="Enter notes...">You need to get credits to ride it.</textarea><div class="dropzone"></div></div></div></div><svg class="connector" style="position: absolute; left: 516px; top: 851px; width: 830px; height: 520px; z-index: 0; pointer-events: none;"><line x1="830" y1="0" x2="0" y2="520" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="West - Shoreline" id="node-54c4fa3a-71d8-441b-a43e-b5dc37727605" style="width: 150px; height: 100px; left: 1270px; top: 800px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">West - Shoreline</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1346px; top: 771px; width: 310px; height: 80px; z-index: 0; pointer-events: none;"><line x1="310" y1="0" x2="0" y2="80" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Tickets" id="node-20f7f35a-9770-4fda-a8fb-53660835fe57" style="width: 150px; height: 100px; left: 1580px; top: 720px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Tickets</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><div class="node" data-type="Cruise Room" id="node-c74b10f9-5914-4e9f-853b-5eb58da412e4" style="width: 150px; height: 100px; left: 1740px; top: 920px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Room</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><div class="node" data-type="Man on Deck" id="node-7b0663e2-f766-410d-99c9-116ae3400387" style="width: 230px; height: 140px; left: 2930px; top: 1040px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Man on Deck</div><textarea class="node-content" placeholder="Enter notes...">You see a man on the deck - in a flickering binary robe.
+He says he knows you.
+Gives you a chip.
+If you can read it - you can join.</textarea><div class="dropzone"></div></div><div class="node" data-type="Puzzle - Chip" id="node-6a194843-ef1c-4cc3-af6e-23122eabcffd" style="width: 150px; height: 100px; left: 3000px; top: 920px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - Chip</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);">How to read the chip?</textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Deepgrid Systems Tower 01" id="node-db2655f9-af25-4102-8763-235688e8552f" style="width: 230px; height: 180px; left: 1890px; top: 480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Deepgrid Systems Tower 01</div><textarea class="node-content" placeholder="Enter notes...">You enter the building and it's completely empty. You are stuck outside its firewall.</textarea><div class="dropzone"></div></div><div class="node" data-type="Puzzle - Firewall" id="node-95eb6e70-0123-497c-be9e-53f2983cc0c8" style="width: 150px; height: 100px; left: 1960px; top: 360px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - Firewall</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);">How to get past the FW?</textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Apex Group Buildings" id="node-c2d0293c-ef38-4d37-a9e9-a097dc709796" style="width: 270px; height: 100px; left: 2270px; top: 480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Apex Group Buildings</div><textarea class="node-content" placeholder="Enter notes...">Data obfuscation - known organized crime facilitator.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1716px; top: 531px; width: 720px; height: 160px; z-index: 0; pointer-events: none;"><line x1="720" y1="160" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Virtual Realty Row" id="node-d9f2906f-1eef-48aa-bb4f-7c98e416409f" style="width: 310px; height: 100px; left: 2280px; top: 640px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Virtual Realty Row</div><textarea class="node-content" placeholder="Enter notes...">A whole street that has multiple realtor companies - selling VR space.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 516px; top: 291px; width: 1160px; height: 1080px; z-index: 0; pointer-events: none;"><line x1="1160" y1="0" x2="0" y2="1080" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="North - Park" id="node-f46f376c-1710-46ba-996e-3a2e16e71206" style="width: 350px; height: 180px; left: 1500px; top: 200px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">North - Park</div><textarea class="node-content" placeholder="Enter notes...">You encounter very surreal characters here.
+Uncover some hidden lower levels of Shellspace.
+
+See Multiplexer.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 516px; top: 531px; width: 1200px; height: 840px; z-index: 0; pointer-events: none;"><line x1="1200" y1="0" x2="0" y2="840" stroke="#333" stroke-width="2"></line></svg><svg class="connector" style="position: absolute; left: 1716px; top: 531px; width: 290px; height: 40px; z-index: 0; pointer-events: none;"><line x1="0" y1="0" x2="290" y2="40" stroke="#333" stroke-width="2"></line></svg><svg class="connector" style="position: absolute; left: 1716px; top: 531px; width: 690px; height: 2px; z-index: 0; pointer-events: none;"><line x1="0" y1="0" x2="690" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Northwest - Business District" id="node-6aace16e-915b-40c0-b761-fa926fe469a0" style="width: 150px; height: 100px; left: 1640px; top: 480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Northwest - Business District</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1716px; top: 151px; width: 960px; height: 380px; z-index: 0; pointer-events: none;"><line x1="960" y1="0" x2="0" y2="380" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Slums" id="node-d3627093-c10c-417b-b970-3fde623bed5b" style="width: 350px; height: 140px; left: 2500px; top: 80px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Slums</div><textarea class="node-content" placeholder="Enter notes...">Here you encounter 'the dark web'.
+Things get REALLY dark here.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1676px; top: 171px; width: 430px; height: 120px; z-index: 0; pointer-events: none;"><line x1="430" y1="0" x2="0" y2="120" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Tech Sector" id="node-3d23dc4d-6bd6-42a1-aeb2-7c631c109311" style="width: 270px; height: 100px; left: 1970px; top: 120px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Tech Sector</div><textarea class="node-content" placeholder="Enter notes...">Here you can purchase 'plugins' - cybernetic stuff etc.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 516px; top: 1251px; width: 1050px; height: 120px; z-index: 0; pointer-events: none;"><line x1="1050" y1="0" x2="0" y2="120" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Northeast - Art District" id="node-500e3766-6511-4338-94d2-3d0b13087f31" style="width: 150px; height: 100px; left: 1490px; top: 1200px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Northeast - Art District</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 516px; top: 1371px; width: 1040px; height: 160px; z-index: 0; pointer-events: none;"><line x1="1040" y1="160" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="East - Industrial Area" id="node-3571243d-e627-48e2-8d62-e40c0bb1f084" style="width: 150px; height: 100px; left: 1480px; top: 1480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">East - Industrial Area</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1566px; top: 1251px; width: 950px; height: 80px; z-index: 0; pointer-events: none;"><line x1="950" y1="80" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Residential Area" id="node-cc9e0eb6-abcf-4ddb-81c1-85d133a76bf8" style="width: 150px; height: 100px; left: 2440px; top: 1280px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Residential Area</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2406px; top: 471px; width: 370px; height: 60px; z-index: 0; pointer-events: none;"><line x1="370" y1="0" x2="0" y2="60" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="The Boss" id="node-121f0b34-06c2-4754-a99c-58aa9946e5fb" style="width: 270px; height: 140px; left: 2640px; top: 400px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">The Boss</div><textarea class="node-content" placeholder="Enter notes...">You end up meeting some creeepy high level management</textarea><div class="dropzone"></div></div><div class="node" data-type="Q - What Happens" id="node-f5da205a-9c89-45cb-bc42-c46e1f80f3af" style="width: 150px; height: 100px; left: 2720px; top: 280px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 81, 0);" draggable="false" data-color="#ff8800"><div class="node-header" style="color: rgb(255, 217, 0);">Q - What Happens</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);">Maybe a quest for the bosses?</textarea><div class="dropzone" style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);"></div></div><div class="node" data-type="Multiplexer" id="node-c3e328cc-7883-4a95-8d52-12b96f718b86" style="width: 310px; height: 100px; left: 40px; top: 2000px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Multiplexer</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);">The Multiplexer allows you to chose any number of sub-levels of Shellspace and routes you to the chosen one.</textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 196px; top: 1971px; width: 720px; height: 80px; z-index: 0; pointer-events: none;"><line x1="720" y1="0" x2="0" y2="80" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="8 Bit" id="node-7193ab9c-ee10-4a73-940b-6ccad219dc53" style="width: 470px; height: 100px; left: 680px; top: 1920px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">8 Bit</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);">Here you find yourself in a video game type world.</textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 196px; top: 2051px; width: 720px; height: 200px; z-index: 0; pointer-events: none;"><line x1="720" y1="200" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="IntFiction" id="node-bfe83ffa-2f7f-4106-a843-4fdb0207e3d4" style="width: 470px; height: 100px; left: 680px; top: 2200px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">IntFiction</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 196px; top: 2051px; width: 720px; height: 480px; z-index: 0; pointer-events: none;"><line x1="720" y1="480" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Anomaly" id="node-06d74300-2c24-4c93-aa90-14f01066c971" style="width: 470px; height: 100px; left: 680px; top: 2480px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Anomaly</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 196px; top: 2051px; width: 720px; height: 760px; z-index: 0; pointer-events: none;"><line x1="720" y1="760" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="The Labyrinth" id="node-246a6d96-2cd2-44e5-9211-d84079140afe" style="width: 470px; height: 100px; left: 680px; top: 2760px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">The Labyrinth</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 196px; top: 2051px; width: 720px; height: 1040px; z-index: 0; pointer-events: none;"><line x1="720" y1="1040" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Console" id="node-64b20d1e-ced6-44a9-b176-6854a3ced2e9" style="width: 470px; height: 100px; left: 680px; top: 3040px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Console</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><div class="node" data-type="Puzzle - What is the Game?" id="node-1b1b19c5-623a-4bea-9907-bdc5bd3adf20" style="width: 190px; height: 100px; left: 920px; top: 1800px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - What is the Game?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Puzzle - What is the IF Game?" id="node-e99a44f3-cdeb-4e8e-8d53-b534f89b275b" style="width: 190px; height: 100px; left: 940px; top: 2080px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - What is the IF Game?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Puzzle - Anomaly Game?" id="node-309b76e5-ceac-45f2-8e4c-83a28a28854d" style="width: 190px; height: 100px; left: 960px; top: 2360px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - Anomaly Game?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Puzzle - Labyrinth Game?" id="node-962763a2-1dec-446f-a547-c0572c97a7a7" style="width: 190px; height: 100px; left: 960px; top: 2640px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - Labyrinth Game?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><div class="node" data-type="Puzzle - Console Game?" id="node-ba42eff1-9e61-432c-9d9d-c0cec5ea2b63" style="width: 190px; height: 100px; left: 960px; top: 2920px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 153, 0);" draggable="false" data-color="#ffff00"><div class="node-header" style="color: rgb(255, 255, 0);">Puzzle - Console Game?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></textarea><div class="dropzone" style="background: rgb(102, 102, 0); color: rgb(255, 255, 0);"></div></div><svg class="connector" style="position: absolute; left: 1556px; top: 1531px; width: 360px; height: 2px; z-index: 0; pointer-events: none;"><line x1="360" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="'Physical' Cybernetics" id="node-4699a59c-7632-4d53-9d68-d404738ff5dc" style="width: 150px; height: 100px; left: 1840px; top: 1480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">'Physical' Cybernetics</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1916px; top: 1531px; width: 280px; height: 2px; z-index: 0; pointer-events: none;"><line x1="280" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Purchase Cybernetics" id="node-d2a0d45f-3bc4-4a30-91f6-1e503016589f" style="width: 150px; height: 100px; left: 2120px; top: 1480px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Purchase Cybernetics</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1556px; top: 1531px; width: 360px; height: 240px; z-index: 0; pointer-events: none;"><line x1="360" y1="240" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Transportation" id="node-a2111b4d-8447-47e5-9b78-5814f6695d07" style="width: 150px; height: 100px; left: 1840px; top: 1720px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Transportation</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1916px; top: 1771px; width: 280px; height: 2px; z-index: 0; pointer-events: none;"><line x1="280" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Purchase Transport Module" id="node-35b4aade-2d58-4870-b7da-9c5e5d159d46" style="width: 150px; height: 100px; left: 2120px; top: 1720px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Purchase Transport Module</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1556px; top: 1531px; width: 360px; height: 480px; z-index: 0; pointer-events: none;"><line x1="360" y1="480" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Secret VR Weapons" id="node-9d0f56b7-104c-4318-921f-22df6eef0701" style="width: 150px; height: 100px; left: 1840px; top: 1960px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Secret VR Weapons</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1916px; top: 2011px; width: 360px; height: 2px; z-index: 0; pointer-events: none;"><line x1="360" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Obliterator" id="node-cd1884a6-0f3f-4810-98a5-72edbcb0e605" style="width: 310px; height: 100px; left: 2120px; top: 1960px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Obliterator</div><textarea class="node-content" placeholder="Enter notes...">You can purchase this single enemy weapon.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1916px; top: 2011px; width: 380px; height: 280px; z-index: 0; pointer-events: none;"><line x1="380" y1="280" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Antimatter" id="node-d009a468-eafc-4307-8e46-65a1b86f0334" style="width: 350px; height: 100px; left: 2120px; top: 2240px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Antimatter</div><textarea class="node-content" placeholder="Enter notes...">You can purchase this mass-damage weapon.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1716px; top: 531px; width: 720px; height: 360px; z-index: 0; pointer-events: none;"><line x1="720" y1="360" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Secdyne" id="node-4ef226be-5930-42d2-8bf9-9f77ef245299" style="width: 310px; height: 100px; left: 2280px; top: 840px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Secdyne</div><textarea class="node-content" placeholder="Enter notes...">The Secdyne building is massive. You are offered a tour - they discuss keeping Shellspace secure.</textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2676px; top: 91px; width: 560px; height: 60px; z-index: 0; pointer-events: none;"><line x1="560" y1="0" x2="0" y2="60" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="News: Missing Girl" id="node-42be9de1-0c1e-459c-8ce0-0f5929dd1000" style="width: 310px; height: 100px; left: 3080px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(132, 132, 153);" draggable="false" data-color="#ddddff"><div class="node-header" style="color: rgb(255, 255, 255);">News: Missing Girl</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(88, 88, 102); color: rgb(255, 255, 255);">A girl has gone missing. Strangely, there are no security videos.</textarea><div class="dropzone" style="background: rgb(88, 88, 102); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 1816px; top: 971px; width: 1280px; height: 280px; z-index: 0; pointer-events: none;"><line x1="1280" y1="280" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Radio Announcement" id="node-0f06e4ed-5e57-4ef6-9505-d0a5a2062f66" style="width: 270px; height: 100px; left: 2960px; top: 1200px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(102, 122, 153);" draggable="false" data-color="#aaccff"><div class="node-header" style="color: rgb(255, 255, 255);">Radio Announcement</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(68, 81, 102); color: rgb(255, 255, 255);">Two people have gone missing. Weird, there's no security footage.</textarea><div class="dropzone" style="background: rgb(68, 81, 102); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 2436px; top: 691px; width: 480px; height: 40px; z-index: 0; pointer-events: none;"><line x1="480" y1="40" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Fight: Security Bot" id="node-7e8641fb-645d-442e-9986-babcc2ca4b6d" style="width: 230px; height: 100px; left: 2800px; top: 680px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 30, 30);" draggable="false" data-color="#ff3333"><div class="node-header" style="color: rgb(255, 81, 81);">Fight: Security Bot</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);">You are attacked by a security bot!</textarea><div class="dropzone" style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);"></div></div><svg class="connector" style="position: absolute; left: 1566px; top: 1191px; width: 490px; height: 60px; z-index: 0; pointer-events: none;"><line x1="490" y1="0" x2="0" y2="60" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Fight: Art Attacks" id="node-3fedfd6f-7ae7-4e26-bf70-4d9049dcbbf5" style="width: 270px; height: 140px; left: 1920px; top: 1120px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 30, 30);" draggable="false" data-color="#ff3333"><div class="node-header" style="color: rgb(255, 81, 81);">Fight: Art Attacks</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);">Some of the art pieces come to life and attack you.</textarea><div class="dropzone" style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);"></div></div><svg class="connector" style="position: absolute; left: 1916px; top: 1371px; width: 280px; height: 160px; z-index: 0; pointer-events: none;"><line x1="280" y1="0" x2="0" y2="160" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Fight: Cyber Arms Attack You" id="node-4a2a6094-4463-4a3b-a2bf-517a3ef12176" style="width: 230px; height: 100px; left: 2080px; top: 1320px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 30, 30);" draggable="false" data-color="#ff3333"><div class="node-header" style="color: rgb(255, 81, 81);">Fight: Cyber Arms Attack You</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);">As you tour, cybernetic arms begin to attack you.</textarea><div class="dropzone" style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);"></div></div><div class="node" data-type="Q: How much?" id="node-13fbbb17-8f8b-422f-8e36-5b6fac92ea73" style="width: 150px; height: 100px; left: 2240px; top: 1840px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 81, 0);" draggable="false" data-color="#ff8800"><div class="node-header" style="color: rgb(255, 217, 0);">Q: How much?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);">How much is this weapon?</textarea><div class="dropzone" style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);"></div></div><div class="node" data-type="Q: How Much?" id="node-0d2cee0d-5291-4dbb-a81e-fb4937f3c1c8" style="width: 150px; height: 100px; left: 2320px; top: 2120px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 81, 0);" draggable="false" data-color="#ff8800"><div class="node-header" style="color: rgb(255, 217, 0);">Q: How Much?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);">How much is this mass damage weapon?</textarea><div class="dropzone" style="background: rgb(102, 54, 0); color: rgb(255, 217, 0);"></div></div><svg class="connector" style="position: absolute; left: 916px; top: 1931px; width: 500px; height: 40px; z-index: 0; pointer-events: none;"><line x1="500" y1="0" x2="0" y2="40" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Fight: Beholder" id="node-39853cdb-923e-4eb3-b57c-7d4efca928bb" style="width: 270px; height: 100px; left: 1280px; top: 1880px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 30, 30);" draggable="false" data-color="#ff3333"><div class="node-header" style="color: rgb(255, 81, 81);">Fight: Beholder</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);">After killing it, you see a metal panel that says: Secdyne.</textarea><div class="dropzone" style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);"></div></div><svg class="connector" style="position: absolute; left: 916px; top: 2211px; width: 520px; height: 40px; z-index: 0; pointer-events: none;"><line x1="520" y1="0" x2="0" y2="40" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Money" id="node-92195109-0239-4634-a55b-3735a7327641" style="width: 230px; height: 100px; left: 1320px; top: 2160px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Money</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);">Complete this mission and you get 50 credits.</textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 916px; top: 2411px; width: 520px; height: 120px; z-index: 0; pointer-events: none;"><line x1="520" y1="0" x2="0" y2="120" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Q - What do you get?" id="node-b88d1403-85bd-4f07-8397-c75f344a44c7" style="width: 230px; height: 100px; left: 1320px; top: 2360px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Q - What do you get?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);">What do you get when you beat this game?</textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 916px; top: 2771px; width: 520px; height: 40px; z-index: 0; pointer-events: none;"><line x1="520" y1="0" x2="0" y2="40" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Q - What's in the center?" id="node-59032b91-e3f1-442d-ba38-957b4d72d769" style="width: 230px; height: 100px; left: 1320px; top: 2720px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Q - What's in the center?</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);">What is in the center of the labyrinth?</textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 916px; top: 3051px; width: 520px; height: 40px; z-index: 0; pointer-events: none;"><line x1="520" y1="0" x2="0" y2="40" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Unlocks Another Level" id="node-a1fbd0e8-d6f9-4bce-99ab-61cd6f09b18f" style="width: 230px; height: 100px; left: 1320px; top: 3000px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(30, 153, 30);" draggable="false" data-color="#33ff33"><div class="node-header" style="color: rgb(81, 255, 81);">Unlocks Another Level</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></textarea><div class="dropzone" style="background: rgb(20, 102, 20); color: rgb(81, 255, 81);"></div></div><svg class="connector" style="position: absolute; left: 1436px; top: 2991px; width: 460px; height: 60px; z-index: 0; pointer-events: none;"><line x1="460" y1="0" x2="0" y2="60" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="The Kernel" id="node-596380df-8a18-4959-87d9-14166fc29e3c" style="width: 270px; height: 140px; left: 1760px; top: 2920px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(102, 102, 102);" draggable="false" data-color="#aaaaaa"><div class="node-header" style="color: rgb(255, 255, 255);">The Kernel</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);">You have entered the kernel of Shellspace.</textarea><div class="dropzone" style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 1896px; top: 2731px; width: 360px; height: 260px; z-index: 0; pointer-events: none;"><line x1="360" y1="0" x2="0" y2="260" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Hardware Interface" id="node-88c6187e-f7ee-4ddb-8118-0209c5c72a2b" style="width: 270px; height: 100px; left: 2120px; top: 2680px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(102, 102, 102);" draggable="false" data-color="#aaaaaa"><div class="node-header" style="color: rgb(255, 255, 255);">Hardware Interface</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></textarea><div class="dropzone" style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 1896px; top: 2971px; width: 560px; height: 20px; z-index: 0; pointer-events: none;"><line x1="560" y1="0" x2="0" y2="20" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Bootloader" id="node-4adf443c-bf63-45c7-aa7b-782bf8ff7272" style="width: 270px; height: 100px; left: 2320px; top: 2920px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(102, 102, 102);" draggable="false" data-color="#aaaaaa"><div class="node-header" style="color: rgb(255, 255, 255);">Bootloader</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></textarea><div class="dropzone" style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 1896px; top: 2991px; width: 360px; height: 180px; z-index: 0; pointer-events: none;"><line x1="360" y1="180" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="User Space" id="node-07af67fb-517d-42a0-84d9-6501b10ffa4b" style="width: 270px; height: 100px; left: 2120px; top: 3120px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(102, 102, 102);" draggable="false" data-color="#aaaaaa"><div class="node-header" style="color: rgb(255, 255, 255);">User Space</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></textarea><div class="dropzone" style="background: rgb(68, 68, 68); color: rgb(255, 255, 255);"></div></div><svg class="connector" style="position: absolute; left: 2196px; top: 1771px; width: 440px; height: 2px; z-index: 0; pointer-events: none;"><line x1="440" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Transport Options" id="node-0044d5d3-d276-4910-a03d-4526304a20d0" style="width: 230px; height: 260px; left: 2520px; top: 1640px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Transport Options</div><textarea class="node-content" placeholder="Enter notes..." style="height: 220px;">* Multiplexer
+* Kernel (If unlocked)
+* Park
+* Business District
+* Tech Sector
+* Residential Area
+* Industrial Area</textarea><div class="dropzone" style="height: 190px;"></div></div><svg class="connector" style="position: absolute; left: 2276px; top: 2011px; width: 430px; height: 2px; z-index: 0; pointer-events: none;"><line x1="430" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Fight: Security Bot" id="node-a34efbb0-4d1d-476e-b766-6d641d6b5dcb" style="width: 230px; height: 100px; left: 2590px; top: 1960px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 30, 30);" draggable="false" data-color="#ff3333"><div class="node-header" style="color: rgb(255, 81, 81);">Fight: Security Bot</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);">You are attacked by a security bot!</textarea><div class="dropzone" style="background: rgb(102, 20, 20); color: rgb(255, 81, 81);"></div></div><svg class="connector" style="position: absolute; left: 1196px; top: 851px; width: 150px; height: 200px; z-index: 0; pointer-events: none;"><line x1="0" y1="200" x2="150" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Ship" id="node-9bc0906a-1d9e-48b1-a77f-e7c7c6bec8ca" style="width: 150px; height: 100px; left: 1120px; top: 1000px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Ship</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1196px; top: 1051px; width: 200px; height: 2px; z-index: 0; pointer-events: none;"><line x1="200" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Muster Drill" id="node-c66aa5c9-3284-42a7-a956-1466fd5eef8a" style="width: 150px; height: 100px; left: 1320px; top: 1000px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Muster Drill</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1396px; top: 931px; width: 160px; height: 120px; z-index: 0; pointer-events: none;"><line x1="160" y1="0" x2="0" y2="120" stroke="#333" stroke-width="2"></line></svg><svg class="connector" style="position: absolute; left: 1556px; top: 931px; width: 260px; height: 40px; z-index: 0; pointer-events: none;"><line x1="0" y1="0" x2="260" y2="40" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Led to Room" id="node-fdb56c11-be56-45ee-a3db-a764c046600d" style="width: 150px; height: 100px; left: 1480px; top: 880px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Led to Room</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 1816px; top: 971px; width: 300px; height: 2px; z-index: 0; pointer-events: none;"><line x1="300" y1="0" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Hall" id="node-bd72a60a-8332-480b-ad42-04ffb8797b85" style="width: 150px; height: 100px; left: 2040px; top: 920px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Hall</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2116px; top: 971px; width: 241px; height: 41px; z-index: 0; pointer-events: none;"><line x1="241" y1="41" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Elevator" id="node-67099dd5-3257-48e4-9642-37878e63c05b" style="width: 150px; height: 100px; left: 2280px; top: 960px; border-color: rgb(181, 219, 250); border-width: 2px;" draggable="false"><div class="node-header">Cruise Elevator</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2357px; top: 1011px; width: 279px; height: 2px; z-index: 0; pointer-events: none;"><line x1="279" y1="0" x2="0" y2="1" stroke="#333" stroke-width="2"></line></svg><svg class="connector" style="position: absolute; left: 2636px; top: 1011px; width: 410px; height: 100px; z-index: 0; pointer-events: none;"><line x1="0" y1="0" x2="410" y2="100" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Elevator - Top Deck" id="node-d316220b-ee10-491b-911d-3df02432a9ef" style="width: 150px; height: 100px; left: 2560px; top: 960px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Elevator - Top Deck</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2357px; top: 1012px; width: 359px; height: 239px; z-index: 0; pointer-events: none;"><line x1="359" y1="239" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Entertainment Level" id="node-a565d792-2177-42a7-bcd9-7b67042dd137" style="width: 150px; height: 100px; left: 2640px; top: 1200px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Entertainment Level</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 2357px; top: 1012px; width: 359px; height: 399px; z-index: 0; pointer-events: none;"><line x1="359" y1="399" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Cruise Below Decks" id="node-2522c50d-720d-4e09-90bf-6fe607213e33" style="width: 150px; height: 100px; left: 2640px; top: 1360px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Cruise Below Decks</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div></div>
+  <div class="zoom-controls" style="display: none;">
+    <button onclick="setZoom(zoom + 0.1)">Zoom In</button>
+    <button onclick="setZoom(zoom - 0.1)">Zoom Out</button>
+  </div>
+
+  <div id="helpDialog" style="display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(85, 85, 85); padding: 20px; z-index: 9999; font-family: monospace; max-width: 400px; text-align: left;">
+    <h3>Key Bindings</h3>
+    <p>
+      </p><pre>a = Add a new node.
+= = Duplicate current node.
+r = Rename node (change its type).
+u = Add a new link node.
+c = Start connection (select the second node
+    and hit Enter).
+X = Disconnects two nodes in the same manner as
+    connecting them.
+D = Delete the selected node.
+h = Move selected node left.
+H = Reduce width of selected node.
+i = Select current node's text field.
+j = Move selected node down.
+J = Increase selected node's height.
+k = Move selected node up.
+K = Reduce selected node's height.
+l = Move selected node right.
+L = Increase selected node's width.
+&lt; = Move selected node left by half a step.
+&gt; = Move selected node right by half a step.
+^ = Move selected node up by half a step.
+- = Move selected node down by half a step.
+z = Increase selected node's text area.
+Z = Decrease selected node's text area.
+w = Cycles through the nodes.
+s = Save the current diagram.
+G = Scroll to the top left.
+, = Zoom out.
+. = Zoom in.
+0 = Reset zoom.
+p = Start snap (select the second node
+    and hit Enter). The selected node will
+    snap to the right of the second node.
+# = Sets a custom color for the node. Enter
+    an HTML HEX color value and hit Enter.
+/ = Search and select a node.
+Escape = Deselect the current note's text field.
+      </pre>
+    <p></p>
+    <p>Press ESC to close.</p>
+  </div>
+
+<script>
+let canvas = document.getElementById('canvas');
+let colorPalettes = {};
+let selectedNode = null;
+let offsetX, offsetY;
+let nodes = [];
+let connectors = [];
+let connecting = false;
+let connectStart = null;
+let disconnecting = false;
+let disconnectStart = null;
+let snapping = false;
+let snapTarget = null;
+let zoom = 1;
+let dragging = false;
+
+function setZoom(z) {
+  zoom = Math.max(0.2, Math.min(z, 3));
+  canvas.style.transform = `scale(${zoom})`;
+}
+
+function findEmptySpot() {
+  const step = 40;
+  const width = 160;
+  const height = 120;
+
+  let container = canvas;
+  let isInDropzone = false;
+
+  if (selectedNode) {
+    const dropzone = selectedNode.querySelector('.dropzone');
+    if (dropzone && dropzone.children.length > 0) {
+      container = dropzone;
+      isInDropzone = true;
+    } else if (dropzone && dropzone.children.length === 0) {
+      return { left: 0, top: 0 };
+    }
+  }
+
+  const allNodes = Array.from(container.querySelectorAll('.node'));
+  if (allNodes.length === 0) {
+    return { left: 0, top: 0 };
+  }
+
+  let snappedCenterX, snappedCenterY;
+
+  if (isInDropzone) {
+    // For dropzones, just use center of the dropzone itself (no scroll involved)
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    snappedCenterX = Math.round((containerWidth / 2) / step) * step;
+    snappedCenterY = Math.round((containerHeight / 2) / step) * step;
+  } else {
+    // For canvas/global, center based on scroll position
+    const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
+    const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+
+    snappedCenterX = Math.round(centerX / step) * step;
+    snappedCenterY = Math.round(centerY / step) * step;
+  }
+
+  // Spiral search for a free spot
+  const maxRadius = 20;
+  for (let radius = 0; radius <= maxRadius; radius++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+
+        const left = snappedCenterX + dx * (width + step);
+        const top = snappedCenterY + dy * (height + step);
+
+        const snappedLeft = Math.round(left / step) * step;
+        const snappedTop = Math.round(top / step) * step;
+
+        const overlap = allNodes.some(n => {
+          const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
+          const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
+          const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
+          const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
+          return (
+            snappedLeft < nRight &&
+            snappedLeft + width > nLeft &&
+            snappedTop < nBottom &&
+            snappedTop + height > nTop
+          );
+        });
+
+        if (!overlap) return { left: snappedLeft, top: snappedTop };
+      }
+    }
+  }
+
+  // Fallback
+  return {
+    left: Math.round(100 / step) * step,
+    top: Math.round(100 / step) * step
+  };
+}
+
+canvas.onclick = e => {
+  if (e.target === canvas) {
+    setSelectedNode(null);
+  }
+};
+
+function addNode() {
+  const input = prompt("Enter node type:");
+  if (!input) return;
+  const type = input.trim();
+
+  let div = document.createElement('div');
+  div.className = 'node';
+  div.style.width = '150px';
+  div.style.height = '100px';
+  div.dataset.type = type;
+  div.id = 'node-' + crypto.randomUUID();
+
+  const header = document.createElement('div');
+  header.className = 'node-header';
+  header.textContent = type;
+  div.appendChild(header);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'node-content';
+  textarea.placeholder = 'Enter notes...';
+  div.appendChild(textarea);
+
+  const dropzone = document.createElement('div');
+  dropzone.className = 'dropzone';
+  dropzone.ondragover = e => e.preventDefault();
+  dropzone.ondrop = e => {
+    const id = e.dataTransfer.getData("text/plain");
+    const item = document.getElementById(id);
+    if (item && !item.contains(div)) dropzone.appendChild(item);
+  };
+  div.appendChild(dropzone);
+
+  setupNode(div);
+
+  // === Nesting logic ===
+  if (selectedNode) {
+    const parentDropzone = selectedNode.querySelector('.dropzone');
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+
+    if (parentDropzone && !div.contains(parentDropzone)) {
+      parentDropzone.appendChild(div);
+    } else {
+      const { left, top } = findEmptySpot();
+      div.style.left = left + 'px';
+      div.style.top = top + 'px';
+      canvas.appendChild(div);
+    }
+  } else {
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+    canvas.appendChild(div);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  setSelectedNode(div);
+  nodes.push(div);
+
+  attachChild(div);
+}
+
+function duplicateSelectedNode() {
+  if (!selectedNode) return;
+
+  const clone = selectedNode.cloneNode(true);
+  clone.id = 'node-' + crypto.randomUUID();
+
+  // Offset position (to the right by 1 step)
+  const step = 40;
+  const parent = selectedNode.offsetParent;
+  const currentLeft = selectedNode.offsetLeft;
+  const currentTop = selectedNode.offsetTop;
+
+  clone.style.left = (currentLeft + parseInt(selectedNode.style.width) + step) + 'px';
+  clone.style.top = currentTop + 'px';
+
+  // Preserve data attributes
+  clone.dataset.type = selectedNode.dataset.type;
+  clone.dataset.color = selectedNode.dataset.color;
+
+  // Set textarea value properly
+  const origTextarea = selectedNode.querySelector('textarea');
+  const cloneTextarea = clone.querySelector('textarea');
+  if (origTextarea && cloneTextarea) {
+    cloneTextarea.value = origTextarea.value;
+    cloneTextarea.textContent = origTextarea.value; // for saving
+  }
+
+  // Add to same container (canvas or dropzone)
+  if (parent && parent.classList.contains('dropzone')) {
+    parent.appendChild(clone);
+  } else {
+    canvas.appendChild(clone);
+  }
+
+  setupNode(clone); // apply event handlers etc.
+  nodes.push(clone);
+  setSelectedNode(clone);
+}
+
+function renameNode() {
+  if (!selectedNode) return;
+
+  const input = prompt("Enter new node type:");
+  if (!input) return;
+
+  const newType = input.trim();
+  selectedNode.dataset.type = newType;
+
+  // Update the header text too
+  const header = selectedNode.querySelector('.node-header');
+  if (header) {
+    header.textContent = newType;
+  }
+}
+
+function addLinkNode() {
+  const displayText = prompt("Enter link display text:");
+  if (!displayText) return;
+
+  const url = prompt("Enter the full URL (include https://):");
+  if (!url) return;
+
+  const div = document.createElement('div');
+  div.className = 'node';
+  div.style.width = '150px';
+  div.style.height = '60px';
+  div.dataset.type = 'Link';
+  div.id = 'node-' + crypto.randomUUID();
+
+  const header = document.createElement('div');
+  header.className = 'node-header';
+  header.textContent = displayText;
+  div.appendChild(header);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.textContent = url;
+  link.style.color = '#7af';
+  link.style.padding = '6px';
+  link.style.fontSize = '12px';
+  link.style.textDecoration = 'underline';
+  link.style.wordBreak = 'break-word';
+  div.appendChild(link);
+
+  const { left, top } = findEmptySpot();
+  div.style.left = left + 'px';
+  div.style.top = top + 'px';
+
+  // === Nesting logic ===
+  if (selectedNode) {
+    const parentDropzone = selectedNode.querySelector('.dropzone');
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+
+    if (parentDropzone && !div.contains(parentDropzone)) {
+      parentDropzone.appendChild(div);
+    } else {
+      const { left, top } = findEmptySpot();
+      div.style.left = left + 'px';
+      div.style.top = top + 'px';
+      canvas.appendChild(div);
+    }
+  } else {
+    const { left, top } = findEmptySpot();
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+    canvas.appendChild(div);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nodes.push(div);
+  setSelectedNode(div);
+}
+
+function getAllNodes() {
+  return Array.from(document.querySelectorAll('.node'));
+}
+
+function setSelectedNode(node) {
+  selectedNode = node;
+  nodes.forEach(n => {
+    n.style.borderColor = (n === selectedNode) ? '#B5DBFA' : '#aaa';
+    n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
+  });
+
+  if (selectedNode) {
+    selectedNode.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center'
+    });
+  }
+}
+
+
+
+
+function showNodeSelectorDialog() {
+  // Remove any existing popup
+  const existing = document.getElementById('nodeSelectorDialog');
+  if (existing) existing.remove();
+
+  const dialog = document.createElement('div');
+  dialog.id = 'nodeSelectorDialog';
+  dialog.style.position = 'fixed';
+  dialog.style.top = '10%';
+  dialog.style.left = '50%';
+  dialog.style.transform = 'translateX(-50%)';
+  dialog.style.width = '400px';
+  dialog.style.maxHeight = '70%';
+  dialog.style.overflow = 'hidden';
+  dialog.style.background = '#222';
+  dialog.style.color = '#fff';
+  dialog.style.border = '2px solid #444';
+  dialog.style.borderRadius = '10px';
+  dialog.style.zIndex = 9999;
+  dialog.style.fontFamily = 'monospace';
+  dialog.style.padding = '10px';
+  dialog.style.display = 'flex';
+  dialog.style.flexDirection = 'column';
+  dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+  const filter = document.createElement('input');
+  filter.type = 'text';
+  filter.placeholder = 'Filter by type or text...';
+  filter.style.padding = '5px';
+  filter.style.marginBottom = '10px';
+  filter.style.background = '#111';
+  filter.style.color = '#fff';
+  filter.style.border = '1px solid #555';
+
+  const listContainer = document.createElement('div');
+  listContainer.style.overflowY = 'auto';
+  listContainer.style.flex = '1';
+  listContainer.style.borderTop = '1px solid #333';
+  listContainer.style.borderBottom = '1px solid #333';
+
+  const nodesList = Array.from(document.querySelectorAll('.node'));
+  let filteredList = [];
+  let selectedIndex = 0;
+
+  function renderList() {
+    listContainer.innerHTML = '';
+    const search = filter.value.toLowerCase();
+    filteredList = nodesList.filter(n => {
+      const type = n.dataset.type?.toLowerCase() || '';
+      const text = n.querySelector('textarea')?.value.toLowerCase() || '';
+      return type.includes(search) || text.includes(search);
+    });
+
+    filteredList.forEach((node, index) => {
+      const id = node.id || '(no id)';
+      const type = node.dataset.type || '(no type)';
+      const text = node.querySelector('textarea')?.value || '';
+      const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+
+      const item = document.createElement('div');
+      item.textContent = `[${type}] — "${preview}"`;
+      item.style.padding = '5px 8px';
+      item.style.cursor = 'pointer';
+      item.style.whiteSpace = 'nowrap';
+      item.style.overflow = 'hidden';
+      item.style.textOverflow = 'ellipsis';
+
+      if (index === selectedIndex) {
+        item.style.background = '#444';
+      }
+
+      item.addEventListener('mouseenter', () => {
+        selectedIndex = index;
+        renderList();
+      });
+
+      item.addEventListener('click', () => {
+        setSelectedNode(filteredList[selectedIndex]);
+        dialog.remove();
+      });
+
+      listContainer.appendChild(item);
+    });
+
+    if (filteredList.length === 0) {
+      const empty = document.createElement('div');
+      empty.textContent = '(no matching nodes)';
+      empty.style.padding = '5px';
+      empty.style.color = '#888';
+      listContainer.appendChild(empty);
+    }
+  }
+
+  filter.addEventListener('input', () => {
+    selectedIndex = 0;
+    renderList();
+  });
+
+  filter.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
+      renderList();
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      renderList();
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      if (filteredList[selectedIndex]) {
+        setSelectedNode(filteredList[selectedIndex]);
+        e.preventDefault();
+        e.stopPropagation();
+        dialog.remove();
+      }
+    } else if (e.key === 'Escape') {
+      dialog.remove();
+      e.stopPropagation();
+    }
+  });
+
+  dialog.appendChild(filter);
+  dialog.appendChild(listContainer);
+  document.body.appendChild(dialog);
+  filter.focus();
+
+  renderList();
+}
+
+
+
+
+
+function setupNode(div) {
+  const type = div.dataset.type;
+  const textarea = div.querySelector('textarea');
+
+  const header = div.querySelector('.node-header');
+  const deleteBtn = header?.querySelector('.delete-btn');
+  if (deleteBtn) {
+    deleteBtn.onclick = e => {
+      e.stopPropagation();
+      removeNode(div);
+    };
+  }
+
+  div.draggable = false;
+  div.ondragstart = e => {
+    e.dataTransfer.setData("text/plain", div.id);
+  };
+
+  const dropzone = div.querySelector('.dropzone');
+  if (dropzone) {
+    dropzone.ondragover = e => e.preventDefault();
+    dropzone.ondrop = e => {
+      const id = e.dataTransfer.getData("text/plain");
+      const item = document.getElementById(id);
+      if (item) dropzone.appendChild(item);
+    };
+  }
+
+  if (!nodes.includes(div)) nodes.push(div);
+}
+
+function removeNode(node) {
+  connectors = connectors.filter(c => c.a !== node && c.b !== node);
+  updateConnectors();
+  if (node.parentElement) {
+    node.parentElement.removeChild(node);
+  }
+  nodes = nodes.filter(n => n !== node);
+  if (selectedNode === node) selectedNode = null;
+}
+
+function getNodeDepth(node) {
+  let depth = 0;
+  while (node.parentElement) {
+    node = node.parentElement;
+    if (nodes.includes(node)) {
+      depth++;
+    }
+  }
+  return depth;
+}
+
+function attachChild(selectedNode) {
+  const selectedRect = selectedNode.getBoundingClientRect();
+  let bestTarget = null;
+  let bestOverlapArea = 0;
+  let prevDepth = 0;
+  let curDepth = 0;
+
+  for (let node of nodes) {
+
+    if (node === selectedNode || node.contains(selectedNode)) continue;
+
+    const nodeRect = node.getBoundingClientRect();
+    const overlapX = Math.max(0, Math.min(selectedRect.right, nodeRect.right) - Math.max(selectedRect.left, nodeRect.left));
+    const overlapY = Math.max(0, Math.min(selectedRect.bottom, nodeRect.bottom) - Math.max(selectedRect.top, nodeRect.top));
+    const overlapArea = overlapX * overlapY;
+
+    if (overlapArea > bestOverlapArea) {
+      curDepth = getNodeDepth(node);
+
+      if (curDepth === 0 || curDepth > prevDepth) {
+        bestOverlapArea = overlapArea;
+        bestTarget = node;
+        prevDepth = curDepth;
+      }
+    }
+  }
+
+  if (bestTarget && selectedNode !== null) {
+    const dropzone = bestTarget.querySelector('.dropzone');
+    if (dropzone && !dropzone.contains(selectedNode)) {
+      // Remove from current parent
+      if (selectedNode.parentElement) {
+        selectedNode.parentElement.removeChild(selectedNode);
+      }
+
+      // Calculate position relative to new parent
+      const parentRect = dropzone.getBoundingClientRect();
+      const newLeft = selectedRect.left - parentRect.left;
+      const newTop = selectedRect.top - parentRect.top;
+
+      selectedNode.style.left = newLeft + 'px';
+      selectedNode.style.top = newTop + 'px';
+
+      dropzone.appendChild(selectedNode);
+    }
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    if (e.key === 'Escape' && selectedNode) {
+      const txt = selectedNode.querySelector('textarea');
+      txt.blur();
+      e.stopPropagation();
+      return;
+    }
+  }
+
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+  if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    document.getElementById('helpDialog').style.display = 'block';
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    if (document.getElementById('helpDialog').style.display === 'block') {
+      document.getElementById('helpDialog').style.display = 'none';
+      e.stopPropagation();
+      return;
+    } else {
+      selectedNode = null;
+      setSelectedNode(null);
+    }
+  }
+
+  switch (e.key) {
+    case 'a':
+      addNode();
+      break;
+    case '=':
+      duplicateSelectedNode();
+      break;
+    case 'u':
+      addLinkNode();
+      break;
+    case 's':
+      download();
+      break;
+    case '/':
+      showNodeSelectorDialog();
+      e.preventDefault();
+      break;
+    case ',':
+      setZoom(zoom - 0.1);
+      break;
+    case '.':
+      setZoom(zoom + 0.1);
+      break;
+    case '0':
+      setZoom(1);
+      break;
+    case 'G':
+      setSelectedNode(null);
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      break;
+  }
+
+  if (e.key === 'w' || e.key === 'W') {
+    const nodes = getAllNodes();
+    if (nodes.length === 0) return;
+
+    const index = nodes.indexOf(selectedNode);
+    let nextIndex;
+    if (e.shiftKey) {
+      nextIndex = (index - 1 + nodes.length) % nodes.length;
+    } else {
+      nextIndex = (index + 1) % nodes.length;
+    }
+
+    setSelectedNode(nodes[nextIndex]);
+    return;
+  }
+
+  if (!selectedNode) {
+    return;
+  }
+
+  const step = 40;
+  const style = selectedNode.style;
+  const width = parseInt(style.width);
+  const height = parseInt(style.height);
+  const left = parseInt(style.left);
+  const top = parseInt(style.top);
+  const dropzone = selectedNode.querySelector('.dropzone');
+  const textarea = selectedNode.querySelector('textarea');
+
+  const resize = (dw, dh) => {
+    const width = parseInt(selectedNode.style.width);
+    const height = parseInt(selectedNode.style.height);
+    selectedNode.style.width = Math.max(50, width + dw) + 'px';
+    selectedNode.style.height = Math.max(40, height + dh) + 'px';
+    updateConnectors();
+  };
+
+  const resizeDropzone = (dh) => {
+    if (!dropzone) return;
+    const dzStyle = dropzone.style;
+    const txStyle = textarea.style;
+    const dzWidth = parseFloat(dzStyle.width) || 0;
+    let dzHeight = parseFloat(dzStyle.height) || 0;
+    const txHeight = parseFloat(txStyle.height) || 0;
+
+    if (!dzHeight) {
+      dzHeight = parseFloat(selectedNode.style.height) - txStyle.height;
+      dzStyle.height = dzHeight + 'px';
+    }
+
+    dzStyle.height = Math.max(10, dzHeight + dh) + 'px';
+    txStyle.height = Math.max(10, parseFloat(window.getComputedStyle(textarea).height) - dh) + 'px';
+  };
+  
+  const move = (dx, dy) => {
+    const parent = selectedNode.offsetParent;
+    const currentLeft = selectedNode.offsetLeft;
+    const currentTop = selectedNode.offsetTop;
+    selectedNode.style.left = (currentLeft + dx) + 'px';
+    selectedNode.style.top = (currentTop + dy) + 'px';
+    updateConnectors();
+
+    selectedNode.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center'
+    });
+  };
+
+  switch (e.key) {
+    case 'c':
+      startConnector();
+      break;
+    case 'p':
+      startSnapping();
+      break;
+    case 'D':
+      removeNode(selectedNode);
+      break;
+    case 'X':
+      startDisconnector();
+      break;
+    case 'h':
+      move(-step, 0);
+      break;
+    case '<':
+      move(-(step/2), 0);
+      break;
+    case 'H':
+      resize(-step, 0);
+      break;
+    case 'i':
+      if (textarea) {
+        textarea.focus();
+        e.preventDefault();
+      }
+      break;
+    case 'j':
+      move(0, step);
+      break;
+    case '-':
+      move(0, (step/2));
+      break;
+    case 'J':
+      resize(0, step);
+      break;
+    case 'k':
+      move(0, -step);
+      break;
+    case '^':
+      move(0, -(step/2));
+      break;
+    case 'K':
+      resize(0, -step);
+      break;
+    case 'l':
+      move(step, 0);
+      break;
+    case 'r':
+      renameNode();
+    case '>':
+      move((step/2), 0);
+      break;
+    case 'L':
+      resize(step, 0);
+      break;
+    case 'm':
+      resize(step, step);
+      break;
+    case 'z':
+      resizeDropzone(-10);
+      break;
+    case 'Z':
+      resizeDropzone(10);
+      break;
+    case '#':
+      showColorPaletteMenu();
+      break;
+
+    case 'Enter':
+      if (disconnecting) {
+        // Remove connector if it exists
+        connectors = connectors.filter(conn => {
+          return !(
+            (conn.a === disconnectStart && conn.b === selectedNode) ||
+            (conn.b === disconnectStart && conn.a === selectedNode)
+          );
+        });
+        updateConnectors();
+        disconnecting = false;
+        disconnectStart = null;
+      } else if (connecting) {
+        drawConnector(connectStart, selectedNode);
+        connectStart = null;
+        connecting = false;
+      } else if (snapping) {
+         const gap = step; // 1 step to the right
+         const targetLeft = parseInt(selectedNode.style.left) || 0;
+         const targetTop = parseInt(selectedNode.style.top) || 0;
+         const targetWidth = parseInt(selectedNode.style.width) || 150;
+         const newLeft = targetLeft + targetWidth + gap;
+
+         snapTarget.style.left = newLeft + 'px';
+         snapTarget.style.top = targetTop + 'px';
+
+         setSelectedNode(snapTarget);
+
+         updateConnectors();
+
+         snapTarget = null;
+         snapping = false;
+      } else {
+        attachChild(selectedNode);
+      }
+      e.stopPropagation();
+      break;
+    default:
+      return; // Don't prevent default for unrelated keys
+  }
+
+  e.preventDefault();
+});
+
+function showColorPaletteMenu() {
+  if (!selectedNode) return;
+
+  // Overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+
+  // Modal
+  const modal = document.createElement('div');
+  modal.style.background = 'black';
+  modal.style.color = 'white';
+  modal.style.border = '2px solid white';
+  modal.style.padding = '20px';
+  modal.style.textAlign = 'center';
+  modal.style.fontFamily = 'monospace';
+  modal.tabIndex = -1;
+
+  const label = document.createElement('p');
+  label.textContent = 'Select a color palette:';
+  label.style.marginBottom = '10px';
+  modal.appendChild(label);
+
+  const select = document.createElement('select');
+  select.style.fontSize = '16px';
+  select.style.padding = '5px';
+  select.style.minWidth = '200px';
+  select.style.background = 'black';
+  select.style.color = 'white';
+  select.style.border = '1px solid white';
+  select.style.marginBottom = '10px';
+
+  const optionNew = document.createElement('option');
+  optionNew.value = '+';
+  optionNew.textContent = '+ Create new palette';
+  select.appendChild(optionNew);
+
+  Object.entries(colorPalettes).forEach(([name]) => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  modal.appendChild(select);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Refocus dropdown
+  setTimeout(() => select.focus(), 0);
+
+  function close() {
+    document.body.removeChild(overlay);
+  }
+
+  function rebuildSelect() {
+    const selected = select.value;
+    select.innerHTML = '';
+    const optionNew = document.createElement('option');
+    optionNew.value = '+';
+    optionNew.textContent = '+ Create new palette';
+    select.appendChild(optionNew);
+
+    Object.entries(colorPalettes).forEach(([name]) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+
+    if (colorPalettes[selected]) {
+      select.value = selected;
+    } else {
+      select.value = '+';
+    }
+  }
+
+  function openColorPickerModal(name) {
+    const pickerOverlay = document.createElement('div');
+    pickerOverlay.style.position = 'fixed';
+    pickerOverlay.style.top = '0';
+    pickerOverlay.style.left = '0';
+    pickerOverlay.style.width = '100vw';
+    pickerOverlay.style.height = '100vh';
+    pickerOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
+    pickerOverlay.style.display = 'flex';
+    pickerOverlay.style.alignItems = 'center';
+    pickerOverlay.style.justifyContent = 'center';
+    pickerOverlay.style.zIndex = '10000';
+
+    const pickerModal = document.createElement('div');
+    pickerModal.style.background = 'white';
+    pickerModal.style.padding = '20px';
+    pickerModal.style.borderRadius = '8px';
+    pickerModal.style.textAlign = 'center';
+    pickerModal.style.color = 'black';
+    pickerModal.style.fontFamily = 'monospace';
+    pickerModal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
+
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = '#3399ff';
+    colorInput.style.marginBottom = '10px';
+
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.marginLeft = '10px';
+
+    pickerModal.appendChild(colorInput);
+    pickerModal.appendChild(document.createElement('br'));
+    pickerModal.appendChild(button);
+    pickerOverlay.appendChild(pickerModal);
+    document.body.appendChild(pickerOverlay);
+
+    button.onclick = () => {
+      const hex = colorInput.value;
+      colorPalettes[name] = hex;
+      applyColorToNode(hex);
+      document.body.removeChild(pickerOverlay);
+      close();
+    };
+
+    pickerOverlay.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        document.body.removeChild(pickerOverlay);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        button.click();
+      }
+    });
+
+    colorInput.focus();
+  }
+
+  overlay.addEventListener('keydown', e => {
+    const selected = select.value;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (selected === '+') {
+        const name = prompt("Enter a name for the new palette:");
+        if (!name) return;
+        openColorPickerModal(name);
+      } else {
+        const hex = colorPalettes[selected];
+        if (hex) applyColorToNode(hex);
+        close();
+      }
+
+    } else if (e.key === 'd' || e.key === 'D') {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (selected !== '+' && colorPalettes[selected]) {
+        if (confirm(`Delete palette "${selected}"?`)) {
+          delete colorPalettes[selected];
+          rebuildSelect();
+        }
+      }
+
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    }
+  });
+
+  modal.focus();
+}
+
+function createNewColorPaletteWithPrompt(name) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.background = 'white';
+  modal.style.padding = '20px';
+  modal.style.borderRadius = '8px';
+  modal.style.textAlign = 'center';
+  modal.style.color = 'black';
+  modal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
+
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.value = '#3399ff';
+  colorInput.style.marginBottom = '10px';
+
+  const button = document.createElement('button');
+  button.textContent = 'OK';
+  button.style.marginLeft = '10px';
+
+  modal.appendChild(colorInput);
+  modal.appendChild(document.createElement('br'));
+  modal.appendChild(button);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  button.onclick = () => {
+    const hex = colorInput.value;
+    colorPalettes[name] = hex;
+    applyColorToNode(hex);
+    document.body.removeChild(overlay);
+  };
+}
+
+function applyColorToNode(baseColor) {
+  if (!selectedNode) return;
+
+  selectedNode.dataset.color = baseColor;
+
+  const bg = darken(baseColor, 0.6);
+  const contentBg = darken(baseColor, 0.4);
+  const fg = lighten(baseColor, 1.6);
+
+  selectedNode.style.background = bg;
+
+  const header = selectedNode.querySelector('.node-header');
+  const textarea = selectedNode.querySelector('textarea');
+  const dropzone = selectedNode.querySelector('.dropzone');
+
+  if (header) header.style.color = fg;
+  if (textarea) {
+    textarea.style.background = contentBg;
+    textarea.style.color = fg;
+  }
+  if (dropzone) {
+    dropzone.style.background = contentBg;
+    dropzone.style.color = fg;
+  }
+}
+
+function drawConnector(a, b) {
+  connectors.push({a, b});
+  updateConnectors();
+}
+
+function updateConnectors() {
+  document.querySelectorAll('svg.connector').forEach(c => c.remove());
+
+  function getAncestors(node) {
+    const ancestors = [];
+    while (node && node !== canvas.parentElement) {  // go up until canvas parent, in case canvas is root
+      ancestors.push(node);
+      node = node.parentElement;
+    }
+    return ancestors.reverse();
+  }
+
+  function findLCA(a, b) {
+    const aAncestors = getAncestors(a);
+    const bAncestors = getAncestors(b);
+    let lca = null;
+    const len = Math.min(aAncestors.length, bAncestors.length);
+    for (let i = 0; i < len; i++) {
+      if (aAncestors[i] === bAncestors[i]) {
+        lca = aAncestors[i];
+      } else {
+        break;
+      }
+    }
+    return lca || canvas;
+  }
+
+  function getNodeCenterRelativeToElement(node, element) {
+    const nodeRect = node.getBoundingClientRect();
+    const elemRect = element.getBoundingClientRect();
+  
+    // Undo the zoom transformation
+    const scale = zoom || 1;
+  
+    return {
+      x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
+      y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
+    };
+  }
+
+  connectors.forEach(({ a, b }) => {
+    const lca = findLCA(a, b);
+
+    const aCenter = getNodeCenterRelativeToElement(a, lca);
+    const bCenter = getNodeCenterRelativeToElement(b, lca);
+
+    const minX = Math.min(aCenter.x, bCenter.x);
+    const minY = Math.min(aCenter.y, bCenter.y);
+    const maxX = Math.max(aCenter.x, bCenter.x);
+    const maxY = Math.max(aCenter.y, bCenter.y);
+
+    const width = Math.max(maxX - minX, 2);
+    const height = Math.max(maxY - minY, 2);
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("connector");
+    svg.style.position = 'absolute';
+    svg.style.left = `${minX}px`;
+    svg.style.top = `${minY}px`;
+    svg.style.width = `${width}px`;
+    svg.style.height = `${height}px`;
+    svg.style.zIndex = '0';
+    svg.style.pointerEvents = 'none';
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", aCenter.x - minX);
+    line.setAttribute("y1", aCenter.y - minY);
+    line.setAttribute("x2", bCenter.x - minX);
+    line.setAttribute("y2", bCenter.y - minY);
+    line.setAttribute("stroke", "#333");
+    line.setAttribute("stroke-width", "2");
+    svg.appendChild(line);
+
+    // Insert SVG into LCA before a or b if direct child, else append
+    const children = Array.from(lca.children);
+    let insertBefore = null;
+    if (children.includes(a)) insertBefore = a;
+    else if (children.includes(b)) insertBefore = b;
+
+    if (insertBefore) {
+      lca.insertBefore(svg, insertBefore);
+    } else {
+      lca.appendChild(svg);
+    }
+  });
+}
+
+  function startConnector() {
+    connecting = true;
+    connectStart = selectedNode;
+  }
+  
+  function startDisconnector() {
+    disconnecting = true;
+    disconnectStart = selectedNode;
+  }
+  
+  function startSnapping() {
+    snapping = true;
+    snapTarget = selectedNode;
+  }
+
+  function download() {
+    document.querySelectorAll('textarea.node-content').forEach(t => {
+      t.textContent = t.value;
+    });
+  
+    // Remove any previous connector data
+    document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+  
+    // Serialize connectors using node IDs
+    const connectorData = connectors.map(({ a, b }) => ({
+      a: a.id,
+      b: b.id
+    }));
+  
+    const script = document.createElement('script');
+    script.type = 'application/json';
+    script.dataset.connectors = 'true';
+    script.id = 'connector-data';
+    script.textContent = JSON.stringify(connectorData, null, 2);
+  
+    document.body.appendChild(script);
+  
+    // Save color palette data
+    let paletteScript = document.querySelector('script[data-colorpalettes]');
+    if (!paletteScript) {
+      paletteScript = document.createElement('script');
+      paletteScript.type = 'application/json';
+      paletteScript.dataset.colorpalettes = 'true';
+      paletteScript.id = 'color-palettes';
+      document.body.appendChild(paletteScript);
+    }
+    paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+  
+    const html = document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
+    a.href = URL.createObjectURL(blob);
+    a.download = currentFileName;
+    a.click();
+  
+    script.remove(); // Remove after save to avoid duplicate
+    paletteScript.remove();
+  }
+
+  function initializeNodes() {
+    document.querySelectorAll('.node').forEach(setupNode);
+  }
+  
+  function restoreConnectorsFromDOM() {
+    const script = document.getElementById('connector-data');
+    if (!script) return;
+  
+    try {
+      const saved = JSON.parse(script.textContent);
+      connectors = [];
+  
+      saved.forEach(({ a, b }) => {
+        const nodeA = document.getElementById(a);
+        const nodeB = document.getElementById(b);
+        if (nodeA && nodeB) {
+          connectors.push({ a: nodeA, b: nodeB });
+        }
+      });
+  
+      updateConnectors();
+    } catch (err) {
+      console.error('Failed to restore connectors:', err);
+    }
+  }
+  
+  window.onload = () => {
+    initializeNodes();
+    restoreConnectorsFromDOM();
+    updateConnectors();
+    canvas.focus();
+  };
+  
+window.addEventListener('DOMContentLoaded', () => {
+  const paletteScripts = Array.from(document.querySelectorAll('script[data-colorpalettes]'));
+
+  if (paletteScripts.length > 0) {
+    const lastScript = paletteScripts[paletteScripts.length - 1];
+
+    try {
+      const data = JSON.parse(lastScript.textContent);
+      if (typeof data === 'object') {
+        colorPalettes = data;
+      }
+    } catch (err) {
+      console.warn('Could not parse saved color palettes:', err);
+    }
+
+    // Remove all others (leave just one)
+    paletteScripts.slice(0, -1).forEach(s => s.remove());
+  }
+});
+
+  function hexToRgb(hex) {
+    const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthand, (_, r, g, b) => r + r + g + g + b + b);
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+  
+  function darken(color, factor = 0.6) {
+    const rgb = hexToRgb(color);
+    return rgb ? `rgb(${Math.floor(rgb.r * factor)}, ${Math.floor(rgb.g * factor)}, ${Math.floor(rgb.b * factor)})` : color;
+  }
+  
+  function lighten(color, factor = 1.6) {
+    const rgb = hexToRgb(color);
+    return rgb ? `rgb(${Math.min(255, Math.floor(rgb.r * factor))}, ${Math.min(255, Math.floor(rgb.g * factor))}, ${Math.min(255, Math.floor(rgb.b * factor))})` : color;
+  }
+
+</script>
+
+
+
+
+
+
+<script type="application/json" data-connectors="true" id="connector-data">[
+  {
+    "a": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989",
+    "b": "node-85571647-97d3-4cd3-b6cc-0855036d6e93"
+  },
+  {
+    "a": "node-5bc7ca87-d32f-4318-9918-9fac668144e5",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  },
+  {
+    "a": "node-42e7f385-c5c2-4c6a-ab17-979377c5058d",
+    "b": "node-affb587e-fd6c-4501-a5ae-2b6b302a0989"
+  },
+  {
+    "a": "node-8fc0cf34-8056-408b-9ab0-f0a4465eca5a",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-5c504614-3ca6-4810-85ee-31ad3e687fc5",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-89aa467f-68b5-4eec-8750-7eb646a3affc",
+    "b": "node-58bc6aaf-f7c4-4965-b0ff-846f68c3a881"
+  },
+  {
+    "a": "node-5e3e0944-7b2f-447b-a857-f9e965e981a1",
+    "b": "node-8fc0cf34-8056-408b-9ab0-f0a4465eca5a"
+  },
+  {
+    "a": "node-fcbe27aa-c862-460d-b4c8-09afd052a624",
+    "b": "node-5c504614-3ca6-4810-85ee-31ad3e687fc5"
+  },
+  {
+    "a": "node-e1a38328-ee70-42e7-b48a-fbd47b1a8f23",
+    "b": "node-89aa467f-68b5-4eec-8750-7eb646a3affc"
+  },
+  {
+    "a": "node-57a83523-608d-4cea-9423-bff1b4a058ee",
+    "b": "node-89aa467f-68b5-4eec-8750-7eb646a3affc"
+  },
+  {
+    "a": "node-54c4fa3a-71d8-441b-a43e-b5dc37727605",
+    "b": "node-5bc7ca87-d32f-4318-9918-9fac668144e5"
+  },
+  {
+    "a": "node-20f7f35a-9770-4fda-a8fb-53660835fe57",
+    "b": "node-54c4fa3a-71d8-441b-a43e-b5dc37727605"
+  },
+  {
+    "a": "node-6aace16e-915b-40c0-b761-fa926fe469a0",
+    "b": "node-5bc7ca87-d32f-4318-9918-9fac668144e5"
+  },
+  {
+    "a": "node-6aace16e-915b-40c0-b761-fa926fe469a0",
+    "b": "node-db2655f9-af25-4102-8763-235688e8552f"
+  },
+  {
+    "a": "node-6aace16e-915b-40c0-b761-fa926fe469a0",
+    "b": "node-c2d0293c-ef38-4d37-a9e9-a097dc709796"
+  },
+  {
+    "a": "node-d9f2906f-1eef-48aa-bb4f-7c98e416409f",
+    "b": "node-6aace16e-915b-40c0-b761-fa926fe469a0"
+  },
+  {
+    "a": "node-f46f376c-1710-46ba-996e-3a2e16e71206",
+    "b": "node-5bc7ca87-d32f-4318-9918-9fac668144e5"
+  },
+  {
+    "a": "node-d3627093-c10c-417b-b970-3fde623bed5b",
+    "b": "node-6aace16e-915b-40c0-b761-fa926fe469a0"
+  },
+  {
+    "a": "node-3d23dc4d-6bd6-42a1-aeb2-7c631c109311",
+    "b": "node-f46f376c-1710-46ba-996e-3a2e16e71206"
+  },
+  {
+    "a": "node-500e3766-6511-4338-94d2-3d0b13087f31",
+    "b": "node-5bc7ca87-d32f-4318-9918-9fac668144e5"
+  },
+  {
+    "a": "node-3571243d-e627-48e2-8d62-e40c0bb1f084",
+    "b": "node-5bc7ca87-d32f-4318-9918-9fac668144e5"
+  },
+  {
+    "a": "node-cc9e0eb6-abcf-4ddb-81c1-85d133a76bf8",
+    "b": "node-500e3766-6511-4338-94d2-3d0b13087f31"
+  },
+  {
+    "a": "node-121f0b34-06c2-4754-a99c-58aa9946e5fb",
+    "b": "node-c2d0293c-ef38-4d37-a9e9-a097dc709796"
+  },
+  {
+    "a": "node-7193ab9c-ee10-4a73-940b-6ccad219dc53",
+    "b": "node-c3e328cc-7883-4a95-8d52-12b96f718b86"
+  },
+  {
+    "a": "node-bfe83ffa-2f7f-4106-a843-4fdb0207e3d4",
+    "b": "node-c3e328cc-7883-4a95-8d52-12b96f718b86"
+  },
+  {
+    "a": "node-06d74300-2c24-4c93-aa90-14f01066c971",
+    "b": "node-c3e328cc-7883-4a95-8d52-12b96f718b86"
+  },
+  {
+    "a": "node-246a6d96-2cd2-44e5-9211-d84079140afe",
+    "b": "node-c3e328cc-7883-4a95-8d52-12b96f718b86"
+  },
+  {
+    "a": "node-64b20d1e-ced6-44a9-b176-6854a3ced2e9",
+    "b": "node-c3e328cc-7883-4a95-8d52-12b96f718b86"
+  },
+  {
+    "a": "node-4699a59c-7632-4d53-9d68-d404738ff5dc",
+    "b": "node-3571243d-e627-48e2-8d62-e40c0bb1f084"
+  },
+  {
+    "a": "node-d2a0d45f-3bc4-4a30-91f6-1e503016589f",
+    "b": "node-4699a59c-7632-4d53-9d68-d404738ff5dc"
+  },
+  {
+    "a": "node-a2111b4d-8447-47e5-9b78-5814f6695d07",
+    "b": "node-3571243d-e627-48e2-8d62-e40c0bb1f084"
+  },
+  {
+    "a": "node-35b4aade-2d58-4870-b7da-9c5e5d159d46",
+    "b": "node-a2111b4d-8447-47e5-9b78-5814f6695d07"
+  },
+  {
+    "a": "node-9d0f56b7-104c-4318-921f-22df6eef0701",
+    "b": "node-3571243d-e627-48e2-8d62-e40c0bb1f084"
+  },
+  {
+    "a": "node-cd1884a6-0f3f-4810-98a5-72edbcb0e605",
+    "b": "node-9d0f56b7-104c-4318-921f-22df6eef0701"
+  },
+  {
+    "a": "node-d009a468-eafc-4307-8e46-65a1b86f0334",
+    "b": "node-9d0f56b7-104c-4318-921f-22df6eef0701"
+  },
+  {
+    "a": "node-4ef226be-5930-42d2-8bf9-9f77ef245299",
+    "b": "node-6aace16e-915b-40c0-b761-fa926fe469a0"
+  },
+  {
+    "a": "node-42be9de1-0c1e-459c-8ce0-0f5929dd1000",
+    "b": "node-d3627093-c10c-417b-b970-3fde623bed5b"
+  },
+  {
+    "a": "node-0f06e4ed-5e57-4ef6-9505-d0a5a2062f66",
+    "b": "node-c74b10f9-5914-4e9f-853b-5eb58da412e4"
+  },
+  {
+    "a": "node-7e8641fb-645d-442e-9986-babcc2ca4b6d",
+    "b": "node-d9f2906f-1eef-48aa-bb4f-7c98e416409f"
+  },
+  {
+    "a": "node-3fedfd6f-7ae7-4e26-bf70-4d9049dcbbf5",
+    "b": "node-500e3766-6511-4338-94d2-3d0b13087f31"
+  },
+  {
+    "a": "node-4a2a6094-4463-4a3b-a2bf-517a3ef12176",
+    "b": "node-4699a59c-7632-4d53-9d68-d404738ff5dc"
+  },
+  {
+    "a": "node-39853cdb-923e-4eb3-b57c-7d4efca928bb",
+    "b": "node-7193ab9c-ee10-4a73-940b-6ccad219dc53"
+  },
+  {
+    "a": "node-92195109-0239-4634-a55b-3735a7327641",
+    "b": "node-bfe83ffa-2f7f-4106-a843-4fdb0207e3d4"
+  },
+  {
+    "a": "node-b88d1403-85bd-4f07-8397-c75f344a44c7",
+    "b": "node-06d74300-2c24-4c93-aa90-14f01066c971"
+  },
+  {
+    "a": "node-59032b91-e3f1-442d-ba38-957b4d72d769",
+    "b": "node-246a6d96-2cd2-44e5-9211-d84079140afe"
+  },
+  {
+    "a": "node-a1fbd0e8-d6f9-4bce-99ab-61cd6f09b18f",
+    "b": "node-64b20d1e-ced6-44a9-b176-6854a3ced2e9"
+  },
+  {
+    "a": "node-596380df-8a18-4959-87d9-14166fc29e3c",
+    "b": "node-a1fbd0e8-d6f9-4bce-99ab-61cd6f09b18f"
+  },
+  {
+    "a": "node-88c6187e-f7ee-4ddb-8118-0209c5c72a2b",
+    "b": "node-596380df-8a18-4959-87d9-14166fc29e3c"
+  },
+  {
+    "a": "node-4adf443c-bf63-45c7-aa7b-782bf8ff7272",
+    "b": "node-596380df-8a18-4959-87d9-14166fc29e3c"
+  },
+  {
+    "a": "node-07af67fb-517d-42a0-84d9-6501b10ffa4b",
+    "b": "node-596380df-8a18-4959-87d9-14166fc29e3c"
+  },
+  {
+    "a": "node-0044d5d3-d276-4910-a03d-4526304a20d0",
+    "b": "node-35b4aade-2d58-4870-b7da-9c5e5d159d46"
+  },
+  {
+    "a": "node-a34efbb0-4d1d-476e-b766-6d641d6b5dcb",
+    "b": "node-cd1884a6-0f3f-4810-98a5-72edbcb0e605"
+  },
+  {
+    "a": "node-9bc0906a-1d9e-48b1-a77f-e7c7c6bec8ca",
+    "b": "node-54c4fa3a-71d8-441b-a43e-b5dc37727605"
+  },
+  {
+    "a": "node-c66aa5c9-3284-42a7-a956-1466fd5eef8a",
+    "b": "node-9bc0906a-1d9e-48b1-a77f-e7c7c6bec8ca"
+  },
+  {
+    "a": "node-fdb56c11-be56-45ee-a3db-a764c046600d",
+    "b": "node-c66aa5c9-3284-42a7-a956-1466fd5eef8a"
+  },
+  {
+    "a": "node-fdb56c11-be56-45ee-a3db-a764c046600d",
+    "b": "node-c74b10f9-5914-4e9f-853b-5eb58da412e4"
+  },
+  {
+    "a": "node-bd72a60a-8332-480b-ad42-04ffb8797b85",
+    "b": "node-c74b10f9-5914-4e9f-853b-5eb58da412e4"
+  },
+  {
+    "a": "node-67099dd5-3257-48e4-9642-37878e63c05b",
+    "b": "node-bd72a60a-8332-480b-ad42-04ffb8797b85"
+  },
+  {
+    "a": "node-d316220b-ee10-491b-911d-3df02432a9ef",
+    "b": "node-67099dd5-3257-48e4-9642-37878e63c05b"
+  },
+  {
+    "a": "node-d316220b-ee10-491b-911d-3df02432a9ef",
+    "b": "node-7b0663e2-f766-410d-99c9-116ae3400387"
+  },
+  {
+    "a": "node-a565d792-2177-42a7-bcd9-7b67042dd137",
+    "b": "node-67099dd5-3257-48e4-9642-37878e63c05b"
+  },
+  {
+    "a": "node-2522c50d-720d-4e09-90bf-6fe607213e33",
+    "b": "node-67099dd5-3257-48e4-9642-37878e63c05b"
+  }
+]</script><script type="application/json" data-colorpalettes="true" id="color-palettes">{
+  "Multiplex": "#33ff33",
+  "Fight": "#ff3333",
+  "Question": "#ff8800",
+  "News": "#aaddff",
+  "Puzzle": "#ffff00",
+  "Kernel": "#aaaaaa"
+}</script></body></html>
