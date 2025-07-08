@@ -11,10 +11,8 @@ This will bring up the key bindings.
 * = = Duplicate current node.
 * r = Rename node (change its type).
 * u = Add a new link node.
-* c = Start connection (select the second node
-*     and hit Enter).
-* X = Disconnects two nodes in the same manner as
-*     connecting them.
+* c = Start connection (select the second node and hit Enter).
+* X = Disconnects two nodes in the same manner as connecting them.
 * D = Delete the selected node.
 * h = Move selected node left.
 * H = Reduce width of selected node.
@@ -37,11 +35,8 @@ This will bring up the key bindings.
 * , = Zoom out.
 * . = Zoom in.
 * 0 = Reset zoom.
-* p = Start snap (select the second node
-*     and hit Enter). The selected node will
-*     snap to the right of the second node.
-* # = Sets a custom color for the node. Enter
-*     an HTML HEX color value and hit Enter.
+* p = Start snap (select the second node and hit Enter). The selected node will snap to the right of the second node.
+* # = Sets a custom color for the node. Enter an HTML HEX color value and hit Enter.
 * / = Search and select a node.
 * Escape = Deselect the current note's text field.
 
