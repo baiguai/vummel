@@ -36,7 +36,7 @@ This will bring up the key bindings.
 * . = Zoom in.
 * 0 = Reset zoom.
 * p = Start snap (select the second node and hit Enter). The selected node will snap to the right of the second node.
-* &#35; = Sets a custom color for the node. Enter an HTML HEX color value and hit Enter.
+* &#35; = Sets a custom color for the node OR manages existing color 'palettes'.
 * / = Search and select a node.
 * Escape = Deselect the current note's text field.
 
