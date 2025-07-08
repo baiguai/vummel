@@ -1,6 +1,8 @@
 # vummel
 A Keyboard-Driven UML Diagram Application with VIM-Like Key Bindings -- As a Stand-Alone HTML File
 
+![Vummel](https://worldweaver.infinityfreeapp.com/vummel.jpg)
+
 ## New to Vummel
 When you first pull up the **vummel.html** file, hit the **?** key.\
 This will bring up the key bindings.
@@ -41,5 +43,5 @@ This will bring up the key bindings.
 * Escape = Deselect the current note's text field.
 
 ## Documentation
-You can view the current Vummel documentation <a href="https://vummel.tiddlyhost.com/" target="_blank">here</a>
+You can view the current Vummel documentation [here](https://vummel.tiddlyhost.com)
 or by viewing the **vummel_help.html** file.
