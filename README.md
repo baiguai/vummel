@@ -26,7 +26,7 @@ This will bring up the key bindings.
 * &lt; = Move selected node left by half a step.
 * &gt; = Move selected node right by half a step.
 * &#94; = Move selected node up by half a step.
-* - = Move selected node down by half a step.
+* &#45; = Move selected node down by half a step.
 * z = Increase selected node's text area.
 * Z = Decrease selected node's text area.
 * w = Cycles through the nodes.
