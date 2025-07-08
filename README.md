@@ -1,6 +1,8 @@
 # vummel
 A Keyboard-Driven UML Diagram Application with VIM-Like Key Bindings -- As a Stand-Alone HTML File
 
+![Vummel](https://worldweaver.infinityfreeapp.com/vummel.jpg)
+
 ## New to Vummel
 When you first pull up the **vummel.html** file, hit the **?** key.\
 This will bring up the key bindings.
@@ -25,8 +27,8 @@ This will bring up the key bindings.
 * L = Increase selected node's width.
 * &lt; = Move selected node left by half a step.
 * &gt; = Move selected node right by half a step.
-* ^ = Move selected node up by half a step.
-* - = Move selected node down by half a step.
+* &#94; = Move selected node up by half a step.
+* &#45; = Move selected node down by half a step.
 * z = Increase selected node's text area.
 * Z = Decrease selected node's text area.
 * w = Cycles through the nodes.
@@ -36,10 +38,10 @@ This will bring up the key bindings.
 * . = Zoom in.
 * 0 = Reset zoom.
 * p = Start snap (select the second node and hit Enter). The selected node will snap to the right of the second node.
-* # = Sets a custom color for the node. Enter an HTML HEX color value and hit Enter.
+* &#35; = Sets a custom color for the node OR manages existing color 'palettes'.
 * / = Search and select a node.
 * Escape = Deselect the current note's text field.
 
 ## Documentation
-You can view the current Vummel documentation <a href="https://vummel.tiddlyhost.com/" target="_blank">here</a>
+You can view the current Vummel documentation [here](https://vummel.tiddlyhost.com)
 or by viewing the **vummel_help.html** file.
