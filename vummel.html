@@ -128,7 +128,7 @@
   <div id="helpDialog" style="
     display: none;
     position: fixed;
-    top: 20%;
+    top: 5%;
     left: 50%;
     transform: translateX(-50%);
     background: #222;
@@ -142,7 +142,7 @@
   ">
     <h3>Key Bindings</h3>
     <p>
-      </p><pre>
+        <pre>
 a = Add a new node.
 = = Duplicate current node.
 r = Rename node (change its type).
@@ -180,8 +180,8 @@ p = Start snap (select the second node
     OR manages existing color 'palettes'.
 / = Search and select a node.
 Escape = Deselect the current note's text field.
-      </pre>
-    <p></p>
+       </pre>
+     </p>
     <p>Press ESC to close.</p>
   </div>
 
@@ -1407,6 +1407,11 @@ function updateConnectors() {
     initializeNodes();
     restoreConnectorsFromDOM();
     updateConnectors();
+
+    if (canvas.innerHTML === "") {
+        document.getElementById('helpDialog').style.display = 'block';
+    }
+
     canvas.focus();
   };
   
