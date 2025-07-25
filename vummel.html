@@ -155,6 +155,8 @@ K = Reduce selected node's height.
 l = Move selected node right.
 L = Increase selected node's width.
 &lt; = Move selected node left by half a step.
+&gt; = (while connecting) Creates a line pointed
+    from the first selected node to the second one.
 &gt; = Move selected node right by half a step.
 ^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
@@ -901,7 +903,15 @@ document.addEventListener('keydown', e => {
     case 'r':
       renameNode();
     case '>':
-      move((step/2), 0);
+        if (connecting && connectStart && selectedNode && connectStart !== selectedNode) {
+            drawConnector(connectStart, selectedNode, true); // pass arrow = true
+            connectStart = null;
+            connecting = false;
+            e.preventDefault();
+            return;
+        } else {
+            move((step / 2), 0);
+        }
       break;
     case 'L':
       resize(step, 0);
@@ -1218,8 +1228,8 @@ function applyColorToNode(baseColor) {
   }
 }
 
-function drawConnector(a, b) {
-  connectors.push({a, b});
+function drawConnector(a, b, arrow = false) {
+  connectors.push({ a, b, arrow });
   updateConnectors();
 }
 
@@ -1228,7 +1238,7 @@ function updateConnectors() {
 
   function getAncestors(node) {
     const ancestors = [];
-    while (node && node !== canvas.parentElement) {  // go up until canvas parent, in case canvas is root
+    while (node && node !== canvas.parentElement) {
       ancestors.push(node);
       node = node.parentElement;
     }
@@ -1253,29 +1263,37 @@ function updateConnectors() {
   function getNodeCenterRelativeToElement(node, element) {
     const nodeRect = node.getBoundingClientRect();
     const elemRect = element.getBoundingClientRect();
-  
-    // Undo the zoom transformation
     const scale = zoom || 1;
-  
     return {
       x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
       y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
     };
   }
 
-  connectors.forEach(({ a, b }) => {
+  connectors.forEach(conn => {
+    const { a, b, arrow } = conn;
     const lca = findLCA(a, b);
-
     const aCenter = getNodeCenterRelativeToElement(a, lca);
     const bCenter = getNodeCenterRelativeToElement(b, lca);
 
-    const minX = Math.min(aCenter.x, bCenter.x);
-    const minY = Math.min(aCenter.y, bCenter.y);
-    const maxX = Math.max(aCenter.x, bCenter.x);
-    const maxY = Math.max(aCenter.y, bCenter.y);
+    let dx = bCenter.x - aCenter.x;
+    let dy = bCenter.y - aCenter.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) return;
 
-    const width = Math.max(maxX - minX, 2);
-    const height = Math.max(maxY - minY, 2);
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    const pad = 10;
+    const startX = aCenter.x + unitX * pad;
+    const startY = aCenter.y + unitY * pad;
+    const endX = bCenter.x - unitX * pad;
+    const endY = bCenter.y - unitY * pad;
+
+    const minX = Math.min(startX, endX) - 20;
+    const minY = Math.min(startY, endY) - 20;
+    const width = Math.abs(endX - startX) + 40;
+    const height = Math.abs(endY - startY) + 40;
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.classList.add("connector");
@@ -1284,29 +1302,40 @@ function updateConnectors() {
     svg.style.top = `${minY}px`;
     svg.style.width = `${width}px`;
     svg.style.height = `${height}px`;
-    svg.style.zIndex = '0';
+    svg.style.zIndex = '0'; // above nodes
     svg.style.pointerEvents = 'none';
 
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", aCenter.x - minX);
-    line.setAttribute("y1", aCenter.y - minY);
-    line.setAttribute("x2", bCenter.x - minX);
-    line.setAttribute("y2", bCenter.y - minY);
-    line.setAttribute("stroke", "#333");
+    line.setAttribute("x1", startX - minX);
+    line.setAttribute("y1", startY - minY);
+    line.setAttribute("x2", endX - minX);
+    line.setAttribute("y2", endY - minY);
+    line.setAttribute("stroke", "#ccc");
     line.setAttribute("stroke-width", "2");
     svg.appendChild(line);
 
-    // Insert SVG into LCA before a or b if direct child, else append
-    const children = Array.from(lca.children);
-    let insertBefore = null;
-    if (children.includes(a)) insertBefore = a;
-    else if (children.includes(b)) insertBefore = b;
+    if (arrow) {
+      const arrowSize = 10;
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
 
-    if (insertBefore) {
-      lca.insertBefore(svg, insertBefore);
-    } else {
-      lca.appendChild(svg);
+      const ax1 = midX - minX;
+      const ay1 = midY - minY;
+
+      const ax2 = ax1 - unitX * arrowSize - unitY * arrowSize / 2;
+      const ay2 = ay1 - unitY * arrowSize + unitX * arrowSize / 2;
+
+      const ax3 = ax1 - unitX * arrowSize + unitY * arrowSize / 2;
+      const ay3 = ay1 - unitY * arrowSize - unitX * arrowSize / 2;
+
+      const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      polygon.setAttribute("points", `${ax1},${ay1} ${ax2},${ay2} ${ax3},${ay3}`);
+      polygon.setAttribute("fill", "#ccc");
+
+      svg.appendChild(polygon);
     }
+
+    lca.appendChild(svg);
   });
 }
 
@@ -1334,9 +1363,10 @@ function updateConnectors() {
     document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
   
     // Serialize connectors using node IDs
-    const connectorData = connectors.map(({ a, b }) => ({
-      a: a.id,
-      b: b.id
+    const connectorData = connectors.map(({ a, b, arrow }) => ({
+        a: a.id,
+        b: b.id,
+        arrow: !!arrow
     }));
   
     const script = document.createElement('script');
@@ -1379,20 +1409,20 @@ function updateConnectors() {
     if (!script) return;
   
     try {
-      const saved = JSON.parse(script.textContent);
-      connectors = [];
+        const saved = JSON.parse(script.textContent);
+        connectors = [];
   
-      saved.forEach(({ a, b }) => {
-        const nodeA = document.getElementById(a);
-        const nodeB = document.getElementById(b);
-        if (nodeA && nodeB) {
-          connectors.push({ a: nodeA, b: nodeB });
-        }
-      });
+        saved.forEach(({ a, b, arrow }) => {
+            const nodeA = document.getElementById(a);
+            const nodeB = document.getElementById(b);
+            if (nodeA && nodeB) {
+                connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+            }
+        });
   
-      updateConnectors();
+        updateConnectors();
     } catch (err) {
-      console.error('Failed to restore connectors:', err);
+        console.error('Failed to restore connectors:', err);
     }
   }
   
