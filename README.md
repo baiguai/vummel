@@ -26,6 +26,7 @@ This will bring up the key bindings.
 * l = Move selected node right.
 * L = Increase selected node's width.
 * &lt; = Move selected node left by half a step.
+* &gt; = (while connecting) Creates a line pointed from the first selected node to the second one.
 * &gt; = Move selected node right by half a step.
 * &#94; = Move selected node up by half a step.
 * &#45; = Move selected node down by half a step.
