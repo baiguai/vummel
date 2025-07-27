@@ -539,15 +539,24 @@ function showNodeSelectorDialog() {
     const search = filter.value.toLowerCase();
     filteredList = nodesList.filter(n => {
       const type = n.dataset.type?.toLowerCase() || '';
-      const text = n.querySelector('textarea')?.value.toLowerCase() || '';
-      return type.includes(search) || text.includes(search);
+      const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+      const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+      return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
     });
 
     filteredList.forEach((node, index) => {
-      const id = node.id || '(no id)';
       const type = node.dataset.type || '(no type)';
-      const text = node.querySelector('textarea')?.value || '';
-      const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+      let preview = '';
+
+      if (type.toLowerCase() === 'link') {
+        const anchor = node.querySelector('a');
+        const url = anchor?.href || '';
+        preview = url.length > 100 ? url.substring(0, 100) + '…' : url;
+      } else {
+        const textarea = node.querySelector('textarea');
+        const text = textarea?.value || '';
+        preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+      }
 
       const item = document.createElement('div');
       item.textContent = `[${type}] — "${preview}"`;
@@ -1303,7 +1312,7 @@ function updateConnectors() {
     svg.style.top = `${minY}px`;
     svg.style.width = `${width}px`;
     svg.style.height = `${height}px`;
-    svg.style.zIndex = '0'; // above nodes
+    svg.style.zIndex = '0';
     svg.style.pointerEvents = 'none';
 
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1317,20 +1326,26 @@ function updateConnectors() {
 
     if (arrow) {
       const arrowSize = 10;
+
+      // Midpoint of the line
       const midX = (startX + endX) / 2;
       const midY = (startY + endY) / 2;
 
-      const ax1 = midX - minX;
-      const ay1 = midY - minY;
+      // Tip slightly ahead of midpoint for better visual centering
+      const tipX = midX + unitX * (arrowSize / 2);
+      const tipY = midY + unitY * (arrowSize / 2);
 
-      const ax2 = ax1 - unitX * arrowSize - unitY * arrowSize / 2;
-      const ay2 = ay1 - unitY * arrowSize + unitX * arrowSize / 2;
+      const baseLeftX = tipX - unitX * arrowSize - unitY * arrowSize / 2;
+      const baseLeftY = tipY - unitY * arrowSize + unitX * arrowSize / 2;
 
-      const ax3 = ax1 - unitX * arrowSize + unitY * arrowSize / 2;
-      const ay3 = ay1 - unitY * arrowSize - unitX * arrowSize / 2;
+      const baseRightX = tipX - unitX * arrowSize + unitY * arrowSize / 2;
+      const baseRightY = tipY - unitY * arrowSize - unitX * arrowSize / 2;
 
       const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      polygon.setAttribute("points", `${ax1},${ay1} ${ax2},${ay2} ${ax3},${ay3}`);
+      polygon.setAttribute(
+        "points",
+        `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
+      );
       polygon.setAttribute("fill", "#ccc");
 
       svg.appendChild(polygon);
