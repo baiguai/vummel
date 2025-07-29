@@ -1325,15 +1325,29 @@ function updateConnectors() {
     svg.appendChild(line);
 
     if (arrow) {
-      const arrowSize = 10;
+      const arrowSize = 12;
+      const buffer = arrowSize + 1;
 
-      // Midpoint of the line
-      const midX = (startX + endX) / 2;
-      const midY = (startY + endY) / 2;
+      // Get node B's size
+      const bRect = b.getBoundingClientRect();
+      const lcaRect = lca.getBoundingClientRect();
+      const scale = zoom || 1;
+      const bWidth = bRect.width / scale;
+      const bHeight = bRect.height / scale;
 
-      // Tip slightly ahead of midpoint for better visual centering
-      const tipX = midX + unitX * (arrowSize / 2);
-      const tipY = midY + unitY * (arrowSize / 2);
+      // Calculate how far we need to backtrack from the center to the edge
+      // Projected distance along the unit vector to the edge of the box
+      const halfDiagonalProjection = Math.min(
+        Math.abs(bWidth / 2 / unitX || Infinity),
+        Math.abs(bHeight / 2 / unitY || Infinity)
+      );
+
+      const edgeX = bCenter.x - unitX * halfDiagonalProjection;
+      const edgeY = bCenter.y - unitY * halfDiagonalProjection;
+
+      // Position the arrow just outside the node
+      const tipX = edgeX - unitX * buffer;
+      const tipY = edgeY - unitY * buffer;
 
       const baseLeftX = tipX - unitX * arrowSize - unitY * arrowSize / 2;
       const baseLeftY = tipY - unitY * arrowSize + unitX * arrowSize / 2;
