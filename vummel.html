@@ -307,6 +307,7 @@ function addNode() {
 
   const textarea = document.createElement('textarea');
   textarea.className = 'node-content';
+  textarea.spellcheck = 'false';
   textarea.placeholder = 'Enter notes...';
   div.appendChild(textarea);
 
