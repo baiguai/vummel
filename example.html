@@ -1,6 +1,6 @@
 <html lang="en"><head>
   <meta charset="UTF-8">
-  <title>IF Visual Planner</title>
+  <title>Vummel - A Keyboard Driven UML Diagram Application</title>
   <style>
     html, body {
       margin: 0;
@@ -112,26 +112,16 @@
   </style>
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
-  <div id="toolbar" style="display: none; height: 0px;">
-    <button onclick="addNode('Room')">Add Room</button>
-    <button onclick="addNode('Item/NPC')">Add Item/NPC</button>
-    <button onclick="addNode('Note')">Add Note</button>
-    <button onclick="startConnector()">Room Connector</button>
-    <button onclick="download()">Save</button>
-  </div>
-  <div id="canvas" tabindex="0" style="transform: scale(1);"><div class="node" data-type="THIS IS VUMMEL" id="node-4f2f09ec-ac86-4e06-912b-e5106ca14f62" style="width: 350px; height: 100px; left: 40px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(153, 102, 0);" draggable="false" data-color="#ffaa00"><div class="node-header" style="color: rgb(255, 255, 0);">THIS IS VUMMEL</div><textarea class="node-content" placeholder="Enter notes..." style="background: rgb(102, 68, 0); color: rgb(255, 255, 0);">A keyboard driven UML diagram app...
-As a stand alone HTML file!</textarea><div class="dropzone" style="background: rgb(102, 68, 0); color: rgb(255, 255, 0);"></div></div><svg class="connector" style="position: absolute; left: 216px; top: 91px; width: 690px; height: 140px; z-index: 0; pointer-events: none;"><line x1="690" y1="140" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Overview" id="node-f3ca5b76-1124-4824-b3e0-0cb367490fc6" style="width: 870px; height: 380px; left: 470px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Overview</div><textarea class="node-content" placeholder="Enter notes..." style="height: 60px;">Simply press the ? key to see the key bindings.
-As you can see - you can nest nodes within other nodes.
-To do this, hit the 'a' key while a node is selected.</textarea><div class="dropzone" style="height: 390px;"><div class="node" data-type="This is a Child Node" id="node-1096ae5c-5acd-4cae-b467-ab8535ef5111" style="width: 150px; height: 100px; left: 20px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">This is a Child Node</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 96px; top: 72px; width: 460px; height: 80px; z-index: 0; pointer-events: none;"><line x1="460" y1="80" x2="0" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Another Child" id="node-1a6ba0cd-55f3-4e22-914c-f8c6919ac684" style="width: 550px; height: 220px; left: 280px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Another Child</div><textarea class="node-content" placeholder="Enter notes..." style="height: 30px;"></textarea><div class="dropzone" style="height: 340px;"><div class="node" data-type="Deeper Level" id="node-cac1c100-1387-4086-a761-bed2db71cba7" style="width: 150px; height: 100px; left: 20px; top: 20px; border-color: rgb(181, 219, 250); border-width: 2px;" draggable="false"><div class="node-header">Deeper Level</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 97px; top: 72px; width: 259px; height: 2px; z-index: 0; pointer-events: none;"><line x1="259" y1="0" x2="0" y2="1" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Deeper Level 2" id="node-8694b51d-05fe-4828-bc0e-fd42173b16bc" style="width: 150px; height: 100px; left: 280px; top: 20px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Deeper Level 2</div><textarea class="node-content" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div></div></div></div></div><svg class="connector" style="position: absolute; left: 156px; top: 231px; width: 750px; height: 2px; z-index: 0; pointer-events: none;"><line x1="0" y1="0" x2="750" y2="0" stroke="#333" stroke-width="2"></line></svg><div class="node" data-type="Link" id="node-0813f786-d6d1-4832-8b16-0c1e5c589ba9" style="width: 150px; height: 60px; left: 80px; top: 200px; border-color: rgb(170, 170, 170); border-width: 1px;"><div class="node-header">Link Node</div><a href="https://github.com/" target="_blank" style="color: rgb(119, 170, 255); padding: 6px; font-size: 12px; text-decoration: underline; word-break: break-word;">https://github.com/</a></div></div>
+  <div id="canvas" tabindex="0" style="transform: scale(1);"><div class="node" data-type="Colorful Node" id="node-546f7296-2363-4ea8-8f1b-91c462c084e9" style="width: 390px; height: 100px; left: 40px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px; background: rgb(26, 39, 52);" draggable="false" data-color="#2c4258"><div class="node-header" style="color: rgb(70, 105, 140);">Colorful Node</div><textarea class="node-content" spellcheck="true" placeholder="Enter notes..." style="background: rgb(17, 26, 35); color: rgb(70, 105, 140);">This is a node with its color set.</textarea><div class="dropzone" style="background: rgb(17, 26, 35); color: rgb(70, 105, 140);"></div></div><div class="node" data-type="Nested Nodes" id="node-d7fe5ea8-3c18-4ff5-aa7a-b3205caaac3c" style="width: 430px; height: 340px; left: 550px; top: 80px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Nested Nodes</div><textarea class="node-content" spellcheck="true" placeholder="Enter notes..." style="height: 50px;">This is a node with nested nodes inside it.</textarea><div class="dropzone" style="height: 520px;"><div class="node" data-type="Child 1" id="node-0aeeb0c9-e48b-4cec-bb4a-b1e511d000c8" style="width: 150px; height: 100px; left: 40px; top: 40px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Child 1</div><textarea class="node-content" spellcheck="true" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><div class="node" data-type="Child 2" id="node-6e0f9acf-8bff-4b53-b39e-1268ca7602e6" style="width: 150px; height: 100px; left: 240px; top: 120px; border-color: rgb(170, 170, 170); border-width: 1px;" draggable="false"><div class="node-header">Child 2</div><textarea class="node-content" spellcheck="true" placeholder="Enter notes..."></textarea><div class="dropzone"></div></div><svg class="connector" style="position: absolute; left: 105.285px; top: 75.7139px; width: 221.43px; height: 112.572px; z-index: 0; pointer-events: none;"><line x1="201.43046618229482" y1="92.57218647291792" x2="20" y2="20" stroke="#ccc" stroke-width="2"></line></svg></div></div><div class="node" data-type="Link" id="node-4a7fed67-7041-44ae-a65c-5da3ca02f981" style="width: 230px; height: 60px; left: 80px; top: 240px; border-color: rgb(170, 170, 170); border-width: 1px;"><div class="node-header">Link Node</div><a href="https://www.w3schools.com" target="_blank" style="color: rgb(119, 170, 255); padding: 6px; font-size: 12px; text-decoration: underline; word-break: break-word;">https://www.w3schools.com</a></div><svg class="connector" style="position: absolute; left: 226.577px; top: 74.8785px; width: 549.846px; height: 193.243px; z-index: 0; pointer-events: none;"><line x1="20" y1="20" x2="529.8464664611167" y2="173.2430778210162" stroke="#ccc" stroke-width="2"></line><polygon points="310.9734364302843,107.45704422006656 297.7542396532592,109.74895097434126 301.20839296064946,98.25683085101133" fill="#ccc"></polygon></svg><svg class="connector" style="position: absolute; left: 178.233px; top: 81.7476px; width: 76.5346px; height: 199.505px; z-index: 0; pointer-events: none;"><line x1="20" y1="179.5048597175454" x2="56.534632672733835" y2="20" stroke="#ccc" stroke-width="2"></line></svg></div>
   <div class="zoom-controls" style="display: none;">
     <button onclick="setZoom(zoom + 0.1)">Zoom In</button>
     <button onclick="setZoom(zoom - 0.1)">Zoom Out</button>
   </div>
 
-  <div id="helpDialog" style="display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(85, 85, 85); padding: 20px; z-index: 9999; font-family: monospace; max-width: 400px; text-align: left;">
+  <div id="helpDialog" style="display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(244, 243, 66); padding: 20px; z-index: 9999; font-family: monospace; max-width: 400px; text-align: left; box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
     <h3>Key Bindings</h3>
     <p>
-      </p><pre>a = Add a new node.
+        </p><pre>a = Add a new node.
 = = Duplicate current node.
 r = Rename node (change its type).
 u = Add a new link node.
@@ -150,6 +140,8 @@ K = Reduce selected node's height.
 l = Move selected node right.
 L = Increase selected node's width.
 &lt; = Move selected node left by half a step.
+&gt; = (while connecting) Creates a line pointed
+    from the first selected node to the second one.
 &gt; = Move selected node right by half a step.
 ^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
@@ -168,8 +160,8 @@ p = Start snap (select the second node
     OR manages existing color 'palettes'.
 / = Search and select a node.
 Escape = Deselect the current note's text field.
-      </pre>
-    <p></p>
+       </pre>
+     <p></p>
     <p>Press ESC to close.</p>
   </div>
 
@@ -299,6 +291,7 @@ function addNode() {
 
   const textarea = document.createElement('textarea');
   textarea.className = 'node-content';
+  textarea.spellcheck = 'false';
   textarea.placeholder = 'Enter notes...';
   div.appendChild(textarea);
 
@@ -531,15 +524,24 @@ function showNodeSelectorDialog() {
     const search = filter.value.toLowerCase();
     filteredList = nodesList.filter(n => {
       const type = n.dataset.type?.toLowerCase() || '';
-      const text = n.querySelector('textarea')?.value.toLowerCase() || '';
-      return type.includes(search) || text.includes(search);
+      const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+      const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+      return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
     });
 
     filteredList.forEach((node, index) => {
-      const id = node.id || '(no id)';
       const type = node.dataset.type || '(no type)';
-      const text = node.querySelector('textarea')?.value || '';
-      const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+      let preview = '';
+
+      if (type.toLowerCase() === 'link') {
+        const anchor = node.querySelector('a');
+        const url = anchor?.href || '';
+        preview = url.length > 100 ? url.substring(0, 100) + '…' : url;
+      } else {
+        const textarea = node.querySelector('textarea');
+        const text = textarea?.value || '';
+        preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+      }
 
       const item = document.createElement('div');
       item.textContent = `[${type}] — "${preview}"`;
@@ -896,7 +898,15 @@ document.addEventListener('keydown', e => {
     case 'r':
       renameNode();
     case '>':
-      move((step/2), 0);
+        if (connecting && connectStart && selectedNode && connectStart !== selectedNode) {
+            drawConnector(connectStart, selectedNode, true); // pass arrow = true
+            connectStart = null;
+            connecting = false;
+            e.preventDefault();
+            return;
+        } else {
+            move((step / 2), 0);
+        }
       break;
     case 'L':
       resize(step, 0);
@@ -1213,8 +1223,8 @@ function applyColorToNode(baseColor) {
   }
 }
 
-function drawConnector(a, b) {
-  connectors.push({a, b});
+function drawConnector(a, b, arrow = false) {
+  connectors.push({ a, b, arrow });
   updateConnectors();
 }
 
@@ -1223,7 +1233,7 @@ function updateConnectors() {
 
   function getAncestors(node) {
     const ancestors = [];
-    while (node && node !== canvas.parentElement) {  // go up until canvas parent, in case canvas is root
+    while (node && node !== canvas.parentElement) {
       ancestors.push(node);
       node = node.parentElement;
     }
@@ -1248,29 +1258,37 @@ function updateConnectors() {
   function getNodeCenterRelativeToElement(node, element) {
     const nodeRect = node.getBoundingClientRect();
     const elemRect = element.getBoundingClientRect();
-  
-    // Undo the zoom transformation
     const scale = zoom || 1;
-  
     return {
       x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
       y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
     };
   }
 
-  connectors.forEach(({ a, b }) => {
+  connectors.forEach(conn => {
+    const { a, b, arrow } = conn;
     const lca = findLCA(a, b);
-
     const aCenter = getNodeCenterRelativeToElement(a, lca);
     const bCenter = getNodeCenterRelativeToElement(b, lca);
 
-    const minX = Math.min(aCenter.x, bCenter.x);
-    const minY = Math.min(aCenter.y, bCenter.y);
-    const maxX = Math.max(aCenter.x, bCenter.x);
-    const maxY = Math.max(aCenter.y, bCenter.y);
+    let dx = bCenter.x - aCenter.x;
+    let dy = bCenter.y - aCenter.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) return;
 
-    const width = Math.max(maxX - minX, 2);
-    const height = Math.max(maxY - minY, 2);
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    const pad = 10;
+    const startX = aCenter.x + unitX * pad;
+    const startY = aCenter.y + unitY * pad;
+    const endX = bCenter.x - unitX * pad;
+    const endY = bCenter.y - unitY * pad;
+
+    const minX = Math.min(startX, endX) - 20;
+    const minY = Math.min(startY, endY) - 20;
+    const width = Math.abs(endX - startX) + 40;
+    const height = Math.abs(endY - startY) + 40;
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.classList.add("connector");
@@ -1283,25 +1301,56 @@ function updateConnectors() {
     svg.style.pointerEvents = 'none';
 
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", aCenter.x - minX);
-    line.setAttribute("y1", aCenter.y - minY);
-    line.setAttribute("x2", bCenter.x - minX);
-    line.setAttribute("y2", bCenter.y - minY);
-    line.setAttribute("stroke", "#333");
+    line.setAttribute("x1", startX - minX);
+    line.setAttribute("y1", startY - minY);
+    line.setAttribute("x2", endX - minX);
+    line.setAttribute("y2", endY - minY);
+    line.setAttribute("stroke", "#ccc");
     line.setAttribute("stroke-width", "2");
     svg.appendChild(line);
 
-    // Insert SVG into LCA before a or b if direct child, else append
-    const children = Array.from(lca.children);
-    let insertBefore = null;
-    if (children.includes(a)) insertBefore = a;
-    else if (children.includes(b)) insertBefore = b;
+    if (arrow) {
+      const arrowSize = 12;
+      const buffer = arrowSize + 1;
 
-    if (insertBefore) {
-      lca.insertBefore(svg, insertBefore);
-    } else {
-      lca.appendChild(svg);
+      // Get node B's size
+      const bRect = b.getBoundingClientRect();
+      const lcaRect = lca.getBoundingClientRect();
+      const scale = zoom || 1;
+      const bWidth = bRect.width / scale;
+      const bHeight = bRect.height / scale;
+
+      // Calculate how far we need to backtrack from the center to the edge
+      // Projected distance along the unit vector to the edge of the box
+      const halfDiagonalProjection = Math.min(
+        Math.abs(bWidth / 2 / unitX || Infinity),
+        Math.abs(bHeight / 2 / unitY || Infinity)
+      );
+
+      const edgeX = bCenter.x - unitX * halfDiagonalProjection;
+      const edgeY = bCenter.y - unitY * halfDiagonalProjection;
+
+      // Position the arrow just outside the node
+      const tipX = edgeX - unitX * buffer;
+      const tipY = edgeY - unitY * buffer;
+
+      const baseLeftX = tipX - unitX * arrowSize - unitY * arrowSize / 2;
+      const baseLeftY = tipY - unitY * arrowSize + unitX * arrowSize / 2;
+
+      const baseRightX = tipX - unitX * arrowSize + unitY * arrowSize / 2;
+      const baseRightY = tipY - unitY * arrowSize - unitX * arrowSize / 2;
+
+      const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      polygon.setAttribute(
+        "points",
+        `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
+      );
+      polygon.setAttribute("fill", "#ccc");
+
+      svg.appendChild(polygon);
     }
+
+    lca.appendChild(svg);
   });
 }
 
@@ -1329,9 +1378,10 @@ function updateConnectors() {
     document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
   
     // Serialize connectors using node IDs
-    const connectorData = connectors.map(({ a, b }) => ({
-      a: a.id,
-      b: b.id
+    const connectorData = connectors.map(({ a, b, arrow }) => ({
+        a: a.id,
+        b: b.id,
+        arrow: !!arrow
     }));
   
     const script = document.createElement('script');
@@ -1374,20 +1424,20 @@ function updateConnectors() {
     if (!script) return;
   
     try {
-      const saved = JSON.parse(script.textContent);
-      connectors = [];
+        const saved = JSON.parse(script.textContent);
+        connectors = [];
   
-      saved.forEach(({ a, b }) => {
-        const nodeA = document.getElementById(a);
-        const nodeB = document.getElementById(b);
-        if (nodeA && nodeB) {
-          connectors.push({ a: nodeA, b: nodeB });
-        }
-      });
+        saved.forEach(({ a, b, arrow }) => {
+            const nodeA = document.getElementById(a);
+            const nodeB = document.getElementById(b);
+            if (nodeA && nodeB) {
+                connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+            }
+        });
   
-      updateConnectors();
+        updateConnectors();
     } catch (err) {
-      console.error('Failed to restore connectors:', err);
+        console.error('Failed to restore connectors:', err);
     }
   }
   
@@ -1395,6 +1445,11 @@ function updateConnectors() {
     initializeNodes();
     restoreConnectorsFromDOM();
     updateConnectors();
+
+    if (canvas.innerHTML === "") {
+        document.getElementById('helpDialog').style.display = 'block';
+    }
+
     canvas.focus();
   };
   
@@ -1446,26 +1501,26 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
+
 <script type="application/json" data-connectors="true" id="connector-data">[
   {
-    "a": "node-f3ca5b76-1124-4824-b3e0-0cb367490fc6",
-    "b": "node-4f2f09ec-ac86-4e06-912b-e5106ca14f62"
+    "a": "node-546f7296-2363-4ea8-8f1b-91c462c084e9",
+    "b": "node-d7fe5ea8-3c18-4ff5-aa7a-b3205caaac3c",
+    "arrow": true
   },
   {
-    "a": "node-1a6ba0cd-55f3-4e22-914c-f8c6919ac684",
-    "b": "node-1096ae5c-5acd-4cae-b467-ab8535ef5111"
+    "a": "node-6e0f9acf-8bff-4b53-b39e-1268ca7602e6",
+    "b": "node-0aeeb0c9-e48b-4cec-bb4a-b1e511d000c8",
+    "arrow": false
   },
   {
-    "a": "node-0813f786-d6d1-4832-8b16-0c1e5c589ba9",
-    "b": "node-f3ca5b76-1124-4824-b3e0-0cb367490fc6"
-  },
-  {
-    "a": "node-8694b51d-05fe-4828-bc0e-fd42173b16bc",
-    "b": "node-cac1c100-1387-4086-a761-bed2db71cba7"
+    "a": "node-4a7fed67-7041-44ae-a65c-5da3ca02f981",
+    "b": "node-546f7296-2363-4ea8-8f1b-91c462c084e9",
+    "arrow": false
   }
 ]</script><script type="application/json" data-colorpalettes="true" id="color-palettes">{
   "Test 1": "#ff8800",
   "Info": "#ffff00",
   "hmmmmm": "#6b9130",
-  "Title": "#ffaa00"
+  "Table": "#2c4258"
 }</script></body></html>
