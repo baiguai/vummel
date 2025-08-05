@@ -907,6 +907,7 @@ document.addEventListener('keydown', e => {
       break;
     case 'r':
       renameNode();
+      break;
     case '>':
         if (connecting && connectStart && selectedNode && connectStart !== selectedNode) {
             drawConnector(connectStart, selectedNode, true); // pass arrow = true
