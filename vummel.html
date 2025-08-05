@@ -1386,6 +1386,12 @@ function updateConnectors() {
   }
 
   function download() {
+    selectedNode = null;
+    nodes.forEach(n => {
+      n.style.borderColor = '#aaa';
+      n.style.borderWidth = '1px';
+    });
+
     document.querySelectorAll('textarea.node-content').forEach(t => {
       t.textContent = t.value;
     });
