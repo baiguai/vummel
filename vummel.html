@@ -113,11 +113,6 @@
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
   <div id="canvas" tabindex="0" style="transform: scale(1);"></div>
-  <div class="zoom-controls" style="display: none;">
-    <button onclick="setZoom(zoom + 0.1)">Zoom In</button>
-    <button onclick="setZoom(zoom - 0.1)">Zoom Out</button>
-  </div>
-
   <div id="helpDialog" style="
     display: none;
     position: fixed;
@@ -175,6 +170,8 @@ p = Start snap (select the second node
 # = Sets a custom color for the node.
     OR manages existing color 'palettes'.
 / = Search and select a node.
+m&lt;letter&gt; = Set mark.
+`&lt;letter&gt; = Go to mark.
 Escape = Deselect the current note's text field.
        </pre>
      </p>
@@ -196,6 +193,94 @@ let snapping = false;
 let snapTarget = null;
 let zoom = 1;
 let dragging = false;
+
+// === VIM-style Marks ===
+let marks = {}; // { letter: nodeId }
+let markMode = false; // waiting for mark letter after 'm'
+let gotoMarkMode = false; // waiting for mark letter after '`'
+
+function setMark(letter) {
+  if (!selectedNode) return;
+  // Remove from any other node
+  Object.keys(marks).forEach(k => {
+    if (marks[k] === selectedNode.id) return; // same node, skip
+    if (marks[k] === selectedNode.id || marks[k] && document.getElementById(marks[k]) === selectedNode) {
+      // nothing
+    }
+  });
+  // Remove mark from any other node
+  Object.keys(marks).forEach(k => {
+    if (marks[k] === selectedNode.id) return;
+    if (marks[k] && marks[k] === selectedNode.id) delete marks[k];
+  });
+  // Also remove mark from other nodes if letter used
+  Object.keys(marks).forEach(k => {
+    if (k === letter) {
+      removeMarkBadge(document.getElementById(marks[k]));
+      delete marks[k];
+    }
+  });
+  // Assign
+  marks[letter] = selectedNode.id;
+  addMarkBadge(selectedNode, letter);
+}
+
+function gotoMark(letter) {
+  if (marks[letter]) {
+    const node = document.getElementById(marks[letter]);
+    if (node) setSelectedNode(node);
+  }
+}
+
+function addMarkBadge(node, letter) {
+  if (!node) return;
+  removeMarkBadge(node);
+
+  const bg = '#333';
+  const brdr = '#000';
+  const fg = '#fff';
+
+  const badge = document.createElement('div');
+  badge.className = 'mark-badge';
+  badge.textContent = letter;
+  badge.style.position = 'absolute';
+  badge.style.top = '2px';
+  badge.style.right = '2px';
+  badge.style.fontSize = '10px';
+  badge.style.fontWeight = 'bold';
+  badge.style.width = '14px';
+  badge.style.height = '14px';
+  badge.style.textAlign = 'center';
+  badge.style.lineHeight = '14px';
+  badge.style.borderRadius = '2px';
+  badge.style.border = '1px solid ' + brdr;
+  badge.style.background = bg;
+  badge.style.color = fg;
+  badge.style.zIndex = '3';
+  node.appendChild(badge);
+}
+
+function removeMarkBadge(node) {
+  if (!node) return;
+  const existing = node.querySelector('.mark-badge');
+  if (existing) existing.remove();
+}
+
+function restoreMarksFromDOM() {
+  const script = document.querySelector('script[data-marks]');
+  if (!script) return;
+  try {
+    marks = JSON.parse(script.textContent) || {};
+    Object.keys(marks).forEach(letter => {
+      const node = document.getElementById(marks[letter]);
+      if (node) addMarkBadge(node, letter);
+    });
+  } catch (e) {
+    console.warn('Could not parse saved marks:', e);
+  }
+}
+
+
 
 function setZoom(z) {
   zoom = Math.max(0.2, Math.min(z, 3));
@@ -665,7 +750,8 @@ function setupNode(div) {
 
 function removeNode(node) {
   connectors = connectors.filter(c => c.a !== node && c.b !== node);
-  updateConnectors();
+  restoreMarksFromDOM();
+    updateConnectors();
   if (node.parentElement) {
     node.parentElement.removeChild(node);
   }
@@ -761,7 +847,31 @@ document.addEventListener('keydown', e => {
     }
   }
 
-  switch (e.key) {
+  
+  // Handle mark/goto mark modes
+  if (markMode) {
+    setMark(e.key);
+    markMode = false;
+    e.preventDefault();
+    return;
+  }
+  if (gotoMarkMode) {
+    gotoMark(e.key);
+    gotoMarkMode = false;
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'm') {
+    markMode = true;
+    e.preventDefault();
+    return;
+  }
+  if (e.key === '`') {
+    gotoMarkMode = true;
+    e.preventDefault();
+    return;
+  }
+switch (e.key) {
     case 'a':
       addNode();
       break;
@@ -1426,7 +1536,18 @@ function updateConnectors() {
     }
     paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
   
-    const html = document.documentElement.outerHTML;
+    
+    // Save marks data
+    let marksScript = document.querySelector('script[data-marks]');
+    if (!marksScript) {
+      marksScript = document.createElement('script');
+      marksScript.type = 'application/json';
+      marksScript.dataset.marks = 'true';
+      marksScript.id = 'marks-data';
+      document.body.appendChild(marksScript);
+    }
+    marksScript.textContent = JSON.stringify(marks, null, 2);
+const html = document.documentElement.outerHTML;
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
@@ -1466,6 +1587,7 @@ function updateConnectors() {
   
   window.onload = () => {
     initializeNodes();
+    restoreMarksFromDOM();
     restoreConnectorsFromDOM();
     updateConnectors();
 
@@ -1497,6 +1619,10 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
   function hexToRgb(hex) {
+      if (hex === undefined || hex === null ) {
+          return;
+      }
+
     const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
     hex = hex.replace(shorthand, (_, r, g, b) => r + r + g + g + b + b);
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -1523,8 +1649,5 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 <script type="application/json" data-colorpalettes="true" id="color-palettes">{
-  "Test 1": "#ff8800",
-  "Info": "#ffff00",
-  "hmmmmm": "#6b9130"
 }</script>
 <script type="application/json" data-connectors="true" id="connector-data">[]</script></body></html>
