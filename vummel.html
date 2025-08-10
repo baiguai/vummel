@@ -113,26 +113,10 @@
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
   <div id="canvas" tabindex="0" style="transform: scale(1);"></div>
-  <div id="helpDialog" style="
-    display: none;
-    position: fixed;
-    top: 5%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #222;
-    color: white;
-    border: 2px solid #F4F342;
-    padding: 20px;
-    z-index: 9999;
-    font-family: monospace;
-    max-width: 400px;
-    text-align: left;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 1);
-  ">
+  <div id="helpDialog" style="display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(244, 243, 66); padding: 20px; z-index: 9999; font-family: monospace; max-width: 400px; text-align: left; box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
     <h3>Key Bindings</h3>
     <p>
-        <pre>
-a = Add a new node.
+        </p><pre>a = Add a new node.
 = = Duplicate current node.
 r = Rename node (change its type).
 u = Add a new link node.
@@ -172,9 +156,10 @@ p = Start snap (select the second node
 / = Search and select a node.
 m&lt;letter&gt; = Set mark.
 `&lt;letter&gt; = Go to mark.
+m- = Remove mark.
 Escape = Deselect the current note's text field.
        </pre>
-     </p>
+     <p></p>
     <p>Press ESC to close.</p>
   </div>
 
@@ -224,6 +209,22 @@ function setMark(letter) {
   marks[letter] = selectedNode.id;
   addMarkBadge(selectedNode, letter);
 }
+
+function removeMarkFromNode(node) {
+  if (!node) return;
+  // Find the letter for this node
+  let letterToRemove = null;
+  Object.keys(marks).forEach(letter => {
+    if (marks[letter] === node.id) {
+      letterToRemove = letter;
+    }
+  });
+  if (letterToRemove) {
+    delete marks[letterToRemove];
+    removeMarkBadge(node);
+  }
+}
+
 
 function gotoMark(letter) {
   if (marks[letter]) {
@@ -850,6 +851,13 @@ document.addEventListener('keydown', e => {
   
   // Handle mark/goto mark modes
   if (markMode) {
+    if (e.key === '-') {
+      removeMarkFromNode(selectedNode);
+      markMode = false;
+      e.preventDefault();
+      return;
+    }
+
     setMark(e.key);
     markMode = false;
     e.preventDefault();
