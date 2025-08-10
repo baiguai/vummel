@@ -43,6 +43,9 @@ This will bring up the key bindings.
 * p = Start snap (select the second node and hit Enter). The selected node will snap to the right of the second node.
 * &#35; = Sets a custom color for the node OR manages existing color 'palettes'.
 * / = Search and select a node.
+* m<letter> = Set mark.
+* `<letter> = Go to mark.
+* m- = Delete mark.
 * Escape = Deselect the current note's text field.
 
 ## Documentation
