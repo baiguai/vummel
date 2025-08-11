@@ -1,7 +1,7 @@
 # vummel
 A Keyboard-Driven UML Diagram Application with VIM-Like Key Bindings -- As a Stand-Alone HTML File
 
-![Vummel](https://vummel.infinityfreeapp.com/example_01.jpg)
+![Vummel](https://vummel.infinityfreeapp.com/example_01_01.jpg)
 
 ![Vummel](https://vummel.infinityfreeapp.com/example_04.jpg)
 
