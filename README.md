@@ -51,3 +51,4 @@ This will bring up the key bindings.
 ## Documentation
 You can view the current Vummel documentation [here](https://vummel.tiddlyhost.com)
 or by viewing the **vummel_help.html** file.
+
