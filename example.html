@@ -136,9 +136,10 @@
     <h3>Key Bindings</h3>
     <p></p>
     <table style="border-collapse: collapse; border: none; width: 100%;">
-        <tbody><tr>
+        <tr>
             <td style="vertical-align: top; padding-right: 10px;">
-                <pre>a = Add a new node.
+                <pre>
+a = Add a new node.
 = = Duplicate current node.
 r = Rename node (change its type).
 u = Add a new link node.
@@ -160,10 +161,12 @@ L = Increase selected node's width.
 &gt; = (while connecting) Creates a line pointed
     from the first selected node to the second one.
 &gt; = Move selected node right by half a step.
+1-9 = How many times to repeat certain actions.
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
-                <pre>^ = Move selected node up by half a step.
+                <pre>
+^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
 z = Increase selected node's text area.
 Z = Decrease selected node's text area.
@@ -172,6 +175,10 @@ s = Save the current diagram.
 G = Scroll to the top left.
 , = Zoom out.
 . = Zoom in.
+] = Scroll half screen right.
+[ = Scroll half screen left.
+} = Scroll half screen down.
+} = Scroll half screen up.
 0 = Reset zoom.
 p = Start snap (select the second node
     and hit Enter). The selected node will
@@ -186,8 +193,9 @@ Escape = Deselect the current note's text field.
                 </pre>
             </td>
         </tr>
-    </tbody></table>
-    <pre>       </pre>
+    </table>
+    <pre>
+       </pre>
      <p></p>
     <p>Press ESC to close.</p>
   </div>
@@ -944,6 +952,10 @@ Escape = Deselect the current note's text field.
             e.preventDefault();
             return;
         }
+
+        const halfWidth = Math.floor(window.innerWidth / 2);
+        const halfHeight = Math.floor(window.innerHeight / 2);
+
         switch (e.key) {
             case 'a':
                 addNode();
@@ -995,6 +1007,30 @@ Escape = Deselect the current note's text field.
                 window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
                 repeatCount = 1;
                 break;
+
+            case ']': // scroll right
+                window.scrollBy({ left: halfWidth * repeatCount, behavior: 'smooth' });
+                repeatCount = 1;
+                e.preventDefault();
+                break;
+
+            case '[': // scroll left
+                window.scrollBy({ left: -halfWidth * repeatCount, behavior: 'smooth' });
+                repeatCount = 1;
+                e.preventDefault();
+                break;
+
+            case '}': // scroll down
+                window.scrollBy({ top: halfHeight * repeatCount, behavior: 'smooth' });
+                repeatCount = 1;
+                e.preventDefault();
+                break;
+
+            case '{': // scroll up
+                window.scrollBy({ top: -halfHeight * repeatCount, behavior: 'smooth' });
+                repeatCount = 1;
+                e.preventDefault();
+                break;
         }
 
         if (e.key === 'w' || e.key === 'W') {
@@ -1014,7 +1050,7 @@ Escape = Deselect the current note's text field.
             return;
         }
 
-        if (/^[0-9]$/.test(e.key)) {
+        if (/^[1-9]$/.test(e.key)) {
             repeatCount = Number(e.key);
         }
 
