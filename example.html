@@ -193,1513 +193,1552 @@ Escape = Deselect the current note's text field.
   </div>
 
 <script>
-let canvas = document.getElementById('canvas');
-let colorPalettes = {};
-let selectedNode = null;
-let offsetX, offsetY;
-let nodes = [];
-let connectors = [];
-let connecting = false;
-let connectStart = null;
-let disconnecting = false;
-let disconnectStart = null;
-let snapping = false;
-let snapTarget = null;
-let zoom = 1;
-let dragging = false;
-
-// === VIM-style Marks ===
-let marks = {}; // { letter: nodeId }
-let markMode = false; // waiting for mark letter after 'm'
-let gotoMarkMode = false; // waiting for mark letter after '`'
-
-function setMark(letter) {
-  if (!selectedNode) return;
-  // Remove from any other node
-  Object.keys(marks).forEach(k => {
-    if (marks[k] === selectedNode.id) return; // same node, skip
-    if (marks[k] === selectedNode.id || marks[k] && document.getElementById(marks[k]) === selectedNode) {
-      // nothing
-    }
-  });
-  // Remove mark from any other node
-  Object.keys(marks).forEach(k => {
-    if (marks[k] === selectedNode.id) return;
-    if (marks[k] && marks[k] === selectedNode.id) delete marks[k];
-  });
-  // Also remove mark from other nodes if letter used
-  Object.keys(marks).forEach(k => {
-    if (k === letter) {
-      removeMarkBadge(document.getElementById(marks[k]));
-      delete marks[k];
-    }
-  });
-  // Assign
-  marks[letter] = selectedNode.id;
-  addMarkBadge(selectedNode, letter);
-}
-
-function removeMarkFromNode(node) {
-  if (!node) return;
-  // Find the letter for this node
-  let letterToRemove = null;
-  Object.keys(marks).forEach(letter => {
-    if (marks[letter] === node.id) {
-      letterToRemove = letter;
-    }
-  });
-  if (letterToRemove) {
-    delete marks[letterToRemove];
-    removeMarkBadge(node);
-  }
-}
-
-
-function gotoMark(letter) {
-  if (marks[letter]) {
-    const node = document.getElementById(marks[letter]);
-    if (node) setSelectedNode(node);
-  }
-}
-
-function addMarkBadge(node, letter) {
-  if (!node) return;
-  removeMarkBadge(node);
-
-  const bg = '#333';
-  const brdr = '#000';
-  const fg = '#fff';
-
-  const badge = document.createElement('div');
-  badge.className = 'mark-badge';
-  badge.textContent = letter;
-  badge.style.position = 'absolute';
-  badge.style.top = '2px';
-  badge.style.right = '2px';
-  badge.style.fontSize = '10px';
-  badge.style.fontWeight = 'bold';
-  badge.style.width = '14px';
-  badge.style.height = '14px';
-  badge.style.textAlign = 'center';
-  badge.style.lineHeight = '14px';
-  badge.style.borderRadius = '2px';
-  badge.style.border = '1px solid ' + brdr;
-  badge.style.background = bg;
-  badge.style.color = fg;
-  badge.style.zIndex = '3';
-  node.appendChild(badge);
-}
-
-function removeMarkBadge(node) {
-  if (!node) return;
-  const existing = node.querySelector('.mark-badge');
-  if (existing) existing.remove();
-}
-
-function restoreMarksFromDOM() {
-  const script = document.querySelector('script[data-marks]');
-  if (!script) return;
-  try {
-    marks = JSON.parse(script.textContent) || {};
-    Object.keys(marks).forEach(letter => {
-      const node = document.getElementById(marks[letter]);
-      if (node) addMarkBadge(node, letter);
-    });
-  } catch (e) {
-    console.warn('Could not parse saved marks:', e);
-  }
-}
-
-
-
-function setZoom(z) {
-  zoom = Math.max(0.2, Math.min(z, 3));
-  canvas.style.transform = `scale(${zoom})`;
-}
-
-function findEmptySpot() {
-  const step = 40;
-  const width = 160;
-  const height = 120;
-
-  let container = canvas;
-  let isInDropzone = false;
-
-  if (selectedNode) {
-    const dropzone = selectedNode.querySelector('.dropzone');
-    if (dropzone && dropzone.children.length > 0) {
-      container = dropzone;
-      isInDropzone = true;
-    } else if (dropzone && dropzone.children.length === 0) {
-      return { left: 0, top: 0 };
-    }
-  }
-
-  const allNodes = Array.from(container.querySelectorAll('.node'));
-  if (allNodes.length === 0) {
-    return { left: 0, top: 0 };
-  }
-
-  let snappedCenterX, snappedCenterY;
-
-  if (isInDropzone) {
-    // For dropzones, just use center of the dropzone itself (no scroll involved)
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    snappedCenterX = Math.round((containerWidth / 2) / step) * step;
-    snappedCenterY = Math.round((containerHeight / 2) / step) * step;
-  } else {
-    // For canvas/global, center based on scroll position
-    const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
-    const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
-
-    snappedCenterX = Math.round(centerX / step) * step;
-    snappedCenterY = Math.round(centerY / step) * step;
-  }
-
-  // Spiral search for a free spot
-  const maxRadius = 20;
-  for (let radius = 0; radius <= maxRadius; radius++) {
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
-        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-
-        const left = snappedCenterX + dx * (width + step);
-        const top = snappedCenterY + dy * (height + step);
-
-        const snappedLeft = Math.round(left / step) * step;
-        const snappedTop = Math.round(top / step) * step;
-
-        const overlap = allNodes.some(n => {
-          const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
-          const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
-          const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
-          const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
-          return (
-            snappedLeft < nRight &&
-            snappedLeft + width > nLeft &&
-            snappedTop < nBottom &&
-            snappedTop + height > nTop
-          );
-        });
-
-        if (!overlap) return { left: snappedLeft, top: snappedTop };
-      }
-    }
-  }
-
-  // Fallback
-  return {
-    left: Math.round(100 / step) * step,
-    top: Math.round(100 / step) * step
-  };
-}
-
-canvas.onclick = e => {
-  if (e.target === canvas) {
-    setSelectedNode(null);
-  }
-};
-
-function addNode() {
-  const input = prompt("Enter node type:");
-  if (!input) return;
-  const type = input.trim();
-
-  let div = document.createElement('div');
-  div.className = 'node';
-  div.style.width = '150px';
-  div.style.height = '100px';
-  div.dataset.type = type;
-  div.id = 'node-' + crypto.randomUUID();
-
-  const header = document.createElement('div');
-  header.className = 'node-header';
-  header.textContent = type;
-  div.appendChild(header);
-
-  const textarea = document.createElement('textarea');
-  textarea.className = 'node-content';
-  textarea.spellcheck = 'false';
-  textarea.placeholder = 'Enter notes...';
-  div.appendChild(textarea);
-
-  const dropzone = document.createElement('div');
-  dropzone.className = 'dropzone';
-  dropzone.ondragover = e => e.preventDefault();
-  dropzone.ondrop = e => {
-    const id = e.dataTransfer.getData("text/plain");
-    const item = document.getElementById(id);
-    if (item && !item.contains(div)) dropzone.appendChild(item);
-  };
-  div.appendChild(dropzone);
-
-  setupNode(div);
-
-  // === Nesting logic ===
-  if (selectedNode) {
-    const parentDropzone = selectedNode.querySelector('.dropzone');
-    const { left, top } = findEmptySpot();
-    div.style.left = left + 'px';
-    div.style.top = top + 'px';
-
-    if (parentDropzone && !div.contains(parentDropzone)) {
-      parentDropzone.appendChild(div);
-    } else {
-      const { left, top } = findEmptySpot();
-      div.style.left = left + 'px';
-      div.style.top = top + 'px';
-      canvas.appendChild(div);
-    }
-  } else {
-    const { left, top } = findEmptySpot();
-    div.style.left = left + 'px';
-    div.style.top = top + 'px';
-    canvas.appendChild(div);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  setSelectedNode(div);
-  nodes.push(div);
-
-  attachChild(div);
-}
-
-function duplicateSelectedNode() {
-  if (!selectedNode) return;
-
-  const clone = selectedNode.cloneNode(true);
-  clone.id = 'node-' + crypto.randomUUID();
-
-  // Offset position (to the right by 1 step)
-  const step = 40;
-  const parent = selectedNode.offsetParent;
-  const currentLeft = selectedNode.offsetLeft;
-  const currentTop = selectedNode.offsetTop;
-
-  clone.style.left = (currentLeft + parseInt(selectedNode.style.width) + step) + 'px';
-  clone.style.top = currentTop + 'px';
-
-  // Preserve data attributes
-  clone.dataset.type = selectedNode.dataset.type;
-  clone.dataset.color = selectedNode.dataset.color;
-
-  // Set textarea value properly
-  const origTextarea = selectedNode.querySelector('textarea');
-  const cloneTextarea = clone.querySelector('textarea');
-  if (origTextarea && cloneTextarea) {
-    cloneTextarea.value = origTextarea.value;
-    cloneTextarea.textContent = origTextarea.value; // for saving
-  }
-
-  // Add to same container (canvas or dropzone)
-  if (parent && parent.classList.contains('dropzone')) {
-    parent.appendChild(clone);
-  } else {
-    canvas.appendChild(clone);
-  }
-
-  setupNode(clone); // apply event handlers etc.
-  nodes.push(clone);
-  setSelectedNode(clone);
-}
-
-function renameNode() {
-  if (!selectedNode) return;
-
-  const input = prompt("Enter new node type:");
-  if (!input) return;
-
-  const newType = input.trim();
-  selectedNode.dataset.type = newType;
-
-  // Update the header text too
-  const header = selectedNode.querySelector('.node-header');
-  if (header) {
-    header.textContent = newType;
-  }
-}
-
-function addLinkNode() {
-  const displayText = prompt("Enter link display text:");
-  if (!displayText) return;
-
-  const url = prompt("Enter the full URL (include https://):");
-  if (!url) return;
-
-  const div = document.createElement('div');
-  div.className = 'node';
-  div.style.width = '150px';
-  div.style.height = '60px';
-  div.dataset.type = 'Link';
-  div.id = 'node-' + crypto.randomUUID();
-
-  const header = document.createElement('div');
-  header.className = 'node-header';
-  header.textContent = displayText;
-  div.appendChild(header);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.target = '_blank';
-  link.textContent = url;
-  link.style.color = '#7af';
-  link.style.padding = '6px';
-  link.style.fontSize = '12px';
-  link.style.textDecoration = 'underline';
-  link.style.wordBreak = 'break-word';
-  div.appendChild(link);
-
-  const { left, top } = findEmptySpot();
-  div.style.left = left + 'px';
-  div.style.top = top + 'px';
-
-  // === Nesting logic ===
-  if (selectedNode) {
-    const parentDropzone = selectedNode.querySelector('.dropzone');
-    const { left, top } = findEmptySpot();
-    div.style.left = left + 'px';
-    div.style.top = top + 'px';
-
-    if (parentDropzone && !div.contains(parentDropzone)) {
-      parentDropzone.appendChild(div);
-    } else {
-      const { left, top } = findEmptySpot();
-      div.style.left = left + 'px';
-      div.style.top = top + 'px';
-      canvas.appendChild(div);
-    }
-  } else {
-    const { left, top } = findEmptySpot();
-    div.style.left = left + 'px';
-    div.style.top = top + 'px';
-    canvas.appendChild(div);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  nodes.push(div);
-  setSelectedNode(div);
-}
-
-function getAllNodes() {
-  return Array.from(document.querySelectorAll('.node'));
-}
-
-function setSelectedNode(node) {
-  selectedNode = node;
-  nodes.forEach(n => {
-    n.style.borderColor = (n === selectedNode) ? '#B5DBFA' : '#aaa';
-    n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
-  });
-
-  if (selectedNode) {
-    selectedNode.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'center'
-    });
-  }
-}
-
-
-
-
-function showNodeSelectorDialog() {
-  // Remove any existing popup
-  const existing = document.getElementById('nodeSelectorDialog');
-  if (existing) existing.remove();
-
-  const dialog = document.createElement('div');
-  dialog.id = 'nodeSelectorDialog';
-  dialog.style.position = 'fixed';
-  dialog.style.top = '10%';
-  dialog.style.left = '50%';
-  dialog.style.transform = 'translateX(-50%)';
-  dialog.style.width = '400px';
-  dialog.style.maxHeight = '70%';
-  dialog.style.overflow = 'hidden';
-  dialog.style.background = '#222';
-  dialog.style.color = '#fff';
-  dialog.style.border = '2px solid #444';
-  dialog.style.borderRadius = '10px';
-  dialog.style.zIndex = 9999;
-  dialog.style.fontFamily = 'monospace';
-  dialog.style.padding = '10px';
-  dialog.style.display = 'flex';
-  dialog.style.flexDirection = 'column';
-  dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
-
-  const filter = document.createElement('input');
-  filter.type = 'text';
-  filter.placeholder = 'Filter by type or text...';
-  filter.style.padding = '5px';
-  filter.style.marginBottom = '10px';
-  filter.style.background = '#111';
-  filter.style.color = '#fff';
-  filter.style.border = '1px solid #555';
-
-  const listContainer = document.createElement('div');
-  listContainer.style.overflowY = 'auto';
-  listContainer.style.flex = '1';
-  listContainer.style.borderTop = '1px solid #333';
-  listContainer.style.borderBottom = '1px solid #333';
-
-  const nodesList = Array.from(document.querySelectorAll('.node'));
-  let filteredList = [];
-  let selectedIndex = 0;
-
-  function renderList() {
-    listContainer.innerHTML = '';
-    const search = filter.value.toLowerCase();
-    filteredList = nodesList.filter(n => {
-      const type = n.dataset.type?.toLowerCase() || '';
-      const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
-      const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
-      return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
-    });
-
-    filteredList.forEach((node, index) => {
-      const type = node.dataset.type || '(no type)';
-      let preview = '';
-
-      if (type.toLowerCase() === 'link') {
-        const anchor = node.querySelector('a');
-        const url = anchor?.href || '';
-        preview = url.length > 100 ? url.substring(0, 100) + '…' : url;
-      } else {
-        const textarea = node.querySelector('textarea');
-        const text = textarea?.value || '';
-        preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
-      }
-
-      const item = document.createElement('div');
-      item.textContent = `[${type}] — "${preview}"`;
-      item.style.padding = '5px 8px';
-      item.style.cursor = 'pointer';
-      item.style.whiteSpace = 'nowrap';
-      item.style.overflow = 'hidden';
-      item.style.textOverflow = 'ellipsis';
-
-      if (index === selectedIndex) {
-        item.style.background = '#444';
-      }
-
-      item.addEventListener('mouseenter', () => {
-        selectedIndex = index;
-        renderList();
-      });
-
-      item.addEventListener('click', () => {
-        setSelectedNode(filteredList[selectedIndex]);
-        dialog.remove();
-      });
-
-      listContainer.appendChild(item);
-    });
-
-    if (filteredList.length === 0) {
-      const empty = document.createElement('div');
-      empty.textContent = '(no matching nodes)';
-      empty.style.padding = '5px';
-      empty.style.color = '#888';
-      listContainer.appendChild(empty);
-    }
-  }
-
-  filter.addEventListener('input', () => {
-    selectedIndex = 0;
-    renderList();
-  });
-
-  filter.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') {
-      selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
-      renderList();
-      e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      renderList();
-      e.preventDefault();
-    } else if (e.key === 'Enter') {
-      if (filteredList[selectedIndex]) {
-        setSelectedNode(filteredList[selectedIndex]);
-        e.preventDefault();
-        e.stopPropagation();
-        dialog.remove();
-      }
-    } else if (e.key === 'Escape') {
-      dialog.remove();
-      e.stopPropagation();
-    }
-  });
-
-  dialog.appendChild(filter);
-  dialog.appendChild(listContainer);
-  document.body.appendChild(dialog);
-  filter.focus();
-
-  renderList();
-}
-
-
-
-
-
-function setupNode(div) {
-  const type = div.dataset.type;
-  const textarea = div.querySelector('textarea');
-
-  const header = div.querySelector('.node-header');
-  const deleteBtn = header?.querySelector('.delete-btn');
-  if (deleteBtn) {
-    deleteBtn.onclick = e => {
-      e.stopPropagation();
-      removeNode(div);
-    };
-  }
-
-  div.draggable = false;
-  div.ondragstart = e => {
-    e.dataTransfer.setData("text/plain", div.id);
-  };
-
-  const dropzone = div.querySelector('.dropzone');
-  if (dropzone) {
-    dropzone.ondragover = e => e.preventDefault();
-    dropzone.ondrop = e => {
-      const id = e.dataTransfer.getData("text/plain");
-      const item = document.getElementById(id);
-      if (item) dropzone.appendChild(item);
-    };
-  }
-
-  if (!nodes.includes(div)) nodes.push(div);
-}
-
-function removeNode(node) {
-  connectors = connectors.filter(c => c.a !== node && c.b !== node);
-  restoreMarksFromDOM();
-    updateConnectors();
-  if (node.parentElement) {
-    node.parentElement.removeChild(node);
-  }
-  nodes = nodes.filter(n => n !== node);
-  if (selectedNode === node) selectedNode = null;
-}
-
-function getNodeDepth(node) {
-  let depth = 0;
-  while (node.parentElement) {
-    node = node.parentElement;
-    if (nodes.includes(node)) {
-      depth++;
-    }
-  }
-  return depth;
-}
-
-function attachChild(selectedNode) {
-  const selectedRect = selectedNode.getBoundingClientRect();
-  let bestTarget = null;
-  let bestOverlapArea = 0;
-  let prevDepth = 0;
-  let curDepth = 0;
-
-  for (let node of nodes) {
-
-    if (node === selectedNode || node.contains(selectedNode)) continue;
-
-    const nodeRect = node.getBoundingClientRect();
-    const overlapX = Math.max(0, Math.min(selectedRect.right, nodeRect.right) - Math.max(selectedRect.left, nodeRect.left));
-    const overlapY = Math.max(0, Math.min(selectedRect.bottom, nodeRect.bottom) - Math.max(selectedRect.top, nodeRect.top));
-    const overlapArea = overlapX * overlapY;
-
-    if (overlapArea > bestOverlapArea) {
-      curDepth = getNodeDepth(node);
-
-      if (curDepth === 0 || curDepth > prevDepth) {
-        bestOverlapArea = overlapArea;
-        bestTarget = node;
-        prevDepth = curDepth;
-      }
-    }
-  }
-
-  if (bestTarget && selectedNode !== null) {
-    const dropzone = bestTarget.querySelector('.dropzone');
-    if (dropzone && !dropzone.contains(selectedNode)) {
-      // Remove from current parent
-      if (selectedNode.parentElement) {
-        selectedNode.parentElement.removeChild(selectedNode);
-      }
-
-      // Calculate position relative to new parent
-      const parentRect = dropzone.getBoundingClientRect();
-      const newLeft = selectedRect.left - parentRect.left;
-      const newTop = selectedRect.top - parentRect.top;
-
-      selectedNode.style.left = newLeft + 'px';
-      selectedNode.style.top = newTop + 'px';
-
-      dropzone.appendChild(selectedNode);
-    }
-  }
-}
-
-document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-    if (e.key === 'Escape' && selectedNode) {
-      const txt = selectedNode.querySelector('textarea');
-      txt.blur();
-      e.stopPropagation();
-      return;
-    }
-  }
-
-  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-
-  if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-    document.getElementById('helpDialog').style.display = 'block';
-    e.preventDefault();
-    return;
-  }
-
-  if (e.key === 'Escape') {
-    if (document.getElementById('helpDialog').style.display === 'block') {
-      document.getElementById('helpDialog').style.display = 'none';
-      e.stopPropagation();
-      return;
-    } else {
-      selectedNode = null;
-      setSelectedNode(null);
-    }
-  }
-
-  
-  // Handle mark/goto mark modes
-  if (markMode) {
-    if (e.key === '-') {
-      removeMarkFromNode(selectedNode);
-      markMode = false;
-      e.preventDefault();
-      return;
-    }
-
-    if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-      setMark(e.key);
-      markMode = false;
-      e.preventDefault();
-      return;
-    }
-
-    if (e.key.length === 1) {
-      gotoMarkMode = false;
-      e.preventDefault();
-      return;
-    }
-  }
-  if (gotoMarkMode) {
-    if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-      gotoMark(e.key);
-      gotoMarkMode = false;
-      e.preventDefault();
-      return;
-    }
-
-    if (e.key.length === 1) {
-      gotoMarkMode = false;
-      e.preventDefault();
-      return;
-    }
-  }
-  if (e.key === 'm') {
-    markMode = true;
-    e.preventDefault();
-    return;
-  }
-  if (e.key === '`') {
-    gotoMarkMode = true;
-    e.preventDefault();
-    return;
-  }
-switch (e.key) {
-    case 'a':
-      addNode();
-      break;
-    case '=':
-      duplicateSelectedNode();
-      break;
-    case 'u':
-      addLinkNode();
-      break;
-    case 's':
-      download();
-      break;
-    case '/':
-      showNodeSelectorDialog();
-      e.preventDefault();
-      break;
-    case ',':
-      setZoom(zoom - 0.1);
-      break;
-    case '.':
-      setZoom(zoom + 0.1);
-      break;
-    case '0':
-      setZoom(1);
-      break;
-    case 'G':
-      setSelectedNode(null);
-      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-      break;
-  }
-
-  if (e.key === 'w' || e.key === 'W') {
-    const nodes = getAllNodes();
-    if (nodes.length === 0) return;
-
-    const index = nodes.indexOf(selectedNode);
-    let nextIndex;
-    if (e.shiftKey) {
-      nextIndex = (index - 1 + nodes.length) % nodes.length;
-    } else {
-      nextIndex = (index + 1) % nodes.length;
-    }
-
-    setSelectedNode(nodes[nextIndex]);
-    return;
-  }
-
-  if (!selectedNode) {
-    return;
-  }
-
-  const step = 40;
-  const style = selectedNode.style;
-  const width = parseInt(style.width);
-  const height = parseInt(style.height);
-  const left = parseInt(style.left);
-  const top = parseInt(style.top);
-  const dropzone = selectedNode.querySelector('.dropzone');
-  const textarea = selectedNode.querySelector('textarea');
-
-  const resize = (dw, dh) => {
-    const width = parseInt(selectedNode.style.width);
-    const height = parseInt(selectedNode.style.height);
-    selectedNode.style.width = Math.max(50, width + dw) + 'px';
-    selectedNode.style.height = Math.max(40, height + dh) + 'px';
-    updateConnectors();
-  };
-
-  const resizeDropzone = (dh) => {
-    if (!dropzone) return;
-    const dzStyle = dropzone.style;
-    const txStyle = textarea.style;
-    const dzWidth = parseFloat(dzStyle.width) || 0;
-    let dzHeight = parseFloat(dzStyle.height) || 0;
-    const txHeight = parseFloat(txStyle.height) || 0;
-
-    if (!dzHeight) {
-      dzHeight = parseFloat(selectedNode.style.height) - txStyle.height;
-      dzStyle.height = dzHeight + 'px';
-    }
-
-    dzStyle.height = Math.max(10, dzHeight + dh) + 'px';
-    txStyle.height = Math.max(10, parseFloat(window.getComputedStyle(textarea).height) - dh) + 'px';
-  };
-  
-  const move = (dx, dy) => {
-    const parent = selectedNode.offsetParent;
-    const currentLeft = selectedNode.offsetLeft;
-    const currentTop = selectedNode.offsetTop;
-    selectedNode.style.left = (currentLeft + dx) + 'px';
-    selectedNode.style.top = (currentTop + dy) + 'px';
-    updateConnectors();
-
-    selectedNode.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'center'
-    });
-  };
-
-  switch (e.key) {
-    case 'c':
-      startConnector();
-      break;
-    case 'p':
-      startSnapping();
-      break;
-    case 'D':
-      removeNode(selectedNode);
-      break;
-    case 'X':
-      startDisconnector();
-      break;
-    case 'h':
-      move(-step, 0);
-      break;
-    case '<':
-      move(-(step/2), 0);
-      break;
-    case 'H':
-      resize(-step, 0);
-      break;
-    case 'i':
-      if (textarea) {
-        textarea.focus();
-        e.preventDefault();
-      }
-      break;
-    case 'j':
-      move(0, step);
-      break;
-    case '-':
-      move(0, (step/2));
-      break;
-    case 'J':
-      resize(0, step);
-      break;
-    case 'k':
-      move(0, -step);
-      break;
-    case '^':
-      move(0, -(step/2));
-      break;
-    case 'K':
-      resize(0, -step);
-      break;
-    case 'l':
-      move(step, 0);
-      break;
-    case 'r':
-      renameNode();
-      break;
-    case '>':
-        if (connecting && connectStart && selectedNode && connectStart !== selectedNode) {
-            drawConnector(connectStart, selectedNode, true); // pass arrow = true
-            connectStart = null;
-            connecting = false;
-            e.preventDefault();
-            return;
-        } else {
-            move((step / 2), 0);
-        }
-      break;
-    case 'L':
-      resize(step, 0);
-      break;
-    case 'm':
-      resize(step, step);
-      break;
-    case 'z':
-      resizeDropzone(-10);
-      break;
-    case 'Z':
-      resizeDropzone(10);
-      break;
-    case '#':
-      showColorPaletteMenu();
-      break;
-
-    case 'Enter':
-      if (disconnecting) {
-        // Remove connector if it exists
-        connectors = connectors.filter(conn => {
-          return !(
-            (conn.a === disconnectStart && conn.b === selectedNode) ||
-            (conn.b === disconnectStart && conn.a === selectedNode)
-          );
-        });
-        updateConnectors();
-        disconnecting = false;
-        disconnectStart = null;
-      } else if (connecting) {
-        drawConnector(connectStart, selectedNode);
-        connectStart = null;
-        connecting = false;
-      } else if (snapping) {
-         const gap = step; // 1 step to the right
-         const targetLeft = parseInt(selectedNode.style.left) || 0;
-         const targetTop = parseInt(selectedNode.style.top) || 0;
-         const targetWidth = parseInt(selectedNode.style.width) || 150;
-         const newLeft = targetLeft + targetWidth + gap;
-
-         snapTarget.style.left = newLeft + 'px';
-         snapTarget.style.top = targetTop + 'px';
-
-         setSelectedNode(snapTarget);
-
-         updateConnectors();
-
-         snapTarget = null;
-         snapping = false;
-      } else {
-        attachChild(selectedNode);
-      }
-      e.stopPropagation();
-      break;
-    default:
-      return; // Don't prevent default for unrelated keys
-  }
-
-  e.preventDefault();
-});
-
-function showColorPaletteMenu() {
-  if (!selectedNode) return;
-
-  // Overlay
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '9999';
-
-  // Modal
-  const modal = document.createElement('div');
-  modal.style.background = 'black';
-  modal.style.color = 'white';
-  modal.style.border = '2px solid white';
-  modal.style.padding = '20px';
-  modal.style.textAlign = 'center';
-  modal.style.fontFamily = 'monospace';
-  modal.tabIndex = -1;
-
-  const label = document.createElement('p');
-  label.textContent = 'Select a color palette:';
-  label.style.marginBottom = '10px';
-  modal.appendChild(label);
-
-  const select = document.createElement('select');
-  select.style.fontSize = '16px';
-  select.style.padding = '5px';
-  select.style.minWidth = '200px';
-  select.style.background = 'black';
-  select.style.color = 'white';
-  select.style.border = '1px solid white';
-  select.style.marginBottom = '10px';
-
-  const optionNew = document.createElement('option');
-  optionNew.value = '+';
-  optionNew.textContent = '+ Create new palette';
-  select.appendChild(optionNew);
-
-  Object.entries(colorPalettes).forEach(([name]) => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  });
-
-  modal.appendChild(select);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  // Refocus dropdown
-  setTimeout(() => select.focus(), 0);
-
-  function close() {
-    document.body.removeChild(overlay);
-  }
-
-  function rebuildSelect() {
-    const selected = select.value;
-    select.innerHTML = '';
-    const optionNew = document.createElement('option');
-    optionNew.value = '+';
-    optionNew.textContent = '+ Create new palette';
-    select.appendChild(optionNew);
-
-    Object.entries(colorPalettes).forEach(([name]) => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      select.appendChild(opt);
-    });
-
-    if (colorPalettes[selected]) {
-      select.value = selected;
-    } else {
-      select.value = '+';
-    }
-  }
-
-  function openColorPickerModal(name) {
-    const pickerOverlay = document.createElement('div');
-    pickerOverlay.style.position = 'fixed';
-    pickerOverlay.style.top = '0';
-    pickerOverlay.style.left = '0';
-    pickerOverlay.style.width = '100vw';
-    pickerOverlay.style.height = '100vh';
-    pickerOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
-    pickerOverlay.style.display = 'flex';
-    pickerOverlay.style.alignItems = 'center';
-    pickerOverlay.style.justifyContent = 'center';
-    pickerOverlay.style.zIndex = '10000';
-
-    const pickerModal = document.createElement('div');
-    pickerModal.style.background = 'white';
-    pickerModal.style.padding = '20px';
-    pickerModal.style.borderRadius = '8px';
-    pickerModal.style.textAlign = 'center';
-    pickerModal.style.color = 'black';
-    pickerModal.style.fontFamily = 'monospace';
-    pickerModal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
-
-    const colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.value = '#3399ff';
-    colorInput.style.marginBottom = '10px';
-
-    const button = document.createElement('button');
-    button.textContent = 'OK';
-    button.style.marginLeft = '10px';
-
-    pickerModal.appendChild(colorInput);
-    pickerModal.appendChild(document.createElement('br'));
-    pickerModal.appendChild(button);
-    pickerOverlay.appendChild(pickerModal);
-    document.body.appendChild(pickerOverlay);
-
-    button.onclick = () => {
-      const hex = colorInput.value;
-      colorPalettes[name] = hex;
-      applyColorToNode(hex);
-      document.body.removeChild(pickerOverlay);
-      close();
-    };
-
-    pickerOverlay.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        document.body.removeChild(pickerOverlay);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        button.click();
-      }
-    });
-
-    colorInput.focus();
-  }
-
-  overlay.addEventListener('keydown', e => {
-    const selected = select.value;
-
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (selected === '+') {
-        const name = prompt("Enter a name for the new palette:");
-        if (!name) return;
-        openColorPickerModal(name);
-      } else {
-        const hex = colorPalettes[selected];
-        if (hex) applyColorToNode(hex);
-        close();
-      }
-
-    } else if (e.key === 'd' || e.key === 'D') {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (selected !== '+' && colorPalettes[selected]) {
-        if (confirm(`Delete palette "${selected}"?`)) {
-          delete colorPalettes[selected];
-          rebuildSelect();
-        }
-      }
-
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      close();
-    }
-  });
-
-  modal.focus();
-}
-
-function createNewColorPaletteWithPrompt(name) {
-  // Create modal overlay
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'rgba(0, 0, 0, 0.7)';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '9999';
-
-  // Create modal content
-  const modal = document.createElement('div');
-  modal.style.background = 'white';
-  modal.style.padding = '20px';
-  modal.style.borderRadius = '8px';
-  modal.style.textAlign = 'center';
-  modal.style.color = 'black';
-  modal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
-
-  const colorInput = document.createElement('input');
-  colorInput.type = 'color';
-  colorInput.value = '#3399ff';
-  colorInput.style.marginBottom = '10px';
-
-  const button = document.createElement('button');
-  button.textContent = 'OK';
-  button.style.marginLeft = '10px';
-
-  modal.appendChild(colorInput);
-  modal.appendChild(document.createElement('br'));
-  modal.appendChild(button);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  button.onclick = () => {
-    const hex = colorInput.value;
-    colorPalettes[name] = hex;
-    applyColorToNode(hex);
-    document.body.removeChild(overlay);
-  };
-}
-
-function applyColorToNode(baseColor) {
-  if (!selectedNode) return;
-
-  selectedNode.dataset.color = baseColor;
-
-  const bg = darken(baseColor, 0.6);
-  const contentBg = darken(baseColor, 0.4);
-  const fg = lighten(baseColor, 1.6);
-
-  selectedNode.style.background = bg;
-
-  const header = selectedNode.querySelector('.node-header');
-  const textarea = selectedNode.querySelector('textarea');
-  const dropzone = selectedNode.querySelector('.dropzone');
-
-  if (header) header.style.color = fg;
-  if (textarea) {
-    textarea.style.background = contentBg;
-    textarea.style.color = fg;
-  }
-  if (dropzone) {
-    dropzone.style.background = contentBg;
-    dropzone.style.color = fg;
-  }
-}
-
-function drawConnector(a, b, arrow = false) {
-  connectors.push({ a, b, arrow });
-  updateConnectors();
-}
-
-function updateConnectors() {
-  document.querySelectorAll('svg.connector').forEach(c => c.remove());
-
-  function getAncestors(node) {
-    const ancestors = [];
-    while (node && node !== canvas.parentElement) {
-      ancestors.push(node);
-      node = node.parentElement;
-    }
-    return ancestors.reverse();
-  }
-
-  function findLCA(a, b) {
-    const aAncestors = getAncestors(a);
-    const bAncestors = getAncestors(b);
-    let lca = null;
-    const len = Math.min(aAncestors.length, bAncestors.length);
-    for (let i = 0; i < len; i++) {
-      if (aAncestors[i] === bAncestors[i]) {
-        lca = aAncestors[i];
-      } else {
-        break;
-      }
-    }
-    return lca || canvas;
-  }
-
-  function getNodeCenterRelativeToElement(node, element) {
-    const nodeRect = node.getBoundingClientRect();
-    const elemRect = element.getBoundingClientRect();
-    const scale = zoom || 1;
-    return {
-      x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
-      y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
-    };
-  }
-
-  connectors.forEach(conn => {
-    const { a, b, arrow } = conn;
-    const lca = findLCA(a, b);
-    const aCenter = getNodeCenterRelativeToElement(a, lca);
-    const bCenter = getNodeCenterRelativeToElement(b, lca);
-
-    let dx = bCenter.x - aCenter.x;
-    let dy = bCenter.y - aCenter.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    if (length === 0) return;
-
-    const unitX = dx / length;
-    const unitY = dy / length;
-
-    const pad = 10;
-    const startX = aCenter.x + unitX * pad;
-    const startY = aCenter.y + unitY * pad;
-    const endX = bCenter.x - unitX * pad;
-    const endY = bCenter.y - unitY * pad;
-
-    const minX = Math.min(startX, endX) - 20;
-    const minY = Math.min(startY, endY) - 20;
-    const width = Math.abs(endX - startX) + 40;
-    const height = Math.abs(endY - startY) + 40;
-
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.classList.add("connector");
-    svg.style.position = 'absolute';
-    svg.style.left = `${minX}px`;
-    svg.style.top = `${minY}px`;
-    svg.style.width = `${width}px`;
-    svg.style.height = `${height}px`;
-    svg.style.zIndex = '0';
-    svg.style.pointerEvents = 'none';
-
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", startX - minX);
-    line.setAttribute("y1", startY - minY);
-    line.setAttribute("x2", endX - minX);
-    line.setAttribute("y2", endY - minY);
-    line.setAttribute("stroke", "#ccc");
-    line.setAttribute("stroke-width", "2");
-    svg.appendChild(line);
-
-    if (arrow) {
-      const arrowSize = 12;
-      const buffer = arrowSize + 1;
-
-      // Get node B's size
-      const bRect = b.getBoundingClientRect();
-      const lcaRect = lca.getBoundingClientRect();
-      const scale = zoom || 1;
-      const bWidth = bRect.width / scale;
-      const bHeight = bRect.height / scale;
-
-      // Calculate how far we need to backtrack from the center to the edge
-      // Projected distance along the unit vector to the edge of the box
-      const halfDiagonalProjection = Math.min(
-        Math.abs(bWidth / 2 / unitX || Infinity),
-        Math.abs(bHeight / 2 / unitY || Infinity)
-      );
-
-      const edgeX = bCenter.x - unitX * halfDiagonalProjection;
-      const edgeY = bCenter.y - unitY * halfDiagonalProjection;
-
-      // Position the arrow just outside the node
-      const tipX = edgeX - unitX * buffer;
-      const tipY = edgeY - unitY * buffer;
-
-      const baseLeftX = tipX - unitX * arrowSize - unitY * arrowSize / 2;
-      const baseLeftY = tipY - unitY * arrowSize + unitX * arrowSize / 2;
-
-      const baseRightX = tipX - unitX * arrowSize + unitY * arrowSize / 2;
-      const baseRightY = tipY - unitY * arrowSize - unitX * arrowSize / 2;
-
-      const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      polygon.setAttribute(
-        "points",
-        `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
-      );
-      polygon.setAttribute("fill", "#ccc");
-
-      svg.appendChild(polygon);
-    }
-
-    lca.appendChild(svg);
-  });
-}
-
-  function startConnector() {
-    connecting = true;
-    connectStart = selectedNode;
-  }
-  
-  function startDisconnector() {
-    disconnecting = true;
-    disconnectStart = selectedNode;
-  }
-  
-  function startSnapping() {
-    snapping = true;
-    snapTarget = selectedNode;
-  }
-
-  function download() {
-    selectedNode = null;
-    nodes.forEach(n => {
-      n.style.borderColor = '#aaa';
-      n.style.borderWidth = '1px';
-    });
-
-    document.querySelectorAll('textarea.node-content').forEach(t => {
-      t.textContent = t.value;
-    });
-  
-    // Remove any previous connector data
-    document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
-  
-    // Serialize connectors using node IDs
-    const connectorData = connectors.map(({ a, b, arrow }) => ({
-        a: a.id,
-        b: b.id,
-        arrow: !!arrow
-    }));
-  
-    const script = document.createElement('script');
-    script.type = 'application/json';
-    script.dataset.connectors = 'true';
-    script.id = 'connector-data';
-    script.textContent = JSON.stringify(connectorData, null, 2);
-  
-    document.body.appendChild(script);
-  
-    // Save color palette data
-    let paletteScript = document.querySelector('script[data-colorpalettes]');
-    if (!paletteScript) {
-      paletteScript = document.createElement('script');
-      paletteScript.type = 'application/json';
-      paletteScript.dataset.colorpalettes = 'true';
-      paletteScript.id = 'color-palettes';
-      document.body.appendChild(paletteScript);
-    }
-    paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
-  
-    
-    // Save marks data
-    let marksScript = document.querySelector('script[data-marks]');
-    if (!marksScript) {
-      marksScript = document.createElement('script');
-      marksScript.type = 'application/json';
-      marksScript.dataset.marks = 'true';
-      marksScript.id = 'marks-data';
-      document.body.appendChild(marksScript);
-    }
-    marksScript.textContent = JSON.stringify(marks, null, 2);
-const html = document.documentElement.outerHTML;
-    const blob = new Blob([html], { type: 'text/html' });
-    const a = document.createElement('a');
-    let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
-    a.href = URL.createObjectURL(blob);
-    a.download = currentFileName;
-    a.click();
-  
-    script.remove(); // Remove after save to avoid duplicate
-    paletteScript.remove();
-  }
-
-  function initializeNodes() {
-    document.querySelectorAll('.node').forEach(setupNode);
-  }
-  
-  function restoreConnectorsFromDOM() {
-    const script = document.getElementById('connector-data');
-    if (!script) return;
-  
-    try {
-        const saved = JSON.parse(script.textContent);
-        connectors = [];
-  
-        saved.forEach(({ a, b, arrow }) => {
-            const nodeA = document.getElementById(a);
-            const nodeB = document.getElementById(b);
-            if (nodeA && nodeB) {
-                connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+    let canvas = document.getElementById('canvas');
+    let colorPalettes = {};
+    let selectedNode = null;
+    let offsetX, offsetY;
+    let nodes = [];
+    let connectors = [];
+    let repCount = 1;
+    let connecting = false;
+    let connectStart = null;
+    let disconnecting = false;
+    let disconnectStart = null;
+    let snapping = false;
+    let snapTarget = null;
+    let zoom = 1;
+    let dragging = false;
+
+    // === VIM-style Marks ===
+    let marks = {}; // { letter: nodeId }
+    let markMode = false; // waiting for mark letter after 'm'
+    let gotoMarkMode = false; // waiting for mark letter after '`'
+
+    function setMark(letter) {
+        if (!selectedNode) return;
+
+        // Remove from any other node
+        Object.keys(marks).forEach(k => {
+            if (marks[k] === selectedNode.id) return; // same node, skip
+            if (marks[k] === selectedNode.id || marks[k] && document.getElementById(marks[k]) === selectedNode) {
+                // nothing
             }
         });
-  
+
+        // Remove mark from any other node
+        Object.keys(marks).forEach(k => {
+            if (marks[k] === selectedNode.id) return;
+
+            if (marks[k] && marks[k] === selectedNode.id) delete marks[k];
+        });
+
+        // Also remove mark from other nodes if letter is used
+        Object.keys(marks).forEach(k => {
+            if (k === letter) {
+                removeMarkBadge(document.getElementById(marks[k]));
+                delete marks[k];
+            }
+        });
+
+        // Assign
+        marks[letter] = selectedNode.id;
+        addMarkBadge(selectedNode, letter);
+    }
+
+    function removeMarkFromNode(node) {
+        if (!node) return;
+
+        // Find the letter for this node
+        let letterToRemove = null;
+
+        Object.keys(marks).forEach(letter => {
+            if (marks[letter] === node.id) {
+                letterToRemove = letter;
+            }
+        });
+
+        if (letterToRemove) {
+            delete marks[letterToRemove];
+            removeMarkBadge(node);
+        }
+    }
+
+
+    function gotoMark(letter) {
+        if (marks[letter]) {
+            const node = document.getElementById(marks[letter]);
+            if (node) setSelectedNode(node);
+        }
+    }
+
+    function addMarkBadge(node, letter) {
+        if (!node) return;
+
+        removeMarkBadge(node);
+
+        const bg = '#333';
+        const brdr = '#000';
+        const fg = '#fff';
+
+        const badge = document.createElement('div');
+        badge.className = 'mark-badge';
+        badge.textContent = letter;
+        badge.style.position = 'absolute';
+        badge.style.top = '2px';
+        badge.style.right = '2px';
+        badge.style.fontSize = '10px';
+        badge.style.fontWeight = 'bold';
+        badge.style.width = '14px';
+        badge.style.height = '14px';
+        badge.style.textAlign = 'center';
+        badge.style.lineHeight = '14px';
+        badge.style.borderRadius = '2px';
+        badge.style.border = '1px solid ' + brdr;
+        badge.style.background = bg;
+        badge.style.color = fg;
+        badge.style.zIndex = '3';
+        node.appendChild(badge);
+    }
+
+    function removeMarkBadge(node) {
+        if (!node) return;
+
+        const existing = node.querySelector('.mark-badge');
+
+        if (existing) existing.remove();
+    }
+
+    function restoreMarksFromDOM() {
+        const script = document.querySelector('script[data-marks]');
+
+        if (!script) return;
+
+        try {
+            marks = JSON.parse(script.textContent) || {};
+
+            Object.keys(marks).forEach(letter => {
+                const node = document.getElementById(marks[letter]);
+                if (node) addMarkBadge(node, letter);
+            });
+        } catch (e) {
+            console.warn('Could not parse saved marks:', e);
+        }
+    }
+
+    function setZoom(z) {
+        zoom = Math.max(0.2, Math.min(z, 3));
+        canvas.style.transform = `scale(${zoom})`;
+    }
+
+    function findEmptySpot() {
+        const step = 40;
+        const width = 160;
+        const height = 120;
+
+        let container = canvas;
+        let isInDropzone = false;
+
+        if (selectedNode) {
+            const dropzone = selectedNode.querySelector('.dropzone');
+
+            if (dropzone && dropzone.children.length > 0) {
+                container = dropzone;
+                isInDropzone = true;
+            } else if (dropzone && dropzone.children.length === 0) {
+                return { left: 0, top: 0 };
+            }
+        }
+
+        const allNodes = Array.from(container.querySelectorAll('.node'));
+
+        if (allNodes.length === 0) {
+            return { left: 0, top: 0 };
+        }
+
+        let snappedCenterX, snappedCenterY;
+
+        if (isInDropzone) {
+            // For dropzones, just use center of the dropzone itself (no scroll involved)
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            snappedCenterX = Math.round((containerWidth / 2) / step) * step;
+            snappedCenterY = Math.round((containerHeight / 2) / step) * step;
+        } else {
+            // For canvas/global, center based on scroll position
+            const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
+            const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+
+            snappedCenterX = Math.round(centerX / step) * step;
+            snappedCenterY = Math.round(centerY / step) * step;
+        }
+
+        // Spiral search for a free spot
+        const maxRadius = 20;
+        for (let radius = 0; radius <= maxRadius; radius++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+
+                    const left = snappedCenterX + dx * (width + step);
+                    const top = snappedCenterY + dy * (height + step);
+
+                    const snappedLeft = Math.round(left / step) * step;
+                    const snappedTop = Math.round(top / step) * step;
+
+                    const overlap = allNodes.some(n => {
+                        const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
+                        const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
+                        const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
+                        const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
+                        return (
+                            snappedLeft < nRight &&
+                            snappedLeft + width > nLeft &&
+                            snappedTop < nBottom &&
+                            snappedTop + height > nTop
+                        );
+                    });
+
+                    if (!overlap) return { left: snappedLeft, top: snappedTop };
+                }
+            }
+        }
+
+        // Fallback
+        return {
+            left: Math.round(100 / step) * step,
+            top: Math.round(100 / step) * step
+        };
+    }
+
+    canvas.onclick = e => {
+        if (e.target === canvas) {
+            setSelectedNode(null);
+        }
+    };
+
+    function addNode() {
+        const input = prompt("Enter node type:");
+        if (!input) return;
+        const type = input.trim();
+
+        let div = document.createElement('div');
+        div.className = 'node';
+        div.style.width = '150px';
+        div.style.height = '100px';
+        div.dataset.type = type;
+        div.id = 'node-' + crypto.randomUUID();
+
+        const header = document.createElement('div');
+        header.className = 'node-header';
+        header.textContent = type;
+        div.appendChild(header);
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'node-content';
+        textarea.spellcheck = 'false';
+        textarea.placeholder = 'Enter notes...';
+        div.appendChild(textarea);
+
+        const dropzone = document.createElement('div');
+        dropzone.className = 'dropzone';
+        dropzone.ondragover = e => e.preventDefault();
+        dropzone.ondrop = e => {
+            const id = e.dataTransfer.getData("text/plain");
+            const item = document.getElementById(id);
+
+            if (item && !item.contains(div)) dropzone.appendChild(item);
+        };
+        div.appendChild(dropzone);
+
+        setupNode(div);
+
+        // === Nesting logic ===
+        if (selectedNode) {
+            const parentDropzone = selectedNode.querySelector('.dropzone');
+            const { left, top } = findEmptySpot();
+            div.style.left = left + 'px';
+            div.style.top = top + 'px';
+
+            if (parentDropzone && !div.contains(parentDropzone)) {
+                parentDropzone.appendChild(div);
+            } else {
+                const { left, top } = findEmptySpot();
+                div.style.left = left + 'px';
+                div.style.top = top + 'px';
+                canvas.appendChild(div);
+            }
+        } else {
+            const { left, top } = findEmptySpot();
+            div.style.left = left + 'px';
+            div.style.top = top + 'px';
+            canvas.appendChild(div);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        setSelectedNode(div);
+        nodes.push(div);
+
+        attachChild(div);
+    }
+
+    function duplicateSelectedNode() {
+        if (!selectedNode) return;
+
+        const clone = selectedNode.cloneNode(true);
+        clone.id = 'node-' + crypto.randomUUID();
+
+        // Offset position (to the right by 1 step)
+        const step = 40;
+        const parent = selectedNode.offsetParent;
+        const currentLeft = selectedNode.offsetLeft;
+        const currentTop = selectedNode.offsetTop;
+
+        clone.style.left = (currentLeft + parseInt(selectedNode.style.width) + step) + 'px';
+        clone.style.top = currentTop + 'px';
+
+        // Preserve data attributes
+        clone.dataset.type = selectedNode.dataset.type;
+        clone.dataset.color = selectedNode.dataset.color;
+
+        // Set textarea value properly
+        const origTextarea = selectedNode.querySelector('textarea');
+        const cloneTextarea = clone.querySelector('textarea');
+        if (origTextarea && cloneTextarea) {
+            cloneTextarea.value = origTextarea.value;
+            cloneTextarea.textContent = origTextarea.value; // for saving
+        }
+
+        // Add to same container (canvas or dropzone)
+        if (parent && parent.classList.contains('dropzone')) {
+            parent.appendChild(clone);
+        } else {
+            canvas.appendChild(clone);
+        }
+
+        setupNode(clone); // apply event handlers etc.
+        nodes.push(clone);
+        setSelectedNode(clone);
+    }
+
+    function renameNode() {
+        if (!selectedNode) return;
+
+        const input = prompt("Enter new node type:");
+        if (!input) return;
+
+        const newType = input.trim();
+        selectedNode.dataset.type = newType;
+
+        // Update the header text too
+        const header = selectedNode.querySelector('.node-header');
+
+        if (header) {
+            header.textContent = newType;
+        }
+    }
+
+    function addLinkNode() {
+        const displayText = prompt("Enter link display text:");
+        if (!displayText) return;
+
+        const url = prompt("Enter the full URL (include https://):");
+        if (!url) return;
+
+        const div = document.createElement('div');
+        div.className = 'node';
+        div.style.width = '150px';
+        div.style.height = '60px';
+        div.dataset.type = 'Link';
+        div.id = 'node-' + crypto.randomUUID();
+
+        const header = document.createElement('div');
+        header.className = 'node-header';
+        header.textContent = displayText;
+        div.appendChild(header);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.textContent = url;
+        link.style.color = '#7af';
+        link.style.padding = '6px';
+        link.style.fontSize = '12px';
+        link.style.textDecoration = 'underline';
+        link.style.wordBreak = 'break-word';
+        div.appendChild(link);
+
+        const { left, top } = findEmptySpot();
+        div.style.left = left + 'px';
+        div.style.top = top + 'px';
+
+        // === Nesting logic ===
+        if (selectedNode) {
+            const parentDropzone = selectedNode.querySelector('.dropzone');
+            const { left, top } = findEmptySpot();
+            div.style.left = left + 'px';
+            div.style.top = top + 'px';
+
+            if (parentDropzone && !div.contains(parentDropzone)) {
+                parentDropzone.appendChild(div);
+            } else {
+                const { left, top } = findEmptySpot();
+                div.style.left = left + 'px';
+                div.style.top = top + 'px';
+                canvas.appendChild(div);
+            }
+        } else {
+            const { left, top } = findEmptySpot();
+            div.style.left = left + 'px';
+            div.style.top = top + 'px';
+            canvas.appendChild(div);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        nodes.push(div);
+        setSelectedNode(div);
+    }
+
+    function getAllNodes() {
+        return Array.from(document.querySelectorAll('.node'));
+    }
+
+    function setSelectedNode(node) {
+        selectedNode = node;
+        nodes.forEach(n => {
+            n.style.borderColor = (n === selectedNode) ? '#B5DBFA' : '#aaa';
+            n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
+        });
+
+        if (selectedNode) {
+            selectedNode.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'center'
+            });
+        }
+    }
+
+    function showNodeSelectorDialog() {
+        // Remove any existing popup
+        const existing = document.getElementById('nodeSelectorDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'nodeSelectorDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '400px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        dialog.style.background = '#222';
+        dialog.style.color = '#fff';
+        dialog.style.border = '2px solid #444';
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '10px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const filter = document.createElement('input');
+        filter.type = 'text';
+        filter.placeholder = 'Filter by type or text...';
+        filter.style.padding = '5px';
+        filter.style.marginBottom = '10px';
+        filter.style.background = '#111';
+        filter.style.color = '#fff';
+        filter.style.border = '1px solid #555';
+
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
+
+        const nodesList = Array.from(document.querySelectorAll('.node'));
+        let filteredList = [];
+        let selectedIndex = 0;
+
+        function renderList() {
+            listContainer.innerHTML = '';
+            const search = filter.value.toLowerCase();
+            filteredList = nodesList.filter(n => {
+                const type = n.dataset.type?.toLowerCase() || '';
+                const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+                const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+                return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
+            });
+
+            filteredList.forEach((node, index) => {
+                const type = node.dataset.type || '(no type)';
+                let preview = '';
+
+                if (type.toLowerCase() === 'link') {
+                    const anchor = node.querySelector('a');
+                    const url = anchor?.href || '';
+                    preview = url.length > 100 ? url.substring(0, 100) + '…' : url;
+                } else {
+                    const textarea = node.querySelector('textarea');
+                    const text = textarea?.value || '';
+                    preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+                }
+
+                const item = document.createElement('div');
+                item.textContent = `[${type}] — "${preview}"`;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
+
+                item.addEventListener('click', () => {
+                    setSelectedNode(filteredList[selectedIndex]);
+                    dialog.remove();
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            if (filteredList.length === 0) {
+                const empty = document.createElement('div');
+                empty.textContent = '(no matching nodes)';
+                empty.style.padding = '5px';
+                empty.style.color = '#888';
+                listContainer.appendChild(empty);
+            }
+        }
+
+        filter.addEventListener('input', () => {
+            selectedIndex = 0;
+            renderList();
+        });
+
+        filter.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (filteredList[selectedIndex]) {
+                    setSelectedNode(filteredList[selectedIndex]);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dialog.remove();
+                }
+            } else if (e.key === 'Escape') {
+                dialog.remove();
+                e.stopPropagation();
+            }
+        });
+
+        dialog.appendChild(filter);
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+        filter.focus();
+
+        renderList();
+    }
+
+    function setupNode(div) {
+        const type = div.dataset.type;
+        const textarea = div.querySelector('textarea');
+
+        const header = div.querySelector('.node-header');
+        const deleteBtn = header?.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.onclick = e => {
+                e.stopPropagation();
+                removeNode(div);
+            };
+        }
+
+        div.draggable = false;
+        div.ondragstart = e => {
+            e.dataTransfer.setData("text/plain", div.id);
+        };
+
+        const dropzone = div.querySelector('.dropzone');
+        if (dropzone) {
+            dropzone.ondragover = e => e.preventDefault();
+            dropzone.ondrop = e => {
+                const id = e.dataTransfer.getData("text/plain");
+                const item = document.getElementById(id);
+                if (item) dropzone.appendChild(item);
+            };
+        }
+
+        if (!nodes.includes(div)) nodes.push(div);
+    }
+
+    function removeNode(node) {
+        connectors = connectors.filter(c => c.a !== node && c.b !== node);
+        restoreMarksFromDOM();
         updateConnectors();
-    } catch (err) {
-        console.error('Failed to restore connectors:', err);
-    }
-  }
-  
-  window.onload = () => {
-    initializeNodes();
-    restoreMarksFromDOM();
-    restoreConnectorsFromDOM();
-    updateConnectors();
 
-    if (canvas.innerHTML === "") {
-        document.getElementById('helpDialog').style.display = 'block';
+        if (node.parentElement) {
+            node.parentElement.removeChild(node);
+        }
+
+        nodes = nodes.filter(n => n !== node);
+        if (selectedNode === node) selectedNode = null;
     }
 
-    canvas.focus();
-  };
-  
-window.addEventListener('DOMContentLoaded', () => {
-  const paletteScripts = Array.from(document.querySelectorAll('script[data-colorpalettes]'));
+    function getNodeDepth(node) {
+        let depth = 0;
 
-  if (paletteScripts.length > 0) {
-    const lastScript = paletteScripts[paletteScripts.length - 1];
-
-    try {
-      const data = JSON.parse(lastScript.textContent);
-      if (typeof data === 'object') {
-        colorPalettes = data;
-      }
-    } catch (err) {
-      console.warn('Could not parse saved color palettes:', err);
+        while (node.parentElement) {
+            node = node.parentElement;
+            if (nodes.includes(node)) {
+                depth++;
+            }
+        }
+        return depth;
     }
 
-    // Remove all others (leave just one)
-    paletteScripts.slice(0, -1).forEach(s => s.remove());
-  }
-});
+    function attachChild(selectedNode) {
+        const selectedRect = selectedNode.getBoundingClientRect();
+        let bestTarget = null;
+        let bestOverlapArea = 0;
+        let prevDepth = 0;
+        let curDepth = 0;
 
-  function hexToRgb(hex) {
-      if (hex === undefined || hex === null ) {
-          return;
-      }
+        for (let node of nodes) {
+            if (node === selectedNode || node.contains(selectedNode)) continue;
 
-    const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    hex = hex.replace(shorthand, (_, r, g, b) => r + r + g + g + b + b);
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  }
-  
-  function darken(color, factor = 0.6) {
-    const rgb = hexToRgb(color);
-    return rgb ? `rgb(${Math.floor(rgb.r * factor)}, ${Math.floor(rgb.g * factor)}, ${Math.floor(rgb.b * factor)})` : color;
-  }
-  
-  function lighten(color, factor = 1.6) {
-    const rgb = hexToRgb(color);
-    return rgb ? `rgb(${Math.min(255, Math.floor(rgb.r * factor))}, ${Math.min(255, Math.floor(rgb.g * factor))}, ${Math.min(255, Math.floor(rgb.b * factor))})` : color;
-  }
+            const nodeRect = node.getBoundingClientRect();
+            const overlapX = Math.max(0, Math.min(selectedRect.right, nodeRect.right) - Math.max(selectedRect.left, nodeRect.left));
+            const overlapY = Math.max(0, Math.min(selectedRect.bottom, nodeRect.bottom) - Math.max(selectedRect.top, nodeRect.top));
+            const overlapArea = overlapX * overlapY;
 
+            if (overlapArea > bestOverlapArea) {
+                curDepth = getNodeDepth(node);
+
+                if (curDepth === 0 || curDepth > prevDepth) {
+                    bestOverlapArea = overlapArea;
+                    bestTarget = node;
+                    prevDepth = curDepth;
+                }
+            }
+        }
+
+        if (bestTarget && selectedNode !== null) {
+            const dropzone = bestTarget.querySelector('.dropzone');
+
+            if (dropzone && !dropzone.contains(selectedNode)) {
+                // Remove from current parent
+                if (selectedNode.parentElement) {
+                    selectedNode.parentElement.removeChild(selectedNode);
+                }
+
+                // Calculate position relative to new parent
+                const parentRect = dropzone.getBoundingClientRect();
+                const newLeft = selectedRect.left - parentRect.left;
+                const newTop = selectedRect.top - parentRect.top;
+
+                selectedNode.style.left = newLeft + 'px';
+                selectedNode.style.top = newTop + 'px';
+
+                dropzone.appendChild(selectedNode);
+            }
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            if (e.key === 'Escape' && selectedNode) {
+                const txt = selectedNode.querySelector('textarea');
+                txt.blur();
+                e.stopPropagation();
+                return;
+            }
+        }
+
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+        if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            document.getElementById('helpDialog').style.display = 'block';
+            e.preventDefault();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            if (document.getElementById('helpDialog').style.display === 'block') {
+                document.getElementById('helpDialog').style.display = 'none';
+                e.stopPropagation();
+                return;
+            } else {
+                selectedNode = null;
+                setSelectedNode(null);
+            }
+        }
+
+
+        // Handle mark/goto mark modes
+        if (markMode) {
+            if (e.key === '-') {
+                removeMarkFromNode(selectedNode);
+                markMode = false;
+                e.preventDefault();
+                return;
+            }
+
+            if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+                setMark(e.key);
+                markMode = false;
+                e.preventDefault();
+                return;
+            }
+
+            if (e.key.length === 1) {
+                gotoMarkMode = false;
+                e.preventDefault();
+                return;
+            }
+        }
+        if (gotoMarkMode) {
+            if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+                gotoMark(e.key);
+                gotoMarkMode = false;
+                e.preventDefault();
+                return;
+            }
+
+            if (e.key.length === 1) {
+                gotoMarkMode = false;
+                e.preventDefault();
+                return;
+            }
+        }
+        if (e.key === 'm') {
+            markMode = true;
+            e.preventDefault();
+            return;
+        }
+        if (e.key === '`') {
+            gotoMarkMode = true;
+            e.preventDefault();
+            return;
+        }
+        switch (e.key) {
+            case 'a':
+                addNode();
+                break;
+
+            case '=':
+                duplicateSelectedNode();
+                break;
+
+            case 'u':
+                addLinkNode();
+                break;
+
+            case 's':
+                download();
+                break;
+
+            case '/':
+                showNodeSelectorDialog();
+                e.preventDefault();
+                break;
+
+            case ',':
+                setZoom(zoom - 0.1);
+                break;
+
+            case '.':
+                setZoom(zoom + 0.1);
+                break;
+
+            case '0':
+                setZoom(1);
+                break;
+
+            case 'G':
+                setSelectedNode(null);
+                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+                break;
+        }
+
+        if (e.key === 'w' || e.key === 'W') {
+            const nodes = getAllNodes();
+            if (nodes.length === 0) return;
+
+            const index = nodes.indexOf(selectedNode);
+            let nextIndex;
+
+            if (e.shiftKey) {
+                nextIndex = (index - 1 + nodes.length) % nodes.length;
+            } else {
+                nextIndex = (index + 1) % nodes.length;
+            }
+
+            setSelectedNode(nodes[nextIndex]);
+            return;
+        }
+
+        if (!selectedNode) {
+            return;
+        }
+
+        const step = 40;
+        const style = selectedNode.style;
+        const width = parseInt(style.width);
+        const height = parseInt(style.height);
+        const left = parseInt(style.left);
+        const top = parseInt(style.top);
+        const dropzone = selectedNode.querySelector('.dropzone');
+        const textarea = selectedNode.querySelector('textarea');
+
+        const resize = (dw, dh) => {
+            const width = parseInt(selectedNode.style.width);
+            const height = parseInt(selectedNode.style.height);
+            selectedNode.style.width = Math.max(50, width + dw) + 'px';
+            selectedNode.style.height = Math.max(40, height + dh) + 'px';
+            updateConnectors();
+        };
+
+        const resizeDropzone = (dh) => {
+            if (!dropzone) return;
+
+            const dzStyle = dropzone.style;
+            const txStyle = textarea.style;
+            const dzWidth = parseFloat(dzStyle.width) || 0;
+            let dzHeight = parseFloat(dzStyle.height) || 0;
+            const txHeight = parseFloat(txStyle.height) || 0;
+
+            if (!dzHeight) {
+                dzHeight = parseFloat(selectedNode.style.height) - txStyle.height;
+                dzStyle.height = dzHeight + 'px';
+            }
+
+            dzStyle.height = Math.max(10, dzHeight + dh) + 'px';
+            txStyle.height = Math.max(10, parseFloat(window.getComputedStyle(textarea).height) - dh) + 'px';
+        };
+
+        const move = (dx, dy) => {
+            const parent = selectedNode.offsetParent;
+            const currentLeft = selectedNode.offsetLeft;
+            const currentTop = selectedNode.offsetTop;
+            selectedNode.style.left = (currentLeft + dx) + 'px';
+            selectedNode.style.top = (currentTop + dy) + 'px';
+            updateConnectors();
+
+            selectedNode.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'center'
+            });
+        };
+
+        switch (e.key) {
+            case 'c':
+                startConnector();
+                break;
+
+            case 'p':
+                startSnapping();
+                break;
+
+            case 'D':
+                removeNode(selectedNode);
+                break;
+
+            case 'X':
+                startDisconnector();
+                break;
+
+            case 'h':
+                move(-step, 0);
+                break;
+
+            case '<':
+                move(-(step/2), 0);
+                break;
+
+            case 'H':
+                resize(-step, 0);
+                break;
+
+            case 'i':
+                if (textarea) {
+                    textarea.focus();
+                    e.preventDefault();
+                }
+                break;
+
+            case 'j':
+                move(0, step);
+                break;
+
+            case '-':
+                move(0, (step/2));
+                break;
+
+            case 'J':
+                resize(0, step);
+                break;
+
+            case 'k':
+                move(0, -step);
+                break;
+
+            case '^':
+                move(0, -(step/2));
+                break;
+
+            case 'K':
+                resize(0, -step);
+                break;
+
+            case 'l':
+                move(step, 0);
+                break;
+
+            case 'r':
+                renameNode();
+                break;
+
+            case '>':
+                if (connecting && connectStart && selectedNode && connectStart !== selectedNode) {
+                    drawConnector(connectStart, selectedNode, true); // pass arrow = true
+                    connectStart = null;
+                    connecting = false;
+                    e.preventDefault();
+                    return;
+                } else {
+                    move((step / 2), 0);
+                }
+                break;
+
+            case 'L':
+                resize(step, 0);
+                break;
+
+            case 'm':
+                resize(step, step);
+                break;
+
+            case 'z':
+                resizeDropzone(-10);
+                break;
+
+            case 'Z':
+                resizeDropzone(10);
+                break;
+
+            case '#':
+                showColorPaletteMenu();
+                break;
+
+            case 'Enter':
+                if (disconnecting) {
+                    // Remove connector if it exists
+                    connectors = connectors.filter(conn => {
+                        return !(
+                            (conn.a === disconnectStart && conn.b === selectedNode) ||
+                            (conn.b === disconnectStart && conn.a === selectedNode)
+                        );
+                    });
+                    updateConnectors();
+                    disconnecting = false;
+                    disconnectStart = null;
+                } else if (connecting) {
+                    drawConnector(connectStart, selectedNode);
+                    connectStart = null;
+                    connecting = false;
+                } else if (snapping) {
+                    const gap = step; // 1 step to the right
+                    const targetLeft = parseInt(selectedNode.style.left) || 0;
+                    const targetTop = parseInt(selectedNode.style.top) || 0;
+                    const targetWidth = parseInt(selectedNode.style.width) || 150;
+                    const newLeft = targetLeft + targetWidth + gap;
+
+                    snapTarget.style.left = newLeft + 'px';
+                    snapTarget.style.top = targetTop + 'px';
+
+                    setSelectedNode(snapTarget);
+
+                    updateConnectors();
+
+                    snapTarget = null;
+                    snapping = false;
+                } else {
+                    attachChild(selectedNode);
+                }
+                e.stopPropagation();
+                break;
+            default:
+                return; // Don't prevent default for unrelated keys
+        }
+
+        e.preventDefault();
+    });
+
+    function showColorPaletteMenu() {
+        if (!selectedNode) return;
+
+        // Overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+
+        // Modal
+        const modal = document.createElement('div');
+        modal.style.background = 'black';
+        modal.style.color = 'white';
+        modal.style.border = '2px solid white';
+        modal.style.padding = '20px';
+        modal.style.textAlign = 'center';
+        modal.style.fontFamily = 'monospace';
+        modal.tabIndex = -1;
+
+        const label = document.createElement('p');
+        label.textContent = 'Select a color palette:';
+        label.style.marginBottom = '10px';
+        modal.appendChild(label);
+
+        const select = document.createElement('select');
+        select.style.fontSize = '16px';
+        select.style.padding = '5px';
+        select.style.minWidth = '200px';
+        select.style.background = 'black';
+        select.style.color = 'white';
+        select.style.border = '1px solid white';
+        select.style.marginBottom = '10px';
+
+        const optionNew = document.createElement('option');
+        optionNew.value = '+';
+        optionNew.textContent = '+ Create new palette';
+        select.appendChild(optionNew);
+
+        Object.entries(colorPalettes).forEach(([name]) => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+        });
+
+        modal.appendChild(select);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Refocus dropdown
+        setTimeout(() => select.focus(), 0);
+
+        function close() {
+            document.body.removeChild(overlay);
+        }
+
+        function rebuildSelect() {
+            const selected = select.value;
+            select.innerHTML = '';
+            const optionNew = document.createElement('option');
+            optionNew.value = '+';
+            optionNew.textContent = '+ Create new palette';
+            select.appendChild(optionNew);
+
+            Object.entries(colorPalettes).forEach(([name]) => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+
+            if (colorPalettes[selected]) {
+                select.value = selected;
+            } else {
+                select.value = '+';
+            }
+        }
+
+        function openColorPickerModal(name) {
+            const pickerOverlay = document.createElement('div');
+            pickerOverlay.style.position = 'fixed';
+            pickerOverlay.style.top = '0';
+            pickerOverlay.style.left = '0';
+            pickerOverlay.style.width = '100vw';
+            pickerOverlay.style.height = '100vh';
+            pickerOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
+            pickerOverlay.style.display = 'flex';
+            pickerOverlay.style.alignItems = 'center';
+            pickerOverlay.style.justifyContent = 'center';
+            pickerOverlay.style.zIndex = '10000';
+
+            const pickerModal = document.createElement('div');
+            pickerModal.style.background = 'white';
+            pickerModal.style.padding = '20px';
+            pickerModal.style.borderRadius = '8px';
+            pickerModal.style.textAlign = 'center';
+            pickerModal.style.color = 'black';
+            pickerModal.style.fontFamily = 'monospace';
+            pickerModal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
+
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = '#3399ff';
+            colorInput.style.marginBottom = '10px';
+
+            const button = document.createElement('button');
+            button.textContent = 'OK';
+            button.style.marginLeft = '10px';
+
+            pickerModal.appendChild(colorInput);
+            pickerModal.appendChild(document.createElement('br'));
+            pickerModal.appendChild(button);
+            pickerOverlay.appendChild(pickerModal);
+            document.body.appendChild(pickerOverlay);
+
+            button.onclick = () => {
+                const hex = colorInput.value;
+                colorPalettes[name] = hex;
+                applyColorToNode(hex);
+                document.body.removeChild(pickerOverlay);
+                close();
+            };
+
+            pickerOverlay.addEventListener('keydown', e => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.body.removeChild(pickerOverlay);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    button.click();
+                }
+            });
+
+            colorInput.focus();
+        }
+
+        overlay.addEventListener('keydown', e => {
+            const selected = select.value;
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (selected === '+') {
+                    const name = prompt("Enter a name for the new palette:");
+                    if (!name) return;
+                    openColorPickerModal(name);
+                } else {
+                    const hex = colorPalettes[selected];
+                    if (hex) applyColorToNode(hex);
+                    close();
+                }
+            } else if (e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (selected !== '+' && colorPalettes[selected]) {
+                    if (confirm(`Delete palette "${selected}"?`)) {
+                        delete colorPalettes[selected];
+                        rebuildSelect();
+                    }
+                }
+
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+            }
+        });
+
+        modal.focus();
+    }
+
+    function createNewColorPaletteWithPrompt(name) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.style.background = 'white';
+        modal.style.padding = '20px';
+        modal.style.borderRadius = '8px';
+        modal.style.textAlign = 'center';
+        modal.style.color = 'black';
+        modal.innerHTML = `<p>Select a color for "<b>${name}</b>":</p>`;
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = '#3399ff';
+        colorInput.style.marginBottom = '10px';
+
+        const button = document.createElement('button');
+        button.textContent = 'OK';
+        button.style.marginLeft = '10px';
+
+        modal.appendChild(colorInput);
+        modal.appendChild(document.createElement('br'));
+        modal.appendChild(button);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        button.onclick = () => {
+            const hex = colorInput.value;
+            colorPalettes[name] = hex;
+            applyColorToNode(hex);
+            document.body.removeChild(overlay);
+        };
+    }
+
+    function applyColorToNode(baseColor) {
+        if (!selectedNode) return;
+
+        selectedNode.dataset.color = baseColor;
+
+        const bg = darken(baseColor, 0.6);
+        const contentBg = darken(baseColor, 0.4);
+        const fg = lighten(baseColor, 1.6);
+
+        selectedNode.style.background = bg;
+
+        const header = selectedNode.querySelector('.node-header');
+        const textarea = selectedNode.querySelector('textarea');
+        const dropzone = selectedNode.querySelector('.dropzone');
+
+        if (header) header.style.color = fg;
+        if (textarea) {
+            textarea.style.background = contentBg;
+            textarea.style.color = fg;
+        }
+        if (dropzone) {
+            dropzone.style.background = contentBg;
+            dropzone.style.color = fg;
+        }
+    }
+
+    function drawConnector(a, b, arrow = false) {
+        connectors.push({ a, b, arrow });
+        updateConnectors();
+    }
+
+    function updateConnectors() {
+        document.querySelectorAll('svg.connector').forEach(c => c.remove());
+
+        function getAncestors(node) {
+            const ancestors = [];
+            while (node && node !== canvas.parentElement) {
+                ancestors.push(node);
+                node = node.parentElement;
+            }
+            return ancestors.reverse();
+        }
+
+        function findLCA(a, b) {
+            const aAncestors = getAncestors(a);
+            const bAncestors = getAncestors(b);
+            let lca = null;
+            const len = Math.min(aAncestors.length, bAncestors.length);
+            for (let i = 0; i < len; i++) {
+                if (aAncestors[i] === bAncestors[i]) {
+                    lca = aAncestors[i];
+                } else {
+                    break;
+                }
+            }
+            return lca || canvas;
+        }
+
+        function getNodeCenterRelativeToElement(node, element) {
+            const nodeRect = node.getBoundingClientRect();
+            const elemRect = element.getBoundingClientRect();
+            const scale = zoom || 1;
+            return {
+                x: (nodeRect.left + nodeRect.width / 2 - elemRect.left + element.scrollLeft) / scale,
+                y: (nodeRect.top + nodeRect.height / 2 - elemRect.top + element.scrollTop) / scale
+            };
+        }
+
+        connectors.forEach(conn => {
+            const { a, b, arrow } = conn;
+            const lca = findLCA(a, b);
+            const aCenter = getNodeCenterRelativeToElement(a, lca);
+            const bCenter = getNodeCenterRelativeToElement(b, lca);
+
+            let dx = bCenter.x - aCenter.x;
+            let dy = bCenter.y - aCenter.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            if (length === 0) return;
+
+            const unitX = dx / length;
+            const unitY = dy / length;
+
+            const pad = 10;
+            const startX = aCenter.x + unitX * pad;
+            const startY = aCenter.y + unitY * pad;
+            const endX = bCenter.x - unitX * pad;
+            const endY = bCenter.y - unitY * pad;
+
+            const minX = Math.min(startX, endX) - 20;
+            const minY = Math.min(startY, endY) - 20;
+            const width = Math.abs(endX - startX) + 40;
+            const height = Math.abs(endY - startY) + 40;
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.classList.add("connector");
+            svg.style.position = 'absolute';
+            svg.style.left = `${minX}px`;
+            svg.style.top = `${minY}px`;
+            svg.style.width = `${width}px`;
+            svg.style.height = `${height}px`;
+            svg.style.zIndex = '0';
+            svg.style.pointerEvents = 'none';
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", startX - minX);
+            line.setAttribute("y1", startY - minY);
+            line.setAttribute("x2", endX - minX);
+            line.setAttribute("y2", endY - minY);
+            line.setAttribute("stroke", "#ccc");
+            line.setAttribute("stroke-width", "2");
+            svg.appendChild(line);
+
+            if (arrow) {
+                const arrowSize = 12;
+                const buffer = arrowSize + 1;
+
+                // Get node B's size
+                const bRect = b.getBoundingClientRect();
+                const lcaRect = lca.getBoundingClientRect();
+                const scale = zoom || 1;
+                const bWidth = bRect.width / scale;
+                const bHeight = bRect.height / scale;
+
+                // Calculate how far we need to backtrack from the center to the edge
+                // Projected distance along the unit vector to the edge of the box
+                const halfDiagonalProjection = Math.min(
+                    Math.abs(bWidth / 2 / unitX || Infinity),
+                    Math.abs(bHeight / 2 / unitY || Infinity)
+                );
+
+                const edgeX = bCenter.x - unitX * halfDiagonalProjection;
+                const edgeY = bCenter.y - unitY * halfDiagonalProjection;
+
+                // Position the arrow just outside the node
+                const tipX = edgeX - unitX * buffer;
+                const tipY = edgeY - unitY * buffer;
+
+                const baseLeftX = tipX - unitX * arrowSize - unitY * arrowSize / 2;
+                const baseLeftY = tipY - unitY * arrowSize + unitX * arrowSize / 2;
+
+                const baseRightX = tipX - unitX * arrowSize + unitY * arrowSize / 2;
+                const baseRightY = tipY - unitY * arrowSize - unitX * arrowSize / 2;
+
+                const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                polygon.setAttribute(
+                    "points",
+                    `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
+                );
+                polygon.setAttribute("fill", "#ccc");
+
+                svg.appendChild(polygon);
+            }
+
+            lca.appendChild(svg);
+        });
+    }
+
+    function startConnector() {
+        connecting = true;
+        connectStart = selectedNode;
+    }
+      
+    function startDisconnector() {
+        disconnecting = true;
+        disconnectStart = selectedNode;
+    }
+      
+    function startSnapping() {
+        snapping = true;
+        snapTarget = selectedNode;
+    }
+
+    function download() {
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        // Remove any previous connector data
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+
+        // Serialize connectors using node IDs
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+
+        document.body.appendChild(script);
+
+        // Save color palette data
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+
+        // Save marks data
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
+        a.href = URL.createObjectURL(blob);
+        a.download = currentFileName;
+        a.click();
+
+        script.remove(); // Remove after save to avoid duplicate
+        paletteScript.remove();
+    }
+
+    function initializeNodes() {
+        document.querySelectorAll('.node').forEach(setupNode);
+    }
+      
+    function restoreConnectorsFromDOM() {
+        const script = document.getElementById('connector-data');
+        if (!script) return;
+
+        try {
+            const saved = JSON.parse(script.textContent);
+            connectors = [];
+
+            saved.forEach(({ a, b, arrow }) => {
+                const nodeA = document.getElementById(a);
+                const nodeB = document.getElementById(b);
+                if (nodeA && nodeB) {
+                    connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+                }
+            });
+
+            updateConnectors();
+        } catch (err) {
+            console.error('Failed to restore connectors:', err);
+        }
+    }
+      
+    window.onload = () => {
+        initializeNodes();
+        restoreMarksFromDOM();
+        restoreConnectorsFromDOM();
+        updateConnectors();
+
+        if (canvas.innerHTML === "") {
+            document.getElementById('helpDialog').style.display = 'block';
+        }
+
+        canvas.focus();
+    };
+      
+    window.addEventListener('DOMContentLoaded', () => {
+        const paletteScripts = Array.from(document.querySelectorAll('script[data-colorpalettes]'));
+
+        if (paletteScripts.length > 0) {
+            const lastScript = paletteScripts[paletteScripts.length - 1];
+
+            try {
+                const data = JSON.parse(lastScript.textContent);
+                if (typeof data === 'object') {
+                    colorPalettes = data;
+                }
+            } catch (err) {
+                console.warn('Could not parse saved color palettes:', err);
+            }
+
+            // Remove all others (leave just one)
+            paletteScripts.slice(0, -1).forEach(s => s.remove());
+        }
+    });
+
+    function hexToRgb(hex) {
+        if (hex === undefined || hex === null ) {
+            return;
+        }
+
+        const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        hex = hex.replace(shorthand, (_, r, g, b) => r + r + g + g + b + b);
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+      
+    function darken(color, factor = 0.6) {
+        const rgb = hexToRgb(color);
+        return rgb ? `rgb(${Math.floor(rgb.r * factor)}, ${Math.floor(rgb.g * factor)}, ${Math.floor(rgb.b * factor)})` : color;
+    }
+      
+    function lighten(color, factor = 1.6) {
+        const rgb = hexToRgb(color);
+        return rgb ? `rgb(${Math.min(255, Math.floor(rgb.r * factor))}, ${Math.min(255, Math.floor(rgb.g * factor))}, ${Math.min(255, Math.floor(rgb.b * factor))})` : color;
+    }
 </script>
-
-
-
 
 
 
