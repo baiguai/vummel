@@ -228,7 +228,7 @@ Escape = Deselect the current note's text field.
     let offsetX, offsetY;
     let nodes = [];
     let connectors = [];
-    let repCount = 1;
+    let repeatCount = 1;
     let connecting = false;
     let connectStart = null;
     let disconnecting = false;
@@ -360,9 +360,9 @@ Escape = Deselect the current note's text field.
     }
 
     function findEmptySpot() {
-        const step = 40;
+        const step = 50;
         const width = 160;
-        const height = 120;
+        const height = 150;
 
         let container = canvas;
         let isInDropzone = false;
@@ -395,9 +395,14 @@ Escape = Deselect the current note's text field.
             snappedCenterX = Math.round((containerWidth / 2) / step) * step;
             snappedCenterY = Math.round((containerHeight / 2) / step) * step;
         } else {
-            // For canvas/global, center based on scroll position
-            const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
-            const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+            let centerX = 250;
+            let centerY = 250;
+
+            if (window.scrollX > window.innerWidth / 2 - canvas.offsetLeft ||
+                window.scrollY > window.innerHeight / 2 - canvas.offsetTop) {
+                const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
+                const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
+            }
 
             snappedCenterX = Math.round(centerX / step) * step;
             snappedCenterY = Math.round(centerY / step) * step;
@@ -578,7 +583,7 @@ Escape = Deselect the current note's text field.
         const div = document.createElement('div');
         div.className = 'node';
         div.style.width = '150px';
-        div.style.height = '60px';
+        div.style.height = '50px';
         div.dataset.type = 'Link';
         div.id = 'node-' + crypto.randomUUID();
 
@@ -909,6 +914,8 @@ Escape = Deselect the current note's text field.
         }
 
         if (e.key === 'Escape') {
+            repeatCount = 1;
+
             if (document.getElementById('helpDialog').style.display === 'block') {
                 document.getElementById('helpDialog').style.display = 'none';
                 e.stopPropagation();
@@ -969,40 +976,53 @@ Escape = Deselect the current note's text field.
         switch (e.key) {
             case 'a':
                 addNode();
+                repeatCount = 1;
                 break;
 
             case '=':
                 duplicateSelectedNode();
+                repeatCount = 1;
                 break;
 
             case 'u':
                 addLinkNode();
+                repeatCount = 1;
                 break;
 
             case 's':
                 download();
+                repeatCount = 1;
                 break;
 
             case '/':
                 showNodeSelectorDialog();
+                repeatCount = 1;
                 e.preventDefault();
                 break;
 
             case ',':
-                setZoom(zoom - 0.1);
+                for (let i=0; i < repeatCount; i++) {
+                    setZoom(zoom - 0.1);
+                }
+                repeatCount = 1;
                 break;
 
             case '.':
-                setZoom(zoom + 0.1);
+                for (let i=0; i < repeatCount; i++) {
+                    setZoom(zoom + 0.1);
+                }
+                repeatCount = 1;
                 break;
 
             case '0':
                 setZoom(1);
+                repeatCount = 1;
                 break;
 
             case 'G':
                 setSelectedNode(null);
                 window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+                repeatCount = 1;
                 break;
         }
 
@@ -1023,11 +1043,15 @@ Escape = Deselect the current note's text field.
             return;
         }
 
+        if (/^[0-9]$/.test(e.key)) {
+            repeatCount = Number(e.key);
+        }
+
         if (!selectedNode) {
             return;
         }
 
-        const step = 40;
+        const step = 50;
         const style = selectedNode.style;
         const width = parseInt(style.width);
         const height = parseInt(style.height);
@@ -1095,7 +1119,9 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'h':
-                move(-step, 0);
+                for (let i=0; i < repeatCount; i++) {
+                    move(-step, 0);
+                }
                 break;
 
             case '<':
@@ -1103,7 +1129,9 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'H':
-                resize(-step, 0);
+                for (let i=0; i < repeatCount; i++) {
+                    resize(-step, 0);
+                }
                 break;
 
             case 'i':
@@ -1114,7 +1142,9 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'j':
-                move(0, step);
+                for (let i=0; i < repeatCount; i++) {
+                    move(0, step);
+                }
                 break;
 
             case '-':
@@ -1122,11 +1152,15 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'J':
-                resize(0, step);
+                for (let i=0; i < repeatCount; i++) {
+                    resize(0, step);
+                }
                 break;
 
             case 'k':
-                move(0, -step);
+                for (let i=0; i < repeatCount; i++) {
+                    move(0, -step);
+                }
                 break;
 
             case '^':
@@ -1134,11 +1168,15 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'K':
-                resize(0, -step);
+                for (let i=0; i < repeatCount; i++) {
+                    resize(0, -step);
+                }
                 break;
 
             case 'l':
-                move(step, 0);
+                for (let i=0; i < repeatCount; i++) {
+                    move(step, 0);
+                }
                 break;
 
             case 'r':
@@ -1158,19 +1196,27 @@ Escape = Deselect the current note's text field.
                 break;
 
             case 'L':
-                resize(step, 0);
+                for (let i=0; i < repeatCount; i++) {
+                    resize(step, 0);
+                }
                 break;
 
             case 'm':
-                resize(step, step);
+                for (let i=0; i < repeatCount; i++) {
+                    resize(step, step);
+                }
                 break;
 
             case 'z':
-                resizeDropzone(-10);
+                for (let i=0; i < repeatCount; i++) {
+                    resizeDropzone(-10);
+                }
                 break;
 
             case 'Z':
-                resizeDropzone(10);
+                for (let i=0; i < repeatCount; i++) {
+                    resizeDropzone(10);
+                }
                 break;
 
             case '#':
@@ -1218,6 +1264,7 @@ Escape = Deselect the current note's text field.
                 return; // Don't prevent default for unrelated keys
         }
 
+        repeatCount = 1;
         e.preventDefault();
     });
 
