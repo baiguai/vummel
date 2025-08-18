@@ -177,9 +177,10 @@ c = Start connection (select the second node
 X = Disconnects two nodes in the same manner as
     connecting them.
 D = Delete the selected node.
+i = Select current node's text field.
+1-9 = How many times to repeat certain actions.
 h = Move selected node left.
 H = Reduce width of selected node.
-i = Select current node's text field.
 j = Move selected node down.
 J = Increase selected node's height.
 k = Move selected node up.
@@ -190,13 +191,15 @@ L = Increase selected node's width.
 &gt; = (while connecting) Creates a line pointed
     from the first selected node to the second one.
 &gt; = Move selected node right by half a step.
-1-9 = How many times to repeat certain actions.
+^ = Move selected node up by half a step.
+- = Move selected node down by half a step.
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
                 <pre>
-^ = Move selected node up by half a step.
-- = Move selected node down by half a step.
+Enter = When a node is on top of another, moves
+        it into that node.
+d = Detaches a child node from its parent.
 z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
@@ -218,14 +221,18 @@ p = Start snap (select the second node
 m&lt;letter&gt; = Set mark (A-Z, a-z).
 `&lt;letter&gt; = Go to mark (A-Z, a-z).
 m- = Remove mark.
-Escape = Deselect the current note's text field.
+Escape = Deselect the current note's text field,
+         or deselect the current node.
                 </pre>
             </td>
         </tr>
     </table>
-    <pre>
-       </pre>
-     <p></p>
+    <p></p>
+    <p>
+      <a href="https://vummel.tiddlyhost.com" target="_blank" style="color: #fff; text-decoration: underline;">
+        Full Documentation
+      </a>
+    </p>
     <p>Press ESC to close.</p>
   </div>
 
@@ -370,14 +377,13 @@ Escape = Deselect the current note's text field.
     function findEmptySpot() {
         const step = 50;
         const width = 160;
-        const height = 150;
-
+        const height = 160;
+    
         let container = canvas;
         let isInDropzone = false;
-
+    
         if (selectedNode) {
             const dropzone = selectedNode.querySelector('.dropzone');
-
             if (dropzone && dropzone.children.length > 0) {
                 container = dropzone;
                 isInDropzone = true;
@@ -385,73 +391,79 @@ Escape = Deselect the current note's text field.
                 return { left: 0, top: 0 };
             }
         }
-
+    
         const allNodes = Array.from(container.querySelectorAll('.node'));
-
         if (allNodes.length === 0) {
             return { left: 0, top: 0 };
         }
-
-        let snappedCenterX, snappedCenterY;
-
+    
+        let startX, startY;
+    
         if (isInDropzone) {
-            // For dropzones, just use center of the dropzone itself (no scroll involved)
-            const containerRect = container.getBoundingClientRect();
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-
-            snappedCenterX = Math.round((containerWidth / 2) / step) * step;
-            snappedCenterY = Math.round((containerHeight / 2) / step) * step;
+            // Dropzones: always start at (0,0)
+            startX = 0;
+            startY = 0;
         } else {
-            let centerX = 250;
-            let centerY = 250;
-
-            if (window.scrollX > window.innerWidth / 2 - canvas.offsetLeft ||
-                window.scrollY > window.innerHeight / 2 - canvas.offsetTop) {
-                const centerX = window.scrollX + window.innerWidth / 2 - canvas.offsetLeft;
-                const centerY = window.scrollY + window.innerHeight / 2 - canvas.offsetTop;
-            }
-
-            snappedCenterX = Math.round(centerX / step) * step;
-            snappedCenterY = Math.round(centerY / step) * step;
+            // Always start at visible top-left corner relative to canvas
+            startX = window.scrollX - canvas.offsetLeft;
+            startY = window.scrollY - canvas.offsetTop;
         }
-
-        // Spiral search for a free spot
-        const maxRadius = 20;
-        for (let radius = 0; radius <= maxRadius; radius++) {
-            for (let dy = -radius; dy <= radius; dy++) {
-                for (let dx = -radius; dx <= radius; dx++) {
-                    if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-
-                    const left = snappedCenterX + dx * (width + step);
-                    const top = snappedCenterY + dy * (height + step);
-
-                    const snappedLeft = Math.round(left / step) * step;
-                    const snappedTop = Math.round(top / step) * step;
-
-                    const overlap = allNodes.some(n => {
-                        const nLeft = Math.round(parseInt(n.style.left || '0') / step) * step;
-                        const nTop = Math.round(parseInt(n.style.top || '0') / step) * step;
-                        const nRight = nLeft + Math.round(parseInt(n.style.width || width) / step) * step;
-                        const nBottom = nTop + Math.round(parseInt(n.style.height || height) / step) * step;
-                        return (
-                            snappedLeft < nRight &&
-                            snappedLeft + width > nLeft &&
-                            snappedTop < nBottom &&
-                            snappedTop + height > nTop
-                        );
-                    });
-
-                    if (!overlap) return { left: snappedLeft, top: snappedTop };
+    
+        const snappedStartX = Math.max(0, Math.round(startX / step) * step);
+        const snappedStartY = Math.max(0, Math.round(startY / step) * step);
+    
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+    
+        // Scan row by row from top-left, moving right then down
+        let y = snappedStartY;
+        let maxTries = 2000; // safety net
+        while (maxTries-- > 0) {
+            let x = snappedStartX;
+            while (x < snappedStartX + viewportWidth * 2) { // search extra off-screen to the right
+                const left = x;
+                const top = y;
+    
+                const overlap = allNodes.some(n => {
+                    const nLeft = parseInt(n.style.left || '0');
+                    const nTop = parseInt(n.style.top || '0');
+                    const nWidth = parseInt(n.style.width || width);
+                    const nHeight = parseInt(n.style.height || height);
+                    const nRight = nLeft + nWidth;
+                    const nBottom = nTop + nHeight;
+                    return (
+                        left < nRight &&
+                        left + width > nLeft &&
+                        top < nBottom &&
+                        top + height > nTop
+                    );
+                });
+    
+                if (!overlap) {
+                    // If node is outside viewport, scroll to it
+                    const absLeft = left + canvas.offsetLeft;
+                    const absTop = top + canvas.offsetTop;
+                    if (absLeft < window.scrollX ||
+                        absLeft + width > window.scrollX + viewportWidth ||
+                        absTop < window.scrollY ||
+                        absTop + height > window.scrollY + viewportHeight) {
+                        window.scrollTo({
+                            left: absLeft,
+                            top: absTop,
+                            behavior: 'smooth'
+                        });
+                    }
+    
+                    return { left, top };
                 }
+    
+                x += step; // move right
             }
+            y += step; // move down a row
         }
-
+    
         // Fallback
-        return {
-            left: Math.round(100 / step) * step,
-            top: Math.round(100 / step) * step
-        };
+        return { left: snappedStartX, top: snappedStartY };
     }
 
     canvas.onclick = e => {
@@ -521,8 +533,6 @@ Escape = Deselect the current note's text field.
 
         setSelectedNode(div);
         nodes.push(div);
-
-        attachChild(div);
     }
 
     function duplicateSelectedNode() {
@@ -903,6 +913,36 @@ Escape = Deselect the current note's text field.
         }
     }
 
+    function detachChild(selectedNode) {
+        if (!selectedNode) return;
+    
+        const parentDropzone = selectedNode.parentElement;
+        if (!parentDropzone || !parentDropzone.classList.contains('dropzone')) {
+            // Not inside a dropzone → nothing to detach
+            return;
+        }
+    
+        const parentNode = parentDropzone.closest('.node');
+        if (!parentNode) return;
+    
+        // Remove from dropzone
+        parentDropzone.removeChild(selectedNode);
+    
+        // Calculate parent's absolute position on the canvas
+        const parentRect = parentNode.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
+    
+        // Position new node 50px to the right of the parent
+        const newLeft = parentRect.left - canvasRect.left + parentNode.offsetWidth + 50;
+        const newTop = parentRect.top - canvasRect.top;
+    
+        selectedNode.style.left = newLeft + 'px';
+        selectedNode.style.top = newTop + 'px';
+    
+        // Append back to canvas
+        canvas.appendChild(selectedNode);
+    }
+
     document.addEventListener('keydown', e => {
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
             if (e.key === 'Escape' && selectedNode) {
@@ -1135,6 +1175,8 @@ Escape = Deselect the current note's text field.
                 block: 'center',
                 inline: 'center'
             });
+
+            selectedNode.style.zIndex = 1;
         };
 
         switch (e.key) {
@@ -1148,6 +1190,9 @@ Escape = Deselect the current note's text field.
 
             case 'D':
                 removeNode(selectedNode);
+                break;
+            case 'd':
+                detachChild(selectedNode);
                 break;
 
             case 'X':
