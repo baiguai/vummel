@@ -193,6 +193,7 @@ L = Increase selected node's width.
 &gt; = Move selected node right by half a step.
 ^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
+' = Show history.
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
@@ -242,6 +243,7 @@ Escape = Deselect the current note's text field,
     let selectedNode = null;
     let offsetX, offsetY;
     let nodes = [];
+    let history = [];
     let connectors = [];
     let repeatCount = 1;
     let connecting = false;
@@ -669,7 +671,15 @@ Escape = Deselect the current note's text field,
                 block: 'center',
                 inline: 'center'
             });
+            addToHistory(node);
         }
+    }
+
+    function addToHistory(node) {
+        // Remove if it already exists
+        history = history.filter(n => n !== node);
+        // Add to front
+        history.unshift(node);
     }
 
     function showNodeSelectorDialog() {
@@ -807,6 +817,126 @@ Escape = Deselect the current note's text field,
         filter.focus();
 
         renderList();
+    }
+
+    function showHistoryDialog() {
+        const existing = document.getElementById('historyDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'historyDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '400px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        dialog.style.background = '#222';
+        dialog.style.color = '#fff';
+        dialog.style.border = '2px solid #444';
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '10px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
+
+        let selectedIndex = 0;
+
+        function renderList() {
+            listContainer.innerHTML = '';
+
+            history.forEach((node, index) => {
+                const type = node.dataset.type || '(no type)';
+                let preview = '';
+
+                if (type.toLowerCase() === 'link') {
+                    const anchor = node.querySelector('a');
+                    const url = anchor?.href || '';
+                    preview = url.length > 100 ? url.substring(0, 100) + '…' : url;
+                } else {
+                    const textarea = node.querySelector('textarea');
+                    const text = textarea?.value || '';
+                    preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+                }
+
+                const item = document.createElement('div');
+                item.textContent = `[${type}] — "${preview}"`;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
+
+                item.addEventListener('click', () => {
+                    // Move selected node to top
+                    const selectedNode = history[selectedIndex];
+                    addToHistory(selectedNode);
+                    setSelectedNode(selectedNode);
+                    dialog.remove();
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            if (history.length === 0) {
+                const empty = document.createElement('div');
+                empty.textContent = '(no history yet)';
+                empty.style.padding = '5px';
+                empty.style.color = '#888';
+                listContainer.appendChild(empty);
+            }
+        }
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, history.length - 1);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (history[selectedIndex]) {
+                    const selectedNode = history[selectedIndex];
+                    addToHistory(selectedNode);
+                    setSelectedNode(selectedNode);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dialog.remove();
+                }
+            } else if (e.key === 'Escape') {
+                dialog.remove();
+                e.stopPropagation();
+            }
+        });
+
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+
+        renderList();
+
+        // Trap focus for keyboard navigation
+        dialog.tabIndex = -1;
+        dialog.focus();
     }
 
     function setupNode(div) {
@@ -1048,6 +1178,12 @@ Escape = Deselect the current note's text field,
 
             case '/':
                 showNodeSelectorDialog();
+                repeatCount = 1;
+                e.preventDefault();
+                break;
+
+            case "'":
+                showHistoryDialog();
                 repeatCount = 1;
                 e.preventDefault();
                 break;
