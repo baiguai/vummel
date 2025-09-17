@@ -1,7 +1,7 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
-<title>Vummel Help</title>
+<title>Httree</title>
 <style>
         :root {
             --bg: #000;
@@ -278,6 +278,7 @@ X = Show broken note links
 
 s = Save the current file
 S = Save as
+T = Export current note as .txt
 U = Upgrade (import existing data)
 
 V = Author Vim keys help
@@ -303,6 +304,7 @@ f = Find text in the current note
 &lt; = Show the history dialog
 g = Select top tree node
 G = Select bottom tree node
+T = Export current note as .txt
 
 V = Editor Vim keys help
 </pre>
@@ -390,11 +392,11 @@ variable to true in this .html file.
 </div>
 <div class="search-dialog" id="searchDialog" style="display: none;">
 <input id="searchInput" placeholder="Search..." type="text">
-<div class="search-results" id="searchList"><div>Introduction to Navigation</div><div>Navigating Forward and Backward</div><div class="selected">History</div></div>
+<div class="search-results" id="searchList"><div class="selected">Other Options</div></div>
 </div>
 <div id="linksDialog" style="display: none;">
 <h3>Links in Note</h3>
-<div id="linksList"><p>No missing links found</p></div>
+<div id="linksList"><a href="#" data-node-id="kqr4o4g3" class="selected">The Options Dialog</a></div>
 </div>
 <div id="replaceDialog" style="display: none;">
 <h3>Find &amp; Replace</h3>
@@ -413,7 +415,7 @@ variable to true in this .html file.
 
 <div id="historyDialog" style="display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: 600px; max-height: 70%; background: rgb(34, 34, 34); color: rgb(255, 255, 255); border: 2px solid rgb(68, 68, 68); border-radius: 2px; padding: 20px; z-index: 9999; font-family: monospace; overflow-y: auto; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 20px;">
   <h3>History</h3>
-  <div id="historyList"><div>Starting a Connection</div><div class="selected" style="background: rgb(68, 68, 68);">Completing the Connection</div><div>Introduction to Connections</div><div>Link Nodes</div><div>Renaming a Node</div><div>Duplicating the Selected Node</div><div>Adding Nodes</div><div>What is Vummel?</div><div>Welcome to the Vummel Help System</div><div>Using This Help System</div></div>
+  <div id="historyList"><div>The Options Dialog</div><div class="selected" style="background: rgb(68, 68, 68);">Editor Vim Help</div><div>Read Only Mode</div><div>The Options Dialog</div><div>Help Dialog</div><div>Dialogs Introduction</div><div>Introduction to Configuration</div><div>Help Dialog</div><div>Modes</div><div>Introduction</div><div>Switching Between Modes</div><div>The Modes</div></div>
 </div>
 <input type="file" id="filePicker" accept=".html" style="display:none;">
 
@@ -1555,6 +1557,38 @@ variable to true in this .html file.
             a.click();
         }
 
+        function exportNoteAsTxt() {
+            const editorArea = document.getElementById("editorArea");
+            if (!editorArea) return;
+
+            let content = editorArea.value;
+
+            // Remove inter-note links (titles surrounded by underscores)
+            const nodeLinkRegex = /(?:^|\s)_(.+?)_(?=\s|[.,!?;:)]|$)/g;
+            content = content.replace(nodeLinkRegex, (match, p1, offset, str) => {
+                // preserve whitespace before the match, just strip the link markup
+                const leadingSpace = /^\s/.test(match) ? " " : "";
+                return leadingSpace + p1;
+            });
+
+            // Ask for filename (no extension needed)
+            const name = prompt("Save note as .txt (enter name without extension):", "");
+            if (!name) return;
+
+            const fileName = name + ".txt";
+
+            // Create and trigger download
+            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
 
         //---- Key Handling ----------------------------------------------------
         function handleGlobalKey(e){
@@ -1648,6 +1682,7 @@ variable to true in this .html file.
                 case 'D': if (!readOnly) deleteNode(); break;
                 case 's': if (!readOnly) saveAsHtml(fileName); break;
                 case 'S': if (!readOnly) saveAsHtml(""); break;
+                case 'T': exportNoteAsTxt(); break;
                 case ']': resizeTree(30); break;
                 case '[': resizeTree(-30); break;
                 case '#': openLinksDialog(); break;
@@ -2045,7 +2080,6 @@ variable to true in this .html file.
         render();
     });
 </script>
-
 
 
 
