@@ -1559,16 +1559,14 @@ variable to true in this .html file.
 
         function exportNoteAsTxt() {
             const editorArea = document.getElementById("editorArea");
-            if (!editorArea) return;
+            if (!editorArea || editorArea.value === "") return;
 
             let content = editorArea.value;
 
-            // Remove inter-note links (titles surrounded by underscores)
-            const nodeLinkRegex = /(?:^|\s)_(.+?)_(?=\s|[.,!?;:)]|$)/g;
-            content = content.replace(nodeLinkRegex, (match, p1, offset, str) => {
-                // preserve whitespace before the match, just strip the link markup
-                const leadingSpace = /^\s/.test(match) ? " " : "";
-                return leadingSpace + p1;
+            // Regex that preserves whitespace and line breaks around inter-note links
+            const nodeLinkRegex = /(^|\s)_(.+?)_(?=\s|[.,!?;:)]|$)/g;
+            content = content.replace(nodeLinkRegex, (match, leading, inner) => {
+                return (leading || "") + inner; // keep whitespace/line breaks, drop underscores
             });
 
             // Ask for filename (no extension needed)
