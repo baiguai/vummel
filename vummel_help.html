@@ -132,7 +132,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .search-results div.selected {
+        .search-results div.selected, .marks-list div.selected {
             background: #444;
         }
 
@@ -144,6 +144,24 @@
             left: 50%;
             transform: translateX(-50%);
             width: 600px;
+            max-height: 70%;
+            background: #222;
+            color: #fff;
+            border: 2px solid #444;
+            border-radius: 2px;
+            padding: 20px;
+            z-index: 9999;
+            font-family: monospace;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+        #marksDialog {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 700px;
             max-height: 70%;
             background: #222;
             color: #fff;
@@ -218,6 +236,14 @@
             color: #fff;
         }
 
+        #msg {
+          opacity: 0;
+          transition: opacity 0.6s ease; /* fade in/out */
+        }
+        #msg.visible {
+          opacity: 1;
+        }
+
 
         /* Scrollbars */
         ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -261,6 +287,9 @@ a = Add next sibling tree node
 [ = Shrink the treeview panel
 g = Select top tree node
 G = Select bottom tree node
+
+y = Copy note node
+p = Paste copied note node
 </pre>
 </td>
 <td style="vertical-align: top; padding-left: 10px;">
@@ -280,6 +309,9 @@ s = Save the current file
 S = Save as
 T = Export current note as .txt
 U = Upgrade (import existing data)
+
+m = Bookmark current node
+` = Show bookmarks
 
 V = Author Vim keys help
 ! = Display options dialog
@@ -306,6 +338,9 @@ g = Select top tree node
 G = Select bottom tree node
 T = Export current note as .txt
 
+m = Bookmark current node
+` = Show bookmarks
+
 V = Editor Vim keys help
 </pre>
 <p></p>
@@ -330,7 +365,12 @@ k = Move up
 $ = Jump to the end of the line
 w = Move forward one word
 W or b = Move back one word
+V = Enter line select mode
+v = Enter standard select mode
+y = Copy the selected text
 x = Delete the character under the cursor
+    (if in Select mode, cut the selected
+    text to the clipboard)
 D = Delete the current line
 gg = Go to the start of the note
 #g = Go to the specified line
@@ -385,7 +425,8 @@ variable to true in this .html file.
 <div class="status">
 <span class="pill" id="mode" style="display: block;">TREE</span>
 <span class="pill" id="kind">FILE</span>
-<span class="dim" id="path">/Welcome to the Vummel Help System</span>
+<span class="dim" id="path">/</span>
+<span class="pill" id="msg"></span>
 </div>
 <textarea id="editorArea" spellcheck="false" readonly="readonly"></textarea>
 </section>
@@ -397,6 +438,12 @@ variable to true in this .html file.
 <div id="linksDialog" style="display: none;">
 <h3>Links in Note</h3>
 <div id="linksList"><a href="#" data-node-id="kqr4o4g3" class="selected">The Options Dialog</a></div>
+</div>
+<div id="marksDialog" style="display: none;">
+<h3>Bookmarks</h3>
+<div id="marksList"></div>
+<p><br>Press Esc to close<br>
+Press d to delete a bookmark</p>
 </div>
 <div id="replaceDialog" style="display: none;">
 <h3>Find &amp; Replace</h3>
@@ -430,6 +477,9 @@ variable to true in this .html file.
   {"id":"6ljuj3h0","title":"Welcome to the Vummel Help System","content":"Welcome to the Vummel Help System\n--------------------------------------------------------------------------------\n\nUse the\n#\nkey to display the links dialog.\n\nBelow are some topics that can get\nyou started:\n\n_Using This Help System_\n_What is Vummel?_\n_Key Bindings_","children":[],"expanded":false},{"id":"jyyq2oq0","title":"Using This Help System","content":"Using This Help System\n--------------------------------------------------------------------------------\n\nThis is a keyboard-driven help system. To see a quick guide of its key mappings\nuse:\n\n?\n\n** Note **\nYou CAN use your mouse to expand and collapse the tree nodes, as well as\nselecting the topics you would like to read.","children":[],"expanded":false},{"id":"nk7hvnx1","title":"Getting Started","content":"","children":[{"id":"erv01jrx","title":"What is Vummel?","content":"What is Vummel?\n--------------------------------------------------------------------------------\n\nVummel is a keyboard-driven UML diagram application.\nIt allows you to create complex diagrams without ever leaving your keyboard!\n\nIf you are new to Vummel there are two challenges that you will need to learn:\n* The key bindings : _Key Bindings_\n* Saving and managing your files : _Saving_","children":[],"expanded":false}],"expanded":false},{"id":"pw96sogo","title":"Key Bindings","content":"","children":[{"id":"zzfwk2b4","title":"Adding Nodes","content":"Adding Nodes\n--------------------------------------------------------------------------------\n\nYou can add a new node to your diagram by hitting the following key:\n\na","children":[],"expanded":false},{"id":"p3jo7vh1","title":"Duplicating the Selected Node","content":"Duplicating the Selected Node\n--------------------------------------------------------------------------------\n\nIf you wish to duplicate the curently selected node you can use the following\nkey:\n\n=","children":[],"expanded":false},{"id":"igdxij3u","title":"Renaming a Node","content":"Renaming a Node\n--------------------------------------------------------------------------------\n\nTo rename a node (change its type) you can use the following key:\n\nr","children":[],"expanded":false},{"id":"8dw9v1cq","title":"Link Nodes","content":"Link Nodes\n--------------------------------------------------------------------------------\n\nYou can create a node that is simply a link to a URL. To do this you will use\nthe following key:\n\nu","children":[],"expanded":false},{"id":"qio87n34","title":"Creating Connections","content":"","children":[{"id":"miszlvgi","title":"Introduction to Connections","content":"Introduction to Connections\n--------------------------------------------------------------------------------\n\nYou can connect nodes by first intializing the connection mode, then selecting\nthe target node and making the connection.","children":[],"expanded":false},{"id":"rw06jxmk","title":"Starting a Connection","content":"Starting a Connection\n--------------------------------------------------------------------------------\n\nTo begin making a connection you can select the source node, then use the key:\n\nc","children":[],"expanded":false},{"id":"ryzc9bvi","title":"Completing the Connection","content":"Completing the Connection\n--------------------------------------------------------------------------------\n\nIf you have begun a connection (see: _Starting a Connection_) you can then\nnavigate to the target node (see _Navigating Nodes_), then to complete the\nconnection you can use one of the following:\n\nEnter\n  This will create a plain line as the connection between the two nodes.\n\n>\n  This will create a line with an arrow pointing to the target node.","children":[],"expanded":false}],"expanded":false},{"id":"atqii6xw","title":"Disconnecting Nodes","content":"Disconnecting Nodes\n--------------------------------------------------------------------------------\n\nIf you have connected two nodes that you need to now disconnect, you can select\nthe first node and hit:\n\nX\n\nThen navigate to the node you want to disconnect from and hit:\n\nEnter","children":[],"expanded":false},{"id":"gbg3qbn5","title":"Deleting Nodes","content":"Deleting Nodes\n--------------------------------------------------------------------------------\n\nIf you have created a node that you later need to delete, you can select\nit and use the following key:\n\nD","children":[],"expanded":false},{"id":"nyl91mei","title":"Editing a Node's Text","content":"Editing a Node's Text\n--------------------------------------------------------------------------------\n\nEvery node has two sections to it: The text area, and the child nodes area.\nTo edit a node's text, you can select it then hit the following key:\n\ni","children":[],"expanded":false},{"id":"zt597g6u","title":"Repeating Actions","content":"Repeating Actions\n--------------------------------------------------------------------------------\n\nWhen moving nodes or resizing nodes, you can do this multiple times by first\nentering a number followed by its key-code.","children":[],"expanded":false},{"id":"u4unbqdy","title":"Navigating Nodes","content":"","children":[{"id":"nbofydam","title":"Introduction to Navigation","content":"Introduction to Navigation\n--------------------------------------------------------------------------------\n\nThere are a number of ways that you can navigate through your Vummel diagram.\n\nIt is important to be familiar with all of them - especially if your diagrams\nare large (full of many nodes). For instance, if you are just looking to\nselect a specific node you could use the search tool, or you could use _Marks_\nto select commonly accessed nodes.\n\nIf you are performing multi-step actions such as linking nodes, unlinking nodes,\nsnapping nodes etc - you can use either the search feature, the marks feature,\nOR the history feature to make your life easier.","children":[],"expanded":false},{"id":"ttl2v5ej","title":"Navigating Forward and Backward","content":"Navigating Forward and Backward\n--------------------------------------------------------------------------------\n\nYou can move forward and backward through your nodes using the following keys:\n\nw = Forward through your nodes (in the order they were created).\nW = Backward through your nodes.\n\n** Note **\nWith larger diagrams this becomes less useful.\nFor large diagrams you can use:\n* _Searching Nodes_\n* _Marks_\n* _History_","children":[],"expanded":false},{"id":"1fxv0pdk","title":"Searching Nodes","content":"Searching Nodes\n--------------------------------------------------------------------------------\n\nYou can search through your nodes and select the one you want to go to using\nthe following key:\n\n/\n\nEnter the search string and use the up and down arrow keys to highlight\nthe node you want, then hit Enter. Or you can hit the Escape key to simply close\nthe dialog.","children":[],"expanded":false},{"id":"by2qyo8l","title":"Marks","content":"Marks\n--------------------------------------------------------------------------------\n\nFor nodes that you need to access often, you can bookmark those nodes.\nThis feature is similar to Vim's Marks. To set a mark use the following key:\n\nm\n\nThen enter a lower OR upper case letter. This letter will be how you\naccess the mark later. To access marks use the following key:\n\n`\n\nThen enter the mark's lower or upper case identifying letter.","children":[],"expanded":false},{"id":"twqd74tk","title":"History","content":"History\n--------------------------------------------------------------------------------\n\nAnother way to navigate among your diagram's nodes is by using the history\nfeature. Every time you select a node, it is added to the history list. To\nview this list and select nodes from within it, use the following key:\n\n'","children":[],"expanded":false}],"expanded":false}],"expanded":false},{"id":"kiypm5vn","title":"Saving","content":"","children":[],"expanded":false}
 ];
 
+
+        let bookmarks = [];
+
         // !@!
         const readOnly = false;
 
@@ -447,11 +497,15 @@ variable to true in this .html file.
         let showingHistory = false;
         let historyIndex = 0;
 
+        let copiedNoteId = null;
+
         let fileName = "vummel_help";
         let showInitHelp = false;
         let selectedId = null;
         let editing = false;
         let showingLinks = false;
+        let showingMarks = false;
+        let marksIndex = 0;
         let finding = false;
         let mode_vim = true;
         let mode_insert = false;
@@ -459,6 +513,12 @@ variable to true in this .html file.
         let mode_counting = false;
         let mode_going = false;
         let mode_deleting = false;
+
+        let mode_visual = false;
+        let mode_visual_line = false;
+        let visual_start = 0;
+        let visual_end = 0;
+        let vim_clipboard = '';
 
         let searchActive = false;
         let searchMatches = [];
@@ -469,6 +529,9 @@ variable to true in this .html file.
         const optionsDialog = document.getElementById('optionsDialog');
         const searchDialog = document.getElementById('searchDialog');
         const replaceDialog = document.getElementById('replaceDialog');
+        const marksDialog = document.getElementById('marksDialog');
+        const historyDialog = document.getElementById('historyDialog');
+        const marksList = document.getElementById('marksList');
         const searchInput = document.getElementById('searchInput');
         const searchList = document.getElementById('searchList');
         const optShowInitHelp = document.getElementById('optShowInitHelp');
@@ -511,17 +574,30 @@ variable to true in this .html file.
             if (firstLine) n.title = firstLine.slice(0, 80);
             else if (!n.title || !n.title.startsWith("New")) n.title = "New Folder";
         }
-        function computePath(id){
+        function computePath(id, lengthMax = 50) {
             const segments = [];
-            (function walk(id){
+            (function walk(id, isRootCall = true) {
                 const info = findNodeAndParentById(id);
                 if (!info) return;
-                if (info.parent) walk(info.parent.id);
-                segments.push(info.node.title || "Untitled");
-            })(id);
-            return '/' + segments.join('/');
+                if (info.parent) walk(info.parent.id, false);
+                if (!isRootCall) {
+                    // only push if not the starting node
+                    segments.push(info.node.title || "Untitled");
+                }
+            })(id, true);
+        
+            let path = '/' + segments.join('/');
+        
+            if (path.length > lengthMax) {
+                // Trim from the left side until it fits
+                while (path.length > lengthMax && segments.length > 1) {
+                    segments.shift(); // remove first segment
+                    path = '/…/' + segments.join('/');
+                }
+            }
+        
+            return path;
         }
-
         function recordHistory(id) {
             const node = findNodeAndParentById(id)?.node;
             if (!node) return;
@@ -538,6 +614,23 @@ variable to true in this .html file.
                 historyStack.shift();
             }
         }
+        function showMessage(msgText, duration = 3000) {
+            // clear any existing timers
+            clearTimeout(msgTimeout);
+        
+            // set text and fade in
+            msgEl.textContent = msgText;
+            msgEl.classList.add("visible");
+        
+            // schedule fade out
+            msgTimeout = setTimeout(() => {
+                msgEl.classList.remove("visible");
+                // after fade-out transition ends, clear text
+                setTimeout(() => {
+                    msgEl.textContent = "";
+                }, 600); // matches CSS transition duration
+            }, duration);
+        }
 
 
         //---- Rendering -------------------------------------------------------
@@ -546,6 +639,8 @@ variable to true in this .html file.
         const modeEl = document.getElementById('mode');
         const kindEl = document.getElementById('kind');
         const pathEl = document.getElementById('path');
+        const msgEl = document.getElementById('msg');
+        let msgTimeout;
 
         function render(){
             // Render tree
@@ -622,7 +717,17 @@ variable to true in this .html file.
                 editorArea.setAttribute('readonly', 'readonly');
             }
 
-            modeEl.textContent = editing ? modeEl.textContent : 'TREE';
+            if (editing) {
+                if (mode_insert) {
+                    modeEl.textContent = 'INSERT';
+                } else if (mode_visual) {
+                    modeEl.textContent = mode_visual_line ? 'VISUAL LINE' : 'VISUAL';
+                } else {
+                    modeEl.textContent = 'NORMAL';
+                }
+            } else {
+                modeEl.textContent = 'TREE';
+            }
 
             if (selectedId) recordHistory(selectedId);
 
@@ -669,10 +774,14 @@ variable to true in this .html file.
         editorArea.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
+                e.stopPropagation();
 
                 if (mode_insert && mode_vim) {
                     setVimMode(false);
                     editorArea.setSelectionRange(editorArea.selectionStart,editorArea.selectionStart);
+                } else if (mode_visual && mode_vim) {
+                    exitVisualMode();
+                    setVimMode(false);
                 } else {
                     editing = false;
                     editorArea.blur();
@@ -704,6 +813,13 @@ variable to true in this .html file.
 
             if (mode_insert) {
                 return;
+            }
+
+            if (mode_visual) {
+                let visProcessed = visualKeys(e);
+                if (visProcessed) {
+                    return;
+                }
             }
 
             e.preventDefault();
@@ -750,14 +866,14 @@ variable to true in this .html file.
                     break;
         
                 case "h": // Move left
-                    editorArea.selectionStart = Math.max(0, editorArea.selectionStart - count);
-                    editorArea.selectionEnd = editorArea.selectionStart;
+                    let newPosBack = Math.max(0, editorArea.selectionStart - count);
+                    moveChar(newPosBack, true);
                     performed = true;
                     break;
         
                 case "l": // Move right
-                    editorArea.selectionStart = Math.min(editorArea.value.length, editorArea.selectionStart + count);
-                    editorArea.selectionEnd = editorArea.selectionStart;
+                    let newPosFwd = Math.min(editorArea.value.length, editorArea.selectionStart + count);
+                    moveChar(newPosFwd, false);
                     performed = true;
                     break;
         
@@ -773,13 +889,24 @@ variable to true in this .html file.
         
                 case "0": // Jump to beginning of line
                     const before0 = editorArea.value.lastIndexOf("\n", editorArea.selectionStart - 1);
-                    editorArea.selectionStart = editorArea.selectionEnd = (before0 === -1 ? 0 : before0 + 1);
+                    let moveStart = editorArea.selectionEnd = (before0 === -1 ? 0 : before0 + 1);
+                    moveChar(moveStart, false);
                     performed = true;
                     break;
         
                 case "$": // Jump to end of line
                     const after$ = editorArea.value.indexOf("\n", editorArea.selectionStart);
-                    editorArea.selectionStart = editorArea.selectionEnd = (after$ === -1 ? editorArea.value.length : after$);
+                    let moveEnd = editorArea.selectionEnd = (after$ === -1 ? editorArea.value.length : after$);
+                    moveChar(moveEnd, false);
+                    performed = true;
+                    break;
+
+                case "v": // Enter visual mode
+                    enterVisualMode(false);
+                    performed = true;
+                    break;
+                case "V": // Enter visual line mode
+                    enterVisualMode(true);
                     performed = true;
                     break;
 
@@ -802,6 +929,27 @@ variable to true in this .html file.
                     performed = true;
                     break;
 
+                case "p": // Paste from system clipboard
+                    navigator.clipboard.readText().then(text => {
+                        if (text) {
+                            const start = editorArea.selectionStart;
+                            editorArea.setRangeText(text, start, start, "end");
+                            editorArea.selectionStart = editorArea.selectionEnd = start + text.length;
+                            syncFile();
+                        }
+                    }).catch(err => {
+                        console.error("Clipboard read failed:", err);
+                        // fallback to internal clipboard
+                        if (vim_clipboard) {
+                            const start = editorArea.selectionStart;
+                            editorArea.setRangeText(vim_clipboard, start, start, "end");
+                            editorArea.selectionStart = editorArea.selectionEnd = start + vim_clipboard.length;
+                            syncFile();
+                        }
+                    });
+                    performed = true;
+                    break;
+
                 case "g": // Possible gg
                     if (mode_going) {
                         if (count > 1) {
@@ -813,9 +961,10 @@ variable to true in this .html file.
                                 pos += lines[i].length + 1;
                             }
                             performed = true;
-                            editorArea.selectionStart = editorArea.selectionEnd = pos;
+
+                            moveChar(pos, true);
                         } else {
-                            editorArea.selectionStart = editorArea.selectionEnd = 0;
+                            moveChar(0, true);
                             performed = true;
                         }
 
@@ -841,48 +990,12 @@ variable to true in this .html file.
                     break;
 
                 case "d": // Possible dd
-                    if (mode_deleting) {
-                        const text = editorArea.value;
-                        const pos = editorArea.selectionStart;
-                
-                        // Find start of current line
-                        const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
-                
-                        // Find end of current line INCLUDING newline
-                        let lineEnd = text.indexOf("\n", pos);
-                        if (lineEnd === -1) {
-                            // last line → delete through end of buffer
-                            lineEnd = text.length;
-                        } else {
-                            // include the newline itself
-                            lineEnd += 1;
-                        }
-                
-                        // Repeat delete for count > 1
-                        for (let i = 1; i < count; i++) {
-                            const nextEnd = text.indexOf("\n", lineEnd);
-                            if (nextEnd === -1) {
-                                lineEnd = text.length;
-                                break;
-                            } else {
-                                lineEnd = nextEnd + 1;
-                            }
-                        }
-                
-                        editorArea.setRangeText("", lineStart, lineEnd, "start");
-                
-                        // Place cursor at start of deleted line
-                        editorArea.selectionStart = editorArea.selectionEnd = lineStart;
-                        syncFile();
-                
-                        performed = true;
-                    } else {
-                        mode_deleting = true;
-                    }
+                    doDelete();
                     break;
 
                 case "G": // End of buffer, or Nth line
-                    editorArea.selectionStart = editorArea.selectionEnd = editorArea.value.length;
+                    const bufEnd = editorArea.selectionEnd = editorArea.value.length;
+                    moveChar(bufEnd, false);
                     performed = true;
                     scrollToCursor();
                     break;
@@ -899,7 +1012,13 @@ variable to true in this .html file.
             // --- Helper for j/k ---
             function moveCursorVertical(direction) {
                 const text = editorArea.value;
-                const pos = editorArea.selectionStart;
+                let pos = 0;
+
+                if (mode_visual) {
+                    pos = visual_end;
+                } else {
+                    pos = editorArea.selectionStart;
+                }
         
                 // Find current line start/end
                 const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
@@ -921,12 +1040,24 @@ variable to true in this .html file.
         
                 // Keep column if possible, else move to end of line
                 const targetPos = Math.min(targetLineStart + currentCol, targetLineEnd);
-                editorArea.selectionStart = editorArea.selectionEnd = targetPos;
+
+                if (mode_visual) {
+                    visual_end = targetPos;
+                    updateVisualSelection();
+                } else {
+                    editorArea.selectionStart = editorArea.selectionEnd = targetPos;
+                }
             }
 
             function moveWord(direction) {
                 const text = editorArea.value;
-                let pos = editorArea.selectionStart;
+                let pos = 0;
+
+                if (mode_visual) {
+                    pos = visual_end;
+                } else {
+                    pos = editorArea.selectionStart;
+                }
 
                 if (direction > 0) {
                     // Skip current non-word chars
@@ -940,10 +1071,136 @@ variable to true in this .html file.
                     while (pos > 0 && /\w/.test(text[pos - 1])) pos--;
                 }
 
-                editorArea.selectionStart = editorArea.selectionEnd = pos;
+                if (mode_visual) {
+                    visual_end = pos;
+                    updateVisualSelection();
+                } else {
+                    editorArea.selectionStart = editorArea.selectionEnd = pos;
+                }
+            }
+
+            function moveChar(newPos, goingBack) {
+                const text = editorArea.value;
+
+                if (mode_visual) {
+                    visual_end = newpos;
+                    if (goingBack) {
+                        visual_end = newPos + 1;
+                    }
+                    updateVisualSelection();
+                } else {
+                    editorArea.selectionStart = editorArea.selectionEnd = newPos;
+                }
+            }
+
+            function doDelete() {
+                if (mode_deleting) {
+                    const text = editorArea.value;
+                    const pos = editorArea.selectionStart;
+            
+                    // Find start of current line
+                    const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
+            
+                    // Find end of current line INCLUDING newline
+                    let lineEnd = text.indexOf("\n", pos);
+                    if (lineEnd === -1) {
+                        // last line → delete through end of buffer
+                        lineEnd = text.length;
+                    } else {
+                        // include the newline itself
+                        lineEnd += 1;
+                    }
+            
+                    // Repeat delete for count > 1
+                    for (let i = 1; i < count; i++) {
+                        const nextEnd = text.indexOf("\n", lineEnd);
+                        if (nextEnd === -1) {
+                            lineEnd = text.length;
+                            break;
+                        } else {
+                            lineEnd = nextEnd + 1;
+                        }
+                    }
+            
+                    editorArea.setRangeText("", lineStart, lineEnd, "start");
+            
+                    // Place cursor at start of deleted line
+                    editorArea.selectionStart = editorArea.selectionEnd = lineStart;
+                    syncFile();
+            
+                    performed = true;
+                } else {
+                    let start, end;
+                    
+                    start = editorArea.selectionStart;
+                    end = editorArea.selectionEnd;
+
+                    // Only delete if there's actually something selected
+                    if (start !== end) {
+                        const deletedLength = end - start;
+                    
+                        // Delete the text
+                        editorArea.setRangeText("", start, end, "start");
+                    
+                        // After deletion, the caret has shifted forward in some browsers.
+                        // Reset it back by subtracting the deleted length.
+                        let newPos = editorArea.selectionStart - deletedLength;
+                        if (newPos < 0) newPos = 0;
+                    
+                        editorArea.selectionStart = editorArea.selectionEnd = newPos;
+                        syncFile();
+                    }
+                }
             }
         }
         // ---------------------------------------------------------------------
+
+        function visualKeys(e) {
+            e.preventDefault();
+            
+            switch (e.key) {
+                case "Escape":
+                    exitVisualMode();
+                    return true;
+                case "h": // Move left and extend selection
+                    visual_end = Math.max(0, visual_end - 1);
+                    updateVisualSelection();
+                    return true;
+                case "l": // Move right and extend selection  
+                    visual_end = Math.min(editorArea.value.length, visual_end + 1);
+                    updateVisualSelection();
+                    return true;
+                case "d": // Delete selection (no copy)
+                    doVisualDelete(e);
+                    return true;
+                case "y": // Yank (copy)
+                    vim_clipboard = getVisualSelection();
+                    if (vim_clipboard) {
+                        navigator.clipboard.writeText(vim_clipboard).catch(err => {
+                            console.error("Clipboard write failed:", err);
+                        });
+                    }
+                    exitVisualMode();
+                    return true;
+                case "x": // Cut (copy + delete selection)
+                    vim_clipboard = getVisualSelection();
+                    if (vim_clipboard) {
+                        navigator.clipboard.writeText(vim_clipboard).catch(err => {
+                            console.error("Clipboard write failed:", err);
+                        });
+                    }
+                
+                    doVisualDelete(e);
+                    return true;
+                case "d": // Delete
+                    vim_clipboard = getVisualSelection();
+                    deleteVisualSelection();
+                    return true;
+                // Add more movement commands as needed
+            }
+
+            return false;
+        }
 
 
 
@@ -1171,6 +1428,30 @@ variable to true in this .html file.
 
             syncFile();
         }
+        function setMark() {
+            ensureSelection();
+            let currentNode = findNodeAndParentById(selectedId).node;
+            let path = computePath(currentNode.id);
+
+            if (currentNode) {
+                bookmarks.push({
+                    id: currentNode.id,
+                    caption: currentNode.title,
+                    path: path
+                });
+                showMessage(`Bookmarked: ${currentNode.title}`);
+            }
+        }
+
+        function getNodePath(node) {
+            let path = [];
+            let cur = node;
+            while (cur) {
+                path.unshift(cur.caption);
+                cur = cur.parent;
+            }
+            return path.join(" / ");
+        }
 
 
         //---- Options ---------------------------------------------------------
@@ -1303,6 +1584,21 @@ variable to true in this .html file.
             });
         }
 
+        function renderMarksList() {
+            let html = "<br><table>";
+            bookmarks.forEach((bm, i) => {
+                let sel = (i === marksIndex) ? "style='background:#444;'" : "";
+                html += `<tr ${sel}><td>${bm.caption}</td><td>${bm.path}</td></tr>`;
+            });
+            html += "</table>";
+            marksList.innerHTML = html;
+        }
+
+        function closeMarksDialog() {
+            marksDialog.style.display = "none";
+            showingMarks = false;
+        }
+
 
 
 
@@ -1408,6 +1704,130 @@ variable to true in this .html file.
 
 
 
+        //---- Copy / Paste ----------------------------------------------------
+        function copyNode() {
+            const info = findNodeAndParentById(selectedId);
+            if (info && !isFolder(info.node)) {
+                copiedNoteId = info.node.id;
+            } else {
+                copiedNoteId = null;
+            }
+        }
+
+        function pasteNode() {
+            if (copiedNoteId) {
+                const info = findNodeAndParentById(selectedId);
+                if (info && isFolder(info.node)) {
+                    const original = findNodeAndParentById(copiedNoteId)?.node;
+                    if (original) {
+                        // Deep clone the note (new ID)
+                        const cloneNode = JSON.parse(JSON.stringify(original));
+                        cloneNode.id = makeId();
+                        // Recursively assign new IDs to all children
+                        (function fixIds(n) {
+                            n.id = makeId();
+                            n.children.forEach(fixIds);
+                        })(cloneNode);
+                        info.node.children.push(cloneNode);
+                        info.node.expanded = true;
+                        selectedId = cloneNode.id;
+                    }
+                }
+            }
+        }
+
+
+
+        //---- Visual Mode Helpers ---------------------------------------------
+        function enterVisualMode(lineMode = false) {
+            mode_visual = true;
+            mode_visual_line = lineMode;
+            visual_start = editorArea.selectionStart;
+            visual_end = editorArea.selectionStart;
+            modeEl.textContent = 'VISUAL';
+            updateVisualSelection();
+        }
+        
+        function exitVisualMode() {
+            mode_visual = false;
+            mode_visual_line = false;
+            // Position cursor at the end of the selection
+            const cursorPos = Math.max(visual_start, visual_end);
+            editorArea.selectionStart = editorArea.selectionEnd = cursorPos;
+            visual_start = 0;
+            visual_end = 0;
+            modeEl.textContent = 'NORMAL';
+        }
+        
+        function updateVisualSelection() {
+            if (!mode_visual) return;
+            
+            let start = Math.min(visual_start, visual_end);
+            let end = Math.max(visual_start, visual_end);
+            
+            if (mode_visual_line) {
+                // Extend to full lines
+                const text = editorArea.value;
+                const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+                const lineEndPos = text.indexOf('\n', end);
+                const lineEnd = lineEndPos === -1 ? text.length : lineEndPos + 1;
+                start = lineStart;
+                end = lineEnd;
+            } else {
+                // Character-wise - include character at cursor
+                // if (end < editorArea.value.length) end += 1;
+            }
+            
+            editorArea.setSelectionRange(start, end);
+        }
+
+        function getVisualSelection() {
+            if (!mode_visual) return '';
+            
+            let start = Math.min(visual_start, visual_end);
+            let end = Math.max(visual_start, visual_end);
+            
+            if (mode_visual_line) {
+                const text = editorArea.value;
+                const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+                const lineEndPos = text.indexOf('\n', end);
+                const lineEnd = lineEndPos === -1 ? text.length : lineEndPos + 1;
+                return text.substring(lineStart, lineEnd);
+            } else {
+                if (end < editorArea.value.length) end += 1;
+                return editorArea.value.substring(start, end);
+            }
+        }
+        
+        function deleteVisualSelection() {
+            // Similar logic to getVisualSelection but deletes the text
+            // and exits visual mode
+        }
+
+        function doVisualDelete(e) {
+            e.stopPropagation();
+            let start = Math.min(visual_start, visual_end);
+            let end = Math.max(visual_start, visual_end);
+        
+            if (mode_visual_line) {
+                // Full line delete
+                const text = editorArea.value;
+                const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+                const lineEndPos = text.indexOf("\n", end);
+                const lineEnd = lineEndPos === -1 ? text.length : lineEndPos + 1;
+                editorArea.setRangeText("", lineStart, lineEnd, "start");
+                editorArea.selectionStart = editorArea.selectionEnd = lineStart;
+            } else {
+                const deletedLength = end - start;
+                visual_end = visual_start;
+                editorArea.setRangeText("", start, end, "start");
+                editorArea.selectionStart = editorArea.selectionEnd = start;
+            }
+        
+            syncFile();
+            exitVisualMode();
+        }
+
 
 
         //---- Search ----------------------------------------------------------
@@ -1496,7 +1916,7 @@ variable to true in this .html file.
                     selectSearchResult(searchIndex);
                     closeSearch();
                 }
-            } else if (e.key === 'Escape' || e.key === 'q') {
+            } else if (e.key === 'Escape') {
                 closeSearch();
             }
         });
@@ -1549,6 +1969,11 @@ variable to true in this .html file.
             );
 
             htmlContent = htmlContent.replace(/let\s+treeData\s*=\s*\[[\s\S]*?\];/, `let treeData = ${formattedDatabase};`);
+
+            htmlContent = htmlContent.replace(
+                /let\s+bookmarks\s*=\s*\[[\s\S]*?\];/,
+                "let bookmarks = " + JSON.stringify(bookmarks, null, 4) + ";"
+            );
 
             let blob = new Blob([htmlContent], { type: "text/html" });
             let a = document.createElement("a");
@@ -1679,12 +2104,16 @@ variable to true in this .html file.
                 case 'K': if (!readOnly) reorderAmongSiblings('up'); break;
                 case 'D': if (!readOnly) deleteNode(); break;
                 case 's': if (!readOnly) saveAsHtml(fileName); break;
-                case 'S': if (!readOnly) saveAsHtml(""); break;
+                case 'S': saveAsHtml(""); break;
                 case 'T': exportNoteAsTxt(); break;
                 case ']': resizeTree(30); break;
                 case '[': resizeTree(-30); break;
                 case '#': openLinksDialog(); break;
-                case 'X': openMissingLinksDialog(); break;
+                case 'm': setMark(); break;
+                case '`': openMarksDialog(); break;
+                case 'X': if (!readOnly) openMissingLinksDialog(); break;
+                case 'y': if (!readOnly) copyNode(); break;
+                case 'p': if (!readOnly) pasteNode(); break;
                 case '<':
                     openHistoryDialog();
                     e.preventDefault();
@@ -1726,12 +2155,16 @@ variable to true in this .html file.
                 e.preventDefault();
                 openOptionsDialog();
             }
-            if (e.key === 'V' && !editing && !dialogOpen()) {
+            if (e.key === 'V' && !editing && vimEditDialogOpen()) {
                 if (mode_vim) {
                     helpDialogVimEdit.style.display = 'block';
                 } else {
                     helpDialogVimDisabled.style.display = 'block';
                 }
+
+                helpDialog.style.display = 'none';
+                helpDialogVimDisabled.style.display = 'none';
+
                 e.preventDefault();
                 return;
             }
@@ -1925,6 +2358,29 @@ variable to true in this .html file.
         document.getElementById('linksDialog').style.display = 'block';
     }
 
+    function openMarksDialog() {
+        if (bookmarks.length === 0) {
+            alert("No bookmarks yet.");
+            return;
+        }
+
+        marksIndex = 0;
+    
+        function render() {
+            let html = "<br><table>";
+            bookmarks.forEach((bm, i) => {
+                let sel = (i === marksIndex) ? "style='background:#444;'" : "";
+                html += `<tr ${sel}><td>${bm.caption}</td><td>${bm.path}</td></tr>`;
+            });
+            html += "</table>";
+            marksList.innerHTML = html;
+        }
+    
+        showingMarks = true;
+        marksDialog.style.display = "block";
+        render();
+    }
+
     function activateSelectedLink() {
         const listEl = document.getElementById('linksList');
         const links = listEl.querySelectorAll('a');
@@ -1946,12 +2402,12 @@ variable to true in this .html file.
         const links = listEl.querySelectorAll('a');
         if (links.length === 0) return;
 
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
             links[linksIndex].classList.remove('selected');
             linksIndex = (linksIndex + 1) % links.length;
             links[linksIndex].classList.add('selected');
             e.preventDefault();
-        } else if (e.key === 'ArrowUp') {
+        } else if (e.key === 'ArrowUp' || e.key === 'k') {
             links[linksIndex].classList.remove('selected');
             linksIndex = (linksIndex - 1 + links.length) % links.length;
             links[linksIndex].classList.add('selected');
@@ -1965,13 +2421,48 @@ variable to true in this .html file.
         }
     }
 
+    function handleMarksKey(e) {
+        if (!showingMarks) return;
+
+        if (e.key === "ArrowDown" || e.key === 'j') {
+            marksIndex = (marksIndex + 1) % bookmarks.length;
+            renderMarksList();
+            e.preventDefault();
+        } else if (e.key === "ArrowUp" || e.key === 'k') {
+            marksIndex = (marksIndex - 1 + bookmarks.length) % bookmarks.length;
+            renderMarksList();
+            e.preventDefault();
+        } else if (e.key === "d") {
+            // Delete selected bookmark
+            bookmarks.splice(marksIndex, 1);
+            if (marksIndex >= bookmarks.length) marksIndex = bookmarks.length - 1;
+            if (bookmarks.length === 0) {
+                closeMarksDialog();
+            } else {
+                renderMarksList();
+            }
+            e.preventDefault();
+        } else if (e.key === "Enter") {
+            let bm = bookmarks[marksIndex];
+            // let node = findNode(bm.id);
+            if (bm) {
+                expandToNode(bm.id);
+                selectedId = bm.id;
+                closeMarksDialog();
+                render();
+            }
+        } else if (e.key === "Escape") {
+            closeMarksDialog();
+        }
+    }
+
     function handleHistoryKey(e) {
         if (!showingHistory) return;
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
             historyIndex = Math.min(historyIndex + 1, Math.min(14, historyStack.length - 1));
             renderHistoryList();
             e.preventDefault();
-        } else if (e.key === 'ArrowUp') {
+        } else if (e.key === 'ArrowUp' || e.key === 'k') {
             historyIndex = Math.max(historyIndex - 1, 0);
             renderHistoryList();
             e.preventDefault();
@@ -2010,6 +2501,22 @@ variable to true in this .html file.
             openDialog = true;
         }
         if (replaceDialog.style.display === "block") {
+            openDialog = true;
+        }
+        if (marksDialog.style.display === "block") {
+            openDialog = true;
+        }
+        if (historyDialog.style.display === "block") {
+            openDialog = true;
+        }
+
+        return openDialog;
+    }
+
+    function vimEditDialogOpen() {
+        let openDialog = false;
+
+        if (helpDialog.style.display === "block") {
             openDialog = true;
         }
 
@@ -2053,6 +2560,7 @@ variable to true in this .html file.
 
     window.addEventListener('keydown', handleHistoryKey, { capture: true });
     window.addEventListener('keydown', handleLinksKey, { capture: true });
+    window.addEventListener('keydown', handleMarksKey, { capture: true });
 
     //---- Init ------------------------------------------------------------
     window.addEventListener('load', function() {
@@ -2078,13 +2586,6 @@ variable to true in this .html file.
         render();
     });
 </script>
-
-
-
-
-
-
-
 
 
 
