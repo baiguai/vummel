@@ -364,17 +364,23 @@ k = Move up
 0 = Jump to the beginning of the line
 $ = Jump to the end of the line
 w = Move forward one word
-W or b = Move back one word
+W or b = Move back a word
 V = Enter line select mode
 v = Enter standard select mode
 y = Copy the selected text
 x = Delete the character under the cursor
     (if in Select mode, cut the selected
     text to the clipboard)
-D = Delete the current line
+d = Delete selected text
+D = Delete everything right of the cursor
+dd = Delete current row
 gg = Go to the start of the note
-#g = Go to the specified line
+#g = Go to the specified line (where # is a number)
 G = Go to the end of the note
+
+
+Note: If you enter a number first, some commands
+      will repeat that many times.
 </pre>
 <pre id="readerHelpVim" style="display: none;">h = Move left
 l = Move right
@@ -385,8 +391,12 @@ $ = Jump to the end of the line
 w = Move forward one word
 W or b = Move back one word
 gg = Go to the start of the note
-#g = Go to the specified line
+#g = Go to the specified line (where # is a number)
 G = Go to the end of the note
+
+
+Note: If you enter a number first, some commands
+      will repeat that many times.
 </pre>
 <p></p>
 <p style="display: none;">
@@ -529,6 +539,7 @@ Press d to delete a bookmark</p>
         const optionsDialog = document.getElementById('optionsDialog');
         const searchDialog = document.getElementById('searchDialog');
         const replaceDialog = document.getElementById('replaceDialog');
+        const linksDialog = document.getElementById('linksDialog');
         const marksDialog = document.getElementById('marksDialog');
         const historyDialog = document.getElementById('historyDialog');
         const marksList = document.getElementById('marksList');
@@ -791,7 +802,9 @@ Press d to delete a bookmark</p>
                 return;
             }
 
-            vimKeys(e);
+            if (!mode_insert && mode_vim) {
+                vimKeys(e);
+            }
         });
 
 
@@ -853,7 +866,6 @@ Press d to delete a bookmark</p>
 
         
             // Execute commands with repeat count
-            const count = mode_repeat;
             let performed = false;
         
             switch (e.key) {
@@ -866,24 +878,24 @@ Press d to delete a bookmark</p>
                     break;
         
                 case "h": // Move left
-                    let newPosBack = Math.max(0, editorArea.selectionStart - count);
+                    let newPosBack = Math.max(0, editorArea.selectionStart - mode_repeat);
                     moveChar(newPosBack, true);
                     performed = true;
                     break;
         
                 case "l": // Move right
-                    let newPosFwd = Math.min(editorArea.value.length, editorArea.selectionStart + count);
+                    let newPosFwd = Math.min(editorArea.value.length, editorArea.selectionStart + mode_repeat);
                     moveChar(newPosFwd, false);
                     performed = true;
                     break;
         
                 case "j": // Move down lines
-                    for (let i = 0; i < count; i++) moveCursorVertical(1);
+                    for (let i = 0; i < mode_repeat; i++) moveCursorVertical(1);
                     performed = true;
                     break;
         
                 case "k": // Move up lines
-                    for (let i = 0; i < count; i++) moveCursorVertical(-1);
+                    for (let i = 0; i < mode_repeat; i++) moveCursorVertical(-1);
                     performed = true;
                     break;
         
@@ -911,20 +923,20 @@ Press d to delete a bookmark</p>
                     break;
 
                 case "w": // Forward word(s)
-                    for (let i = 0; i < count; i++) moveWord(1);
+                    for (let i = 0; i < mode_repeat; i++) moveWord(1);
                     performed = true;
                     break;
 
                 case "W": // Backward word(s)
                 case "b": // Backward word(s)
-                    for (let i = 0; i < count; i++) moveWord(-1);
+                    for (let i = 0; i < mode_repeat; i++) moveWord(-1);
                     performed = true;
                     break;
         
                 case "x": // Delete character(s) under cursor
                     const start = editorArea.selectionStart;
                     if (start < editorArea.value.length) {
-                        editorArea.setRangeText("", start, start + count, "end");
+                        editorArea.setRangeText("", start, start + mode_repeat, "end");
                     }
                     performed = true;
                     break;
@@ -952,10 +964,10 @@ Press d to delete a bookmark</p>
 
                 case "g": // Possible gg
                     if (mode_going) {
-                        if (count > 1) {
+                        if (mode_repeat > 1) {
                             // Go to line N
                             const lines = editorArea.value.split("\n");
-                            const lineIndex = Math.min(count - 1, lines.length - 1);
+                            const lineIndex = Math.min(mode_repeat - 1, lines.length - 1);
                             let pos = 0;
                             for (let i = 0; i < lineIndex; i++) {
                                 pos += lines[i].length + 1;
@@ -1001,12 +1013,8 @@ Press d to delete a bookmark</p>
                     break;
             }
         
-            // Reset repeat count after command
             if (performed) {
-                mode_repeat = 1;
-                mode_counting = false;
-                mode_going = false;
-                mode_deleting = false;
+                keyPerformed();
             }
         
             // --- Helper for j/k ---
@@ -1097,22 +1105,20 @@ Press d to delete a bookmark</p>
                 if (mode_deleting) {
                     const text = editorArea.value;
                     const pos = editorArea.selectionStart;
-            
+                
                     // Find start of current line
                     const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
-            
+                
                     // Find end of current line INCLUDING newline
                     let lineEnd = text.indexOf("\n", pos);
                     if (lineEnd === -1) {
-                        // last line → delete through end of buffer
                         lineEnd = text.length;
                     } else {
-                        // include the newline itself
                         lineEnd += 1;
                     }
-            
-                    // Repeat delete for count > 1
-                    for (let i = 1; i < count; i++) {
+                
+                    // Repeat delete for mode_repeat > 1
+                    for (let i = 1; i < mode_repeat; i++) {
                         const nextEnd = text.indexOf("\n", lineEnd);
                         if (nextEnd === -1) {
                             lineEnd = text.length;
@@ -1121,13 +1127,18 @@ Press d to delete a bookmark</p>
                             lineEnd = nextEnd + 1;
                         }
                     }
-            
+                
+                    // Delete the range
                     editorArea.setRangeText("", lineStart, lineEnd, "start");
-            
-                    // Place cursor at start of deleted line
-                    editorArea.selectionStart = editorArea.selectionEnd = lineStart;
+                
+                    // Re-fetch updated text after deletion
+                    const newText = editorArea.value;
+                
+                    // Place cursor at start of deleted line (or end of buffer if needed)
+                    const newPos = Math.min(lineStart, newText.length);
+                    editorArea.selectionStart = editorArea.selectionEnd = newPos;
+                
                     syncFile();
-            
                     performed = true;
                 } else {
                     let start, end;
@@ -1149,6 +1160,8 @@ Press d to delete a bookmark</p>
                     
                         editorArea.selectionStart = editorArea.selectionEnd = newPos;
                         syncFile();
+                    } else {
+                        mode_deleting = true;
                     }
                 }
             }
@@ -1163,12 +1176,13 @@ Press d to delete a bookmark</p>
                     exitVisualMode();
                     return true;
                 case "h": // Move left and extend selection
-                    visual_end = Math.max(0, visual_end - 1);
+                    visual_end = Math.max(0, visual_end - mode_repeat);
                     updateVisualSelection();
                     return true;
                 case "l": // Move right and extend selection  
-                    visual_end = Math.min(editorArea.value.length, visual_end + 1);
+                    visual_end = Math.min(editorArea.value.length, visual_end + mode_repeat);
                     updateVisualSelection();
+                    keyPerformed();
                     return true;
                 case "d": // Delete selection (no copy)
                     doVisualDelete(e);
@@ -1206,6 +1220,13 @@ Press d to delete a bookmark</p>
 
         //---- Commands --------------------------------------------------------
         function ensureSelection(){ if (!selectedId && treeData[0]) selectedId = treeData[0].id; }
+
+        function keyPerformed() {
+            mode_repeat = 1;
+            mode_counting = false;
+            mode_going = false;
+            mode_deleting = false;
+        }
 
         function setVimMode(insertMode) {
             if (insertMode) {
@@ -1549,12 +1570,12 @@ Press d to delete a bookmark</p>
                 });
             }
 
-            document.getElementById('linksDialog').style.display = 'block';
+            linksDialog.style.display = 'block';
         }
 
         function closeLinksDialog() {
             showingLinks = false;
-            document.getElementById('linksDialog').style.display = 'none';
+            linksDialog.style.display = 'none';
         }
 
         function openHistoryDialog() {
@@ -1752,7 +1773,12 @@ Press d to delete a bookmark</p>
             mode_visual = false;
             mode_visual_line = false;
             // Position cursor at the end of the selection
-            const cursorPos = Math.max(visual_start, visual_end);
+            let cursorPos = Math.max(visual_start, visual_end);
+
+            if (visual_end < visual_start) {
+                cursorPos = Math.min(visual_start, visual_end);
+            }
+
             editorArea.selectionStart = editorArea.selectionEnd = cursorPos;
             visual_start = 0;
             visual_end = 0;
@@ -2085,8 +2111,8 @@ Press d to delete a bookmark</p>
                 case 'f': if (!editing) openReplaceDialog(); break;
                 case 'r': if (!readOnly) addRoot(); break;
                 case 'R': if (!readOnly) renameFolder(); break;
-                case 'j': selectNextSibling(false); break;
-                case 'k': selectPrevSibling(false); break;
+                case 'j': if (!dialogOpen()) selectNextSibling(false); break;
+                case 'k': if (!dialogOpen()) selectPrevSibling(false); break;
                 case ',': selectNextSibling(true); break;
                 case '.': selectPrevSibling(true); break;
                 case 'l': moveRight(); break;
@@ -2277,7 +2303,7 @@ Press d to delete a bookmark</p>
             links[0].classList.add('selected');
         }
 
-        document.getElementById('linksDialog').style.display = 'block';
+        linksDialog.style.display = 'block';
     }
 
     function openMissingLinksDialog() {
@@ -2355,7 +2381,7 @@ Press d to delete a bookmark</p>
             }
         }
 
-        document.getElementById('linksDialog').style.display = 'block';
+        linksDialog.style.display = 'block';
     }
 
     function openMarksDialog() {
@@ -2501,6 +2527,9 @@ Press d to delete a bookmark</p>
             openDialog = true;
         }
         if (replaceDialog.style.display === "block") {
+            openDialog = true;
+        }
+        if (linksDialog.style.display === "block") {
             openDialog = true;
         }
         if (marksDialog.style.display === "block") {
