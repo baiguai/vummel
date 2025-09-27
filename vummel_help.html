@@ -1,28 +1,27 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
-<title>Vummel Help</title>
+<title>Httree</title>
 <style>
+    .app {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+        "header header"
+        "tree editor";
+        width: 100%;
+    }
+
+    @media (max-width: 768px) {
         .app {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            grid-template-rows: auto 1fr;
-            grid-template-areas:
-            "header header"
-            "tree editor";
-            width: 100%;
-        }
-
-
-        @media (max-width: 768px) {
-          .app {
             grid-template-columns: 1fr;
             grid-template-areas:
-              "header"
-              "editor";
-          }
-        
-          .tree {
+            "header"
+            "editor";
+        }
+
+        .tree {
             grid-area: unset;        /* no longer in the grid */
             position: fixed;         /* overlays instead */
             top: 48px;               /* adjust to your header height */
@@ -35,379 +34,380 @@
             transform: translateX(-100%); /* hidden off-screen */
             transition: transform 0.2s ease;
             z-index: 1000;
-          }
-        
-          .tree.show {
+        }
+
+        .tree.show {
             transform: translateX(0); /* slide in */
-          }
-        
-          .editor {
-            grid-area: editor;
-            width: 100%;  /* force full width */
-          }
-
         }
-
-        .tree-dialog {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--bg);
-            color: var(--fg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            z-index: 2000;
-        }
-        
-        .tree-dialog-content {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 16px;
-        }
-        
-        .tree-dialog button {
-            padding: 8px;
-            background: var(--bg-alt, #222);
-            color: var(--fg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        :root {
-            --bg: #000;
-            --fg: #f5f5f5;
-            --muted: #9aa0a6;
-            --accent: #00d1b2;
-            --danger: #ff5577;
-            --sel-bg: #111827;
-            --border: #222;
-        }
-        * { box-sizing: border-box; }
-        html, body { height: 100%; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--fg);
-            font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            display: flex;
-            min-height: 100vh;
-        }
-        header {
-            grid-area: header;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            user-select: none;
-        }
-        header .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .dot.green { background: var(--accent); }
-        .dot.red { background: var(--danger); }
-        .kbd-hint { color: var(--muted); }
-
-        .tree {
-            grid-area: tree;
-            border-right: 1px solid var(--border);
-            min-width: 240px;
-            overflow: auto;
-            padding: 8px;
-        }
-        .tree ul { list-style: none; margin: 0; padding-left: 16px; }
-        .tree li { margin: 2px 0; }
-
-        .node {
-            display: flex; align-items: center; gap: 8px;
-            padding: 2px 6px; border-radius: 2px;
-            cursor: default; user-select: none;
-        }
-        .node .twisty { width: 12px; display: inline-block; text-align: center; color: var(--muted); }
-        .node .icon { width: 16px; height: 16px; display: inline-block; color: var(--muted); }
-        .node .title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .node.selected { background: var(--sel-bg); outline: 1px dashed #333; }
 
         .editor {
             grid-area: editor;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            min-width: 0;
+            width: 100%;  /* force full width */
         }
-        .status {
-            padding: 6px 10px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 12px;
-        }
-        .status .pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+    }
 
-        textarea#editorArea {
-            width: 100%; height: 100%;
-            background: transparent; color: var(--fg);
-            border: none; outline: none; resize: none;
-            padding: 12px;
-            font: inherit; line-height: 1.5;
-            tab-size: 2;
-        }
-        .footer { border-top: 1px solid var(--border); padding: 6px 10px; color: var(--muted); }
+    .tree-dialog {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--bg);
+        color: var(--fg);
+        border: 2px solid var(--border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        z-index: 2000;
+    }
 
-        .dim { color: var(--muted); }
-        .accent { color: var(--accent); }
-        .danger { color: var(--danger); }
+    .tree-dialog-content {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+    }
 
-        /* Searching */
+    .tree-dialog button {
+        padding: 4px;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--btn-border);
+        cursor: pointer;
+    }
+
+    :root {
+        --bg: #000;
+        --fg: #f5f5f5;
+        --muted: #9aa0a6;
+        --accent: #00d1b2;
+        --danger: #ff5577;
+        --sel-bg: #111827;
+        --btn-border: #555;
+        --border: #222;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        display: flex;
+        min-height: 100vh;
+    }
+    header {
+        grid-area: header;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        user-select: none;
+    }
+    header .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot.green { background: var(--accent); }
+    .dot.red { background: var(--danger); }
+    .kbd-hint { color: var(--muted); }
+
+    .tree {
+        grid-area: tree;
+        border-right: 1px solid var(--border);
+        min-width: 240px;
+        overflow: auto;
+        padding: 8px;
+    }
+    .tree ul { list-style: none; margin: 0; padding-left: 16px; }
+    .tree li { margin: 2px 0; }
+
+    .node {
+        display: flex; align-items: center; gap: 8px;
+        padding: 2px 6px; border-radius: 2px;
+        cursor: default; user-select: none;
+    }
+
+    .node .twisty { width: 12px; display: inline-block; text-align: center; color: var(--muted); }
+    .node .icon { width: 16px; height: 16px; display: inline-block; color: var(--muted); }
+    .node .title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .node.selected { background: var(--sel-bg); outline: 1px dashed #333; }
+
+    .editor {
+        grid-area: editor;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-width: 0;
+    }
+    .status {
+        padding: 6px 10px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .status .pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+
+    textarea#editorArea {
+        width: 100%; height: 100%;
+        background: transparent; color: var(--fg);
+        border: none; outline: none; resize: none;
+        padding: 12px;
+        font: inherit; line-height: 1.5;
+        tab-size: 2;
+    }
+    .footer { border-top: 1px solid var(--border); padding: 6px 10px; color: var(--muted); }
+
+    .dim { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .danger { color: var(--danger); }
+
+    /* Searching */
+    .search-dialog {
+        position: fixed;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;                /* take almost full width on mobile */
+        max-width: 600px;          /* cap at desktop size */
+        max-height: 70%;
+        overflow: hidden;
+        background: #222;
+        color: #fff;
+        border: 2px solid #444;
+        border-radius: 4px;
+        z-index: 9999;
+        font-family: monospace;
+        padding: 10px;
+        display: none;
+        flex-direction: column;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    }
+
+    .search-dialog input {
+        padding: 6px;
+        margin-bottom: 10px;
+        background: #111;
+        color: #fff;
+        border: 1px solid #555;
+        width: 100%;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+
+    .search-results {
+        overflow-y: auto;
+        flex: 1;
+        border-top: 1px solid #333;
+        border-bottom: 1px solid #333;
+    }
+
+    .search-results div {
+        padding: 6px 8px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+        
+    /* Highlighted selection */
+    .search-results div.selected, 
+    .marks-list div.selected {
+        background: #444;
+    }
+
+    /* --- Mobile refinements --- */
+    @media (max-width: 480px) {
         .search-dialog {
-          position: fixed;
-          top: 10%;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 90%;                /* take almost full width on mobile */
-          max-width: 600px;          /* cap at desktop size */
-          max-height: 70%;
-          overflow: hidden;
-          background: #222;
-          color: #fff;
-          border: 2px solid #444;
-          border-radius: 4px;
-          z-index: 9999;
-          font-family: monospace;
-          padding: 10px;
-          display: none;
-          flex-direction: column;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-        }
-        
-        .search-dialog input {
-          padding: 6px;
-          margin-bottom: 10px;
-          background: #111;
-          color: #fff;
-          border: 1px solid #555;
-          width: 100%;
-          font-size: 1rem;
-          box-sizing: border-box;
-        }
-        
-        .search-results {
-          overflow-y: auto;
-          flex: 1;
-          border-top: 1px solid #333;
-          border-bottom: 1px solid #333;
-        }
-        
-        .search-results div {
-          padding: 6px 8px;
-          cursor: pointer;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        /* Highlighted selection */
-        .search-results div.selected, 
-        .marks-list div.selected {
-          background: #444;
-        }
-        
-        /* --- Mobile refinements --- */
-        @media (max-width: 480px) {
-          .search-dialog {
             top: 5%;
             width: 95%;       /* wider on very small screens */
             border-radius: 3px;
             padding: 8px;
-          }
-          .search-dialog input {
+        }
+        .search-dialog input {
             font-size: 0.9rem;
             padding: 5px;
-          }
-          .search-results div {
+        }
+        .search-results div {
             font-size: 0.9rem;
             padding: 5px 6px;
-          }
         }
+    }
 
-        /* Links Dialog */
-        #linksDialog {
-            display: none;
-            position: fixed;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            max-height: 70%;
-            background: #222;
-            color: #fff;
-            border: 2px solid #444;
-            border-radius: 2px;
-            padding: 20px;
-            z-index: 9999;
-            font-family: monospace;
-            overflow-y: auto;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-        }
-        #marksDialog {
-            display: none;
-            position: fixed;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 700px;
-            max-height: 70%;
-            background: #222;
-            color: #fff;
-            border: 2px solid #444;
-            border-radius: 2px;
-            padding: 20px;
-            z-index: 9999;
-            font-family: monospace;
-            overflow-y: auto;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-        }
-        #linksDialog h3 {
-            margin-top: 0;
-        }
-        #linksList a {
-            display: block;
-            color: #00d1b2;
-            text-decoration: underline;
-            margin-bottom: 6px;
-            word-break: break-all;
-        }
-        #linksDialog .close {
-            margin-top: 10px;
-            color: #ccc;
-            cursor: pointer;
-            display: inline-block;
-        }
+    /* Links Dialog */
+    #linksDialog {
+        display: none;
+        position: fixed;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        max-height: 70%;
+        background: #222;
+        color: #fff;
+        border: 2px solid #444;
+        border-radius: 2px;
+        padding: 20px;
+        z-index: 9999;
+        font-family: monospace;
+        overflow-y: auto;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    #marksDialog {
+        display: none;
+        position: fixed;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 700px;
+        max-height: 70%;
+        background: #222;
+        color: #fff;
+        border: 2px solid #444;
+        border-radius: 2px;
+        padding: 20px;
+        z-index: 9999;
+        font-family: monospace;
+        overflow-y: auto;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    #linksDialog h3 {
+        margin-top: 0;
+    }
+    #linksList a {
+        display: block;
+        color: #00d1b2;
+        text-decoration: underline;
+        margin-bottom: 6px;
+        word-break: break-all;
+    }
+    #linksDialog .close {
+        margin-top: 10px;
+        color: #ccc;
+        cursor: pointer;
+        display: inline-block;
+    }
 
-        /* Search/Replace Dialog */
-        #replaceDialog {
-            display: none;
-            position: fixed;
-            top: 15%;
-            left: 5px;
-            /* transform: translateX(-50%); */
-            width: 230px;
-            background: #222;
-            color: #fff;
-            border: 2px solid #444;
-            border-radius: 2px; /* per your request */
-            padding: 16px;
-            z-index: 9999;
-            font-family: monospace;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-        }
-        #replaceDialog h3 {
-            margin-top: 0;
-        }
-        #replaceDialog label {
-            display: block;
-            margin-bottom: 4px;
-        }
-        #replaceDialog input {
-            width: 100%;
-            padding: 6px;
-            margin-bottom: 10px;
-            background: #111;
-            color: #fff;
-            border: 1px solid #555;
-        }
-        #replaceDialog button {
-            background: #444;
-            color: #ddd;
-            border: none;
-            padding: 6px 12px;
-            margin-right: 8px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        #replaceDialog .close {
-            background: #444;
-            color: #fff;
-        }
+    /* Search/Replace Dialog */
+    #replaceDialog {
+        display: none;
+        position: fixed;
+        top: 15%;
+        left: 5px;
+        /* transform: translateX(-50%); */
+        width: 230px;
+        background: #222;
+        color: #fff;
+        border: 2px solid #444;
+        border-radius: 2px; /* per your request */
+        padding: 16px;
+        z-index: 9999;
+        font-family: monospace;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    #replaceDialog h3 {
+        margin-top: 0;
+    }
+    #replaceDialog label {
+        display: block;
+        margin-bottom: 4px;
+    }
+    #replaceDialog input {
+        width: 100%;
+        padding: 6px;
+        margin-bottom: 10px;
+        background: #111;
+        color: #fff;
+        border: 1px solid #555;
+    }
+    #replaceDialog button {
+        background: #444;
+        color: #ddd;
+        border: none;
+        padding: 6px 12px;
+        margin-right: 8px;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    #replaceDialog .close {
+        background: #444;
+        color: #fff;
+    }
 
-        #msg {
-          opacity: 0;
-          transition: opacity 0.6s ease; /* fade in/out */
-        }
-        #msg.visible {
-          opacity: 1;
-        }
+    #msg {
+        opacity: 0;
+        transition: opacity 0.6s ease; /* fade in/out */
+    }
+    #msg.visible {
+        opacity: 1;
+    }
 
-        button {
-          background: #000;
-          border: solid 1px #555;
-          color: #fff;
-        }
+    button {
+        background: #000;
+        border: solid 1px #555;
+        color: #fff;
+    }
 
-        /* General hidden table (no borders, spacing, or visible styling) */
-        .hidden-tbl,
-        .hidden-tbl td,
-        .hidden-tbl th {
-          border: none;
-          border-collapse: collapse;
-          padding: 0;
-          margin: 0;
-        }
+    /* General hidden table (no borders, spacing, or visible styling) */
+    .hidden-tbl,
+    .hidden-tbl td,
+    .hidden-tbl th {
+        border: none;
+        border-collapse: collapse;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Two equal-width columns for hidden-tbl */
+    .hidden-tbl td.col2 {
+        width: 50%;
+        padding: 0.5em;
+        vertical-align: top;
+    }
+
+    /* Controls table (same hidden styling, but for controls layout) */
+    .controls-tbl,
+    .controls-tbl td,
+    .controls-tbl th {
+        border: none;
+        border-collapse: collapse;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Two equal-width columns in controls-tbl */
+    .controls-tbl td.col2 {
+        width: 50%;
+        text-align: center;
+        vertical-align: middle;
+        padding: 0.5em;
+    }
         
-        /* Two equal-width columns for hidden-tbl */
-        .hidden-tbl td.col2 {
-          width: 50%;
-          padding: 0.5em;
-          vertical-align: top;
-        }
-        
-        /* Controls table (same hidden styling, but for controls layout) */
-        .controls-tbl,
-        .controls-tbl td,
-        .controls-tbl th {
-          border: none;
-          border-collapse: collapse;
-          padding: 0;
-          margin: 0;
-        }
-        
-        /* Two equal-width columns in controls-tbl */
-        .controls-tbl td.col2 {
-          width: 50%;
-          text-align: center;
-          vertical-align: middle;
-          padding: 0.5em;
-        }
-        
-        /* Three equal-width columns in controls-tbl */
-        .controls-tbl td.col3 {
-          width: 33.33%;
-          text-align: center;
-          vertical-align: middle;
-          padding: 0.5em;
-        }
+    /* Three equal-width columns in controls-tbl */
+    .controls-tbl td.col3 {
+        width: 33.33%;
+        text-align: center;
+        vertical-align: middle;
+        padding: 0.5em;
+    }
 
 
-        /* Scrollbars */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 2px; }
-        ::-webkit-scrollbar-track { background: #0b0f17; }
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: #0b0f17; }
     
     #linksList a.selected {
         background: #444;
         display: block;
     }
     </style>
-<style id="operaUserStyle" type="text/css"></style></head>
+<style type="text/css" id="operaUserStyle"></style></head>
 <body>
 <div class="app">
 <header id="mobileMenu" style="display: none;">
-  <button id="hamburger" class="hamburger" style="display:none;">☰</button>
-  <button id="mblSearch" onclick="activateTree(); openSearch();">Search</button>
-  <button id="mblLinks" onclick="activateTree(); openLinksDialog();">Links</button>
-  &nbsp;
-  <button id="mblExport" onclick="exportNoteAsTxt();">Export Note</button>
-  <button id="mblSave" onclick="saveAsHtml(fileName);">Save</button>
+    <button id="hamburger" class="hamburger" style="display:none;">☰</button>
+    <button id="mblSearch" onclick="activateTree(); openSearch();">Search</button>
+    <button id="mblLinks" onclick="activateTree(); openLinksDialog();">Links</button>
+    &nbsp;
+    <button id="mblExport" onclick="exportNoteAsTxt();">Export Note</button>
+    <button id="mblSave" onclick="saveAsHtml(fileName);">Save</button>
 </header>
+
 <div id="treeDialog" class="tree-dialog">
     <table class="hidden-tbl">
         <tbody><tr>
@@ -421,7 +421,7 @@
                     <button id="closeDialogBtn">✖ Close</button>
                 </div>
             </td>
-            <td class="col2">
+            <td id="treeCol2" class="col2">
                 <div>
                     Move Selected Node:
                 </div>
@@ -454,13 +454,15 @@
         </tr>
     </tbody></table>
 </div>
+
 <div id="helpDialog" style="display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(153, 153, 153); padding: 20px; z-index: 9999; font-family: monospace; max-width: 820px; text-align: left; box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
-<h3>Key Bindings</h3>
-<p></p>
-<table id="authorHelp" style="border-collapse: collapse; border: medium; width: 100%; display: block;">
-<tbody><tr>
-<td style="vertical-align: top; padding-right: 10px;">
-<pre>r = Add root level node
+    <h3>Key Bindings</h3>
+    <p></p>
+    <table id="authorHelp" style="border-collapse: collapse; border: medium; width: 100%; display: block;">
+        <tbody>
+            <tr>
+                <td style="vertical-align: top; padding-right: 10px;">
+                    <pre>r = Add root level node
 R = Rename current Folder
 j = Select the next tree node
 k = Select the previous tree node
@@ -480,10 +482,10 @@ G = Select bottom tree node
 
 y = Copy note node
 p = Paste copied note node
-</pre>
-</td>
-<td style="vertical-align: top; padding-left: 10px;">
-<pre>H = Move current node to the parent node
+                    </pre>
+                </td>
+                <td style="vertical-align: top; padding-left: 10px;">
+                    <pre>H = Move current node to the parent node
 L = Make current node a child node
 J = Move current node down
 K = Move current node up
@@ -505,47 +507,48 @@ m = Bookmark current node
 
 V = Author Vim keys help
 ! = Display options dialog
-</pre>
-</td>
-</tr>
-</tbody></table>
-<pre id="readerHelp" style="display: none;">j = Select the next tree node
-k = Select the previous tree node
-, = Select the next sibling level tree node
-. = Select the previous sibling level tree node
-l = Expand the current tree node
-h = Collapse the current tree node
-u = go up a tree node level
-C = Collapse all the tree nodes
-E = Expand all the tree nodes
-] = Expand the treeview panel
-[ = Shrink the treeview panel
-/ = Search (begin with : to search labels)
-f = Find text in the current note 
-# = Show note links dialog
-&lt; = Show the history dialog
-g = Select top tree node
-G = Select bottom tree node
-T = Export current note as .txt
+                    </pre>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <pre id="readerHelp" style="display: none;">j = Select the next tree node
+    k = Select the previous tree node
+    , = Select the next sibling level tree node
+    . = Select the previous sibling level tree node
+    l = Expand the current tree node
+    h = Collapse the current tree node
+    u = go up a tree node level
+    C = Collapse all the tree nodes
+    E = Expand all the tree nodes
+    ] = Expand the treeview panel
+    [ = Shrink the treeview panel
+    / = Search (begin with : to search labels)
+    f = Find text in the current note 
+    # = Show note links dialog
+    &lt; = Show the history dialog
+    g = Select top tree node
+    G = Select bottom tree node
+    T = Export current note as .txt
 
-m = Bookmark current node
-` = Show bookmarks
+    m = Bookmark current node
+    ` = Show bookmarks
 
-V = Editor Vim keys help
-</pre>
-<p></p>
-<p style="display: none;">
-<a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
-                    Full Documentation
-                </a>
-</p>
-<p>Press ESC to close.</p>
+    V = Editor Vim keys help
+    </pre>
+    <p></p>
+    <p style="display: none;">
+        <a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
+            Full Documentation
+        </a>
+    </p>
+    <p>Press ESC to close.</p>
 </div>
 
 <div id="helpDialogVimEdit" style="display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(153, 153, 153); padding: 20px; z-index: 9999; font-family: monospace; max-width: 820px; text-align: left; box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
-<h3>Key Bindings</h3>
-<p></p>
-<pre id="authorHelpVim" style="display: block;">i = Enter insert mode, where you can write text normally
+    <h3>Key Bindings</h3>
+    <p></p>
+    <pre id="authorHelpVim" style="display: block;">i = Enter insert mode, where you can write text normally
 a = Enter insert mode, where you can write text normally
 h = Move left
 l = Move right
@@ -571,8 +574,8 @@ G = Go to the end of the note
 
 Note: If you enter a number first, some commands
       will repeat that many times.
-</pre>
-<pre id="readerHelpVim" style="display: none;">h = Move left
+    </pre>
+    <pre id="readerHelpVim" style="display: none;">h = Move left
 l = Move right
 j = Move down
 k = Move up
@@ -587,83 +590,93 @@ G = Go to the end of the note
 
 Note: If you enter a number first, some commands
       will repeat that many times.
-</pre>
-<p></p>
-<p style="display: none;">
-<a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
-                    Full Documentation
-                </a>
-</p>
-<p>Press ESC to close.</p>
+    </pre>
+    <p></p>
+    <p style="display: none;">
+        <a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
+            Full Documentation
+        </a>
+    </p>
+    <p>Press ESC to close.</p>
 </div>
 
 <div id="helpDialogVimDisabled" style="display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: rgb(34, 34, 34); color: white; border: 2px solid rgb(153, 153, 153); padding: 20px; z-index: 9999; font-family: monospace; max-width: 820px; text-align: left; box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
-<h3>Key Bindings</h3>
-<p></p>
-<pre>VIM Mode is disabled. To enable it, change the mode_vim
+    <h3>Key Bindings</h3>
+    <p></p>
+    <pre>VIM Mode is disabled. To enable it, change the mode_vim
 variable to true in this .html file.
-</pre>
-<p></p>
-<p style="display: none;">
-<a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
-                    Full Documentation
-                </a>
-</p>
-<p>Press ESC to close.</p>
+    </pre>
+    <p></p>
+    <p style="display: none;">
+        <a href="#" style="color: #fff; text-decoration: underline;" target="_blank">
+            Full Documentation
+        </a>
+    </p>
+    <p>Press ESC to close.</p>
 </div>
 
 <div id="optionsDialog" style="display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: 400px; background: rgb(34, 34, 34); color: rgb(255, 255, 255); border: 2px solid rgb(68, 68, 68); border-radius: 2px; padding: 20px; z-index: 9999; font-family: monospace; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 20px;">
-<h3>Options</h3>
-<label><input type="checkbox" id="optShowInitHelp"> Show Init Help</label><br><br>
-<label>File Name: <input type="text" id="optFileName" style="background:#111;color:#fff;border:1px solid #555;"></label><br><br>
-<label><input type="checkbox" id="optModeVim"> Enable Vim Mode</label>
-<p>Press Enter to save, Esc to cancel.</p>
+    <h3>Options</h3>
+    <label><input type="checkbox" id="optShowInitHelp"> Show Init Help</label><br><br>
+    <label>File Name: <input type="text" id="optFileName" style="background:#111;color:#fff;border:1px solid #555;"></label><br><br>
+    <label><input type="checkbox" id="optModeVim"> Enable Vim Mode</label>
+    <p>Press Enter to save, Esc to cancel.</p>
 </div>
 
-<aside class="tree" id="tree" onclick="activateTree();"><ul><li><div class="node selected"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Welcome to the Vummel Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Using This Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Getting Started</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Key Bindings</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Saving</span></div></li></ul></aside>
-<section class="editor">
-<div id="statusBar" class="status" ondblclick="toggleMobileMenu();" title="Double click to toggle Mobile Mode">
-<span class="pill" id="mode" style="display: block;">TREE</span>
-<span class="pill" id="kind">FILE</span>
-<span class="dim" id="path">/</span>
-<span class="pill" id="msg"></span>
-</div>
-<textarea id="editorArea" spellcheck="false" readonly="readonly"></textarea>
-</section>
-</div>
 <div class="search-dialog" id="searchDialog" style="display: none;">
-<input id="searchInput" placeholder="Search..." type="text">
-<div class="search-results" id="searchList"><div class="selected">Other Options</div></div>
+    <input id="searchInput" placeholder="Search..." type="text">
+    <div class="search-results" id="searchList"><div class="selected">Other Options</div></div>
 </div>
+
 <div id="linksDialog" ondblclick="closeLinksDialog();" style="display: none;">
-<h3>Links in Note</h3>
-<div id="linksList"><a href="#" data-node-id="kqr4o4g3" class="selected">The Options Dialog</a></div>
+    <h3>Links in Note</h3>
+    <div id="linksList"><a href="#" data-node-id="kqr4o4g3" class="selected">The Options Dialog</a></div>
 </div>
+
 <div id="marksDialog" style="display: none;">
-<h3>Bookmarks</h3>
-<div id="marksList"></div>
-<p><br>Press Esc to close<br>
-Press d to delete a bookmark</p>
+    <h3>Bookmarks</h3>
+    <div id="marksList"></div>
+    <p>
+        <br>
+        Press Esc to close
+        <br>
+        Press d to delete a bookmark
+    </p>
 </div>
+
 <div id="replaceDialog" style="display: none;">
-<h3>Find &amp; Replace</h3>
-<label for="searchText">Find</label>
-<input id="searchText" type="text">
-<div id="replaceTools" style="display: block;">
-<label for="replaceText">Replace With</label>
-<input id="replaceText" type="text">
-<div style="display: none;">
-<button onclick="doFind()">Find</button>
-<button onclick="doReplaceAll()">Replace All</button>
-</div>
-</div>
-<div id="replaceResults">Replaced 1 occurrence(s).</div>
+    <h3>Find &amp; Replace</h3>
+    <label for="searchText">Find</label>
+    <input id="searchText" type="text">
+    <div id="replaceTools" style="display: block;">
+        <label for="replaceText">Replace With</label>
+        <input id="replaceText" type="text">
+        <div style="display: none;">
+            <button onclick="doFind()">Find</button>
+            <button onclick="doReplaceAll()">Replace All</button>
+        </div>
+    </div>
+    <div id="replaceResults">Replaced 1 occurrence(s).</div>
 </div>
 
 <div id="historyDialog" style="display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: 600px; max-height: 70%; background: rgb(34, 34, 34); color: rgb(255, 255, 255); border: 2px solid rgb(68, 68, 68); border-radius: 2px; padding: 20px; z-index: 9999; font-family: monospace; overflow-y: auto; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 20px;">
-  <h3>History</h3>
-  <div id="historyList"><div>The Options Dialog</div><div class="selected" style="background: rgb(68, 68, 68);">Editor Vim Help</div><div>Read Only Mode</div><div>The Options Dialog</div><div>Help Dialog</div><div>Dialogs Introduction</div><div>Introduction to Configuration</div><div>Help Dialog</div><div>Modes</div><div>Introduction</div><div>Switching Between Modes</div><div>The Modes</div></div>
+    <h3>History</h3>
+    <div id="historyList"></div>
 </div>
+
+
+<aside class="tree" id="tree" onclick="activateTree();"><ul><li><div class="node selected"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Welcome to the Vummel Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Using This Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Getting Started</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Key Bindings</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Saving</span></div></li></ul></aside>
+<section class="editor">
+    <div id="statusBar" class="status" ondblclick="toggleMobileMenu();" title="Double click to toggle Mobile Mode">
+        <span class="pill" id="mode" style="display: block;">TREE</span>
+        <span class="pill" id="kind">FILE</span>
+        <span class="dim" id="path">/</span>
+        <span class="pill" id="msg"></span>
+    </div>
+    <textarea id="editorArea" spellcheck="false" readonly="readonly"></textarea>
+</section>
+</div>
+
 <input type="file" id="filePicker" accept=".html" style="display:none;">
 
 <script>
@@ -681,7 +694,7 @@ Press d to delete a bookmark</p>
         let bookmarks = [];
 
         // !@!
-        const readOnly = true;
+        const readOnly = false;
 
 
 
@@ -1471,7 +1484,10 @@ Press d to delete a bookmark</p>
         }
         function addAfter(){
             if (readOnly) return;
-            if (!treeData || treeData.length === 0) return;
+            if (!treeData || treeData.length === 0) {
+                addRoot();
+                return;
+            }
             ensureSelection();
             const ctx = getSiblingsAndIndex(selectedId);
             if (!ctx) return;
@@ -2788,9 +2804,19 @@ Press d to delete a bookmark</p>
     const renameNodeBtn = document.getElementById('renameNodeBtn');
     const deleteNodeBtn = document.getElementById('deleteNodeBtn');
     const closeDialogBtn = document.getElementById('closeDialogBtn');
+    const treeCol2 = document.getElementById('treeCol2');
     
     function openTreeDialog() {
         treeDialog.style.display = 'block';
+
+        if (readOnly) {
+            addNodeBtn.style.display = "none";
+            addChildBtn.style.display = "none";
+            renameNodeBtn.style.display = "none";
+            deleteNodeBtn.style.display = "none";
+            treeCol2.style.display = "none";
+        }
+
         activateTree();
     }
     function closeTreeDialog() {
@@ -2879,7 +2905,6 @@ Press d to delete a bookmark</p>
         render();
     });
 </script>
-
 
 
 </body></html>
