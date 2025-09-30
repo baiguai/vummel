@@ -1,4 +1,4 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html><html style="--app-height: 987px;"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
 <title>Httree</title>
@@ -11,6 +11,7 @@
         "header header"
         "tree editor";
         width: 100%;
+        height: var(--app-height);
     }
 
     @media (max-width: 768px) {
@@ -19,6 +20,7 @@
             grid-template-areas:
             "header"
             "editor";
+            height: 100dvh;
         }
 
         .tree {
@@ -43,6 +45,14 @@
         .editor {
             grid-area: editor;
             width: 100%;  /* force full width */
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        textarea#editorArea {
+            height: 100%;
+            overflow: auto;
         }
     }
 
@@ -93,7 +103,7 @@
         color: var(--fg);
         font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         display: flex;
-        min-height: 100vh;
+        min-height: 100dvh;
     }
     header {
         grid-area: header;
@@ -143,12 +153,18 @@
     .status .pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
 
     textarea#editorArea {
-        width: 100%; height: 100%;
-        background: transparent; color: var(--fg);
-        border: none; outline: none; resize: none;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        color: var(--fg);
+        border: none;
+        outline: none;
+        resize: none;
         padding: 12px;
-        font: inherit; line-height: 1.5;
-        tab-size: 2;
+        font: inherit;
+        line-height: 1.5;
+        tab-size: 4;
+        overflow: auto;
     }
     .footer { border-top: 1px solid var(--border); padding: 6px 10px; color: var(--muted); }
 
@@ -396,7 +412,7 @@
         display: block;
     }
     </style>
-<style type="text/css" id="operaUserStyle"></style></head>
+</head>
 <body>
 <div class="app">
 <header id="mobileMenu" style="display: none;">
@@ -706,6 +722,7 @@ variable to true in this .html file.
             "\\);": "^^^func^^^"
         };
 
+        let currentEditorNodeId = null;
         let historyStack = [];
         let showingHistory = false;
         let historyIndex = 0;
@@ -928,7 +945,10 @@ variable to true in this .html file.
                 pathEl.textContent = computePath(selInfo.node.id);
                 kindEl.textContent = isFolder(selInfo.node) ? 'FOLDER' : 'FILE';
                 if (!editing) {
-                    editorArea.value = safeRestoreText(selInfo.node.content) || '';
+                    if (currentEditorNodeId !== selInfo.node.id) {
+                        editorArea.value = safeRestoreText(selInfo.node.content) || '';
+                        currentEditorNodeId = selInfo.node.id;
+                    }
                     editorArea.setAttribute('readonly', 'readonly');
                 } else {
                     editorArea.removeAttribute('readonly');
@@ -973,8 +993,8 @@ variable to true in this .html file.
             mode_vim = false;
             editing = true; render();
             editorArea.focus();
-            editorArea.setSelectionRange(0, 0); 
-            scrollToCursor();
+            // editorArea.setSelectionRange(0, 0); 
+            // scrollToCursor();
         });
 
         function syncFile() {
@@ -1004,7 +1024,84 @@ variable to true in this .html file.
             return text;
         }
 
+        editorArea.addEventListener('blur', (e) => {
+            syncFile();
+        });
+
         editorArea.addEventListener('keydown', (e) => {
+            const start = editorArea.selectionStart;
+            const end = editorArea.selectionEnd;
+            const value = editorArea.value;
+        
+            switch (e.key) {
+                case 'Tab':
+                    e.preventDefault();
+                    e.stopPropagation();
+        
+                    if (e.shiftKey) {
+                        // --- Shift+Tab = Unindent ---
+                        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                        const lineEnd = value.indexOf("\n", end);
+                        const affected = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        
+                        const unindented = affected.split("\n").map(line =>
+                            line.startsWith("    ") ? line.slice(4) : line
+                        ).join("\n");
+        
+                        const newValue = value.substring(0, lineStart) + unindented + value.substring(lineStart + affected.length);
+        
+                        editorArea.value = newValue;
+        
+                        // Restore selection (shrink by up to 4 per line)
+                        const lines = affected.split("\n").length;
+                        const removed = 4 * lines;
+                        editorArea.selectionStart = Math.max(start - 4, lineStart);
+                        editorArea.selectionEnd = Math.max(end - removed, editorArea.selectionStart);
+                    } else {
+                        // --- Tab = Indent ---
+                        const selection = value.substring(start, end);
+                        if (selection.includes("\n")) {
+                            const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                            const lineEnd = value.indexOf("\n", end);
+                            const affected = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        
+                            const indented = affected.split("\n").map(line => "    " + line).join("\n");
+        
+                            const newValue = value.substring(0, lineStart) + indented + value.substring(lineStart + affected.length);
+        
+                            editorArea.value = newValue;
+        
+                            // Shift selection right
+                            const lines = affected.split("\n").length;
+                            const added = 4 * lines;
+                            editorArea.selectionStart = start + 4;
+                            editorArea.selectionEnd = end + added;
+                        } else {
+                            // Single caret or inline selection
+                            editorArea.setRangeText("    ", start, end, "end");
+                        }
+                    }
+                    break;
+        
+                case 'Enter':
+                    e.preventDefault();
+                    e.stopPropagation();
+        
+                    // --- Auto-indent on new line ---
+                    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                    const currentLine = value.substring(lineStart, start);
+                    const indentMatch = currentLine.match(/^\s*/); // capture leading spaces
+                    const indent = indentMatch ? indentMatch[0] : "";
+        
+                    const insertText = "\n" + indent;
+        
+                    editorArea.setRangeText(insertText, start, end, "end");
+                    break;
+            }
+
+            setAppHeight();
+            scrollToCursor();
+
             if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1033,23 +1130,6 @@ variable to true in this .html file.
 
         // ---- VIM Keys -------------------------------------------------------
         function vimKeys(e) {
-            // Insert mode logic
-            if (mode_insert) {
-                if (e.key === "Tab") {
-                    // Expand tab into 4 spaces
-                    e.preventDefault();
-                    const start = editorArea.selectionStart;
-                    const end = editorArea.selectionEnd;
-        
-                    editorArea.setRangeText("    ", start, end, "end");
-                }
-                return; // In insert mode, otherwise let typing behave normally
-            }
-
-            if (mode_insert) {
-                return;
-            }
-
             if (mode_visual) {
                 let visProcessed = visualKeys(e);
                 if (visProcessed) {
@@ -2880,6 +2960,12 @@ variable to true in this .html file.
     window.addEventListener('keydown', handleHistoryKey, { capture: true });
     window.addEventListener('keydown', handleLinksKey, { capture: true });
     window.addEventListener('keydown', handleMarksKey, { capture: true });
+
+    function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    }
+    window.addEventListener('resize', setAppHeight);
+    setAppHeight();
 
     //---- Init ------------------------------------------------------------
     window.addEventListener('load', function() {
