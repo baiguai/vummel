@@ -498,6 +498,9 @@ G = Select bottom tree node
 
 y = Copy note node
 p = Paste copied note node
+
+Control+- = Insert horizontal line
+Control+* = Convert selection to list
                     </pre>
                 </td>
                 <td style="vertical-align: top; padding-left: 10px;">
@@ -1169,6 +1172,31 @@ variable to true in this .html file.
         
             // Execute commands with repeat count
             let performed = false;
+
+
+            if (mode === "VISUAL") {
+                // Add bullet '*' at start of current line
+                if (e.key === "*") {
+                    e.preventDefault();
+                    const text = editorArea.value;
+                    const pos = editorArea.selectionStart;
+            
+                    // Find start of current line
+                    const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
+                    const lineEnd = text.indexOf("\n", pos);
+                    const before = text.substring(0, lineStart);
+                    const after = text.substring(lineStart);
+            
+                    editorArea.value = before + "* " + after;
+            
+                    // keep caret in same column, but shifted by 2 chars
+                    editorArea.selectionStart = editorArea.selectionEnd = pos + 2;
+            
+                    showMessage("Bullet added");
+                    return;
+                }
+            }
+
         
             switch (e.key) {
                 case "i": // Enter insert mode
@@ -1823,7 +1851,7 @@ variable to true in this .html file.
             if (!info || !info.node.content) return;
 
             const content = safeRestoreText(info.node.content);
-            const urlRegex = /\bhttps?:\/\/[^\s]+/gi;
+            const urlRegex = /\b(http|file)s?:\/\/[^\s]+/gi;
             const nodeLinkRegex = /(?:^|\s)_(.+?)_(?=\s|[.,!?;:)]|$)/g;
 
             const urlMatches = content.match(urlRegex) || [];
@@ -2379,8 +2407,47 @@ variable to true in this .html file.
                     insertHr();
                 }
 
+                if ((e.ctrlKey || e.metaKey) && (
+                        e.key === "*" ||
+                        (e.key === "8" && e.shiftKey) ||            // some browsers report "8" + shift
+                        (e.code === "Digit8" && e.shiftKey)         // fallback to code check
+                    )) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                
+                    const start = editorArea.selectionStart;
+                    const end = editorArea.selectionEnd;
+                    const text = editorArea.value;
+                
+                    // Expand selection to full lines
+                    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+                    const lineEnd = (text.indexOf("\n", end) === -1 ? text.length : text.indexOf("\n", end));
+                
+                    const before = text.substring(0, lineStart);
+                    const selected = text.substring(lineStart, lineEnd);
+                    const after = text.substring(lineEnd);
+                
+                    // Prefix non-empty lines with "* "
+                    const bulleted = selected
+                        .split("\n")
+                        .map(line => line.trim().length ? `* ${line}` : line)
+                        .join("\n");
+                
+                    editorArea.value = before + bulleted + after;
+                
+                    // Reselect the transformed text
+                    editorArea.selectionStart = lineStart;
+                    editorArea.selectionEnd = lineStart + bulleted.length;
+                
+                    // Persist model & UI
+                    syncFile();               // update node.content and re-render title
+                    showMessage("Converted to bulleted list");
+                    return;
+                }
+
                 return;
             }
+
             if (e.ctrlKey || e.metaKey || e.altKey) return;
 
             if (finding) {
