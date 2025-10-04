@@ -502,6 +502,7 @@ p = Paste copied note node
 
 Control+- = Insert horizontal line
 Control+* = Convert selection to list
+Control+\ = Wrap selected text
                     </pre>
                 </td>
                 <td style="vertical-align: top; padding-left: 10px;">
@@ -1806,6 +1807,69 @@ variable to true in this .html file.
 
             syncFile();
         }
+        function insertList() {
+            e.preventDefault();
+            e.stopPropagation();
+        
+            const start = editorArea.selectionStart;
+            const end = editorArea.selectionEnd;
+            const text = editorArea.value;
+        
+            // Expand selection to full lines
+            const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+            const lineEnd = (text.indexOf("\n", end) === -1 ? text.length : text.indexOf("\n", end));
+        
+            const before = text.substring(0, lineStart);
+            const selected = text.substring(lineStart, lineEnd);
+            const after = text.substring(lineEnd);
+        
+            // Prefix non-empty lines with "* "
+            const bulleted = selected
+                .split("\n")
+                .map(line => line.trim().length ? `* ${line}` : line)
+                .join("\n");
+        
+            editorArea.value = before + bulleted + after;
+        
+            // Reselect the transformed text
+            editorArea.selectionStart = lineStart;
+            editorArea.selectionEnd = lineStart + bulleted.length;
+        
+            // Persist model & UI
+            syncFile();               // update node.content and re-render title
+            showMessage("Converted to bulleted list");
+        }
+        function wrapSelection() {
+            const start = editorArea.selectionStart;
+            const end = editorArea.selectionEnd;
+            const text = editorArea.value;
+        
+            // Get selected text (or whole content if nothing selected)
+            const selected = start !== end ? text.slice(start, end) : text;
+        
+            // Wrap lines at <= 80 chars without breaking words
+            const words = selected.split(/\s+/);
+            let lines = [];
+            let line = "";
+        
+            for (const word of words) {
+                if ((line + word).length > 80) {
+                    lines.push(line.trimEnd());
+                    line = word + " ";
+                } else {
+                    line += word + " ";
+                }
+            }
+            if (line.trim().length > 0) lines.push(line.trimEnd());
+        
+            const wrapped = lines.join("\n");
+        
+            // Replace in editor
+            editorArea.setRangeText(wrapped, start, end, "select");
+        
+            syncFile();
+            showMessage("Wrapped to 80 characters");
+        }
         function setMark() {
             ensureSelection();
             let currentNode = findNodeAndParentById(selectedId).node;
@@ -2414,6 +2478,7 @@ variable to true in this .html file.
                 if ((e.ctrlKey || e.metaKey) && (e.key === "-" || e.code === "Minus")) {
                     e.preventDefault(); // optional: prevents browser zoom-out
                     insertHr();
+                    return;
                 }
 
                 if ((e.ctrlKey || e.metaKey) && (
@@ -2421,36 +2486,14 @@ variable to true in this .html file.
                         (e.key === "8" && e.shiftKey) ||            // some browsers report "8" + shift
                         (e.code === "Digit8" && e.shiftKey)         // fallback to code check
                     )) {
+                    insertList();
+                    return;
+                }
+
+                if ((e.ctrlKey || e.metaKey) && (e.key === "\\" || e.code === "Backslash")) {
                     e.preventDefault();
                     e.stopPropagation();
-                
-                    const start = editorArea.selectionStart;
-                    const end = editorArea.selectionEnd;
-                    const text = editorArea.value;
-                
-                    // Expand selection to full lines
-                    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
-                    const lineEnd = (text.indexOf("\n", end) === -1 ? text.length : text.indexOf("\n", end));
-                
-                    const before = text.substring(0, lineStart);
-                    const selected = text.substring(lineStart, lineEnd);
-                    const after = text.substring(lineEnd);
-                
-                    // Prefix non-empty lines with "* "
-                    const bulleted = selected
-                        .split("\n")
-                        .map(line => line.trim().length ? `* ${line}` : line)
-                        .join("\n");
-                
-                    editorArea.value = before + bulleted + after;
-                
-                    // Reselect the transformed text
-                    editorArea.selectionStart = lineStart;
-                    editorArea.selectionEnd = lineStart + bulleted.length;
-                
-                    // Persist model & UI
-                    syncFile();               // update node.content and re-render title
-                    showMessage("Converted to bulleted list");
+                    wrapSelection();
                     return;
                 }
 
