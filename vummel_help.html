@@ -51,7 +51,7 @@
         }
 
         textarea#editorArea {
-            height: 100%;
+            height: 90dvh;
             overflow: auto;
         }
 
@@ -123,7 +123,7 @@
     }
 
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    /* html, body { height: 100%; } */
     body {
         margin: 0;
         background: var(--bg);
@@ -449,6 +449,7 @@
     <button id="mblLinks" onclick="activateTree(); openLinksDialog();">Links</button>
     &nbsp;
     <button id="mblExport" onclick="exportNoteAsTxt();">Export Note</button>
+    <button id="mblSave" onclick="saveAsHtml('');">Save As</button>
     <button id="mblSave" onclick="saveAsHtml(fileName);">Save</button>
 </header>
 
@@ -512,9 +513,9 @@
     <div class="search-results" id="searchList"><div class="selected">Other Options</div></div>
 </div>
 
-<div class="search-dialog" id="helpDialogUnified" style="display: none;">
+<div class="search-dialog" id="helpDialogUnified" style="display:none;">
   <input id="helpFilter" type="text" placeholder="Filter help (Start with : to search keys only)...">
-  <div id="helpResults" class="search-results"><div><b>r</b> <span class="dim">(TREE)</span> — Add root level node</div><div><b>R</b> <span class="dim">(TREE)</span> — Rename current Folder</div><div><b>j</b> <span class="dim">(TREE)</span> — Select the next tree node</div><div><b>k</b> <span class="dim">(TREE)</span> — Select the previous tree node</div><div><b>,</b> <span class="dim">(TREE)</span> — Select the next sibling level tree node</div><div><b>.</b> <span class="dim">(TREE)</span> — Select the previous sibling level tree node</div><div><b>l</b> <span class="dim">(TREE)</span> — Expand the current tree node</div><div><b>h</b> <span class="dim">(TREE)</span> — Collapse the current tree node</div><div><b>u</b> <span class="dim">(TREE)</span> — Go up a tree node level</div><div><b>C</b> <span class="dim">(TREE)</span> — Collapse all the tree nodes</div><div><b>E</b> <span class="dim">(TREE)</span> — Expand all the tree nodes</div><div><b>A</b> <span class="dim">(TREE)</span> — Add child tree node</div><div><b>a</b> <span class="dim">(TREE)</span> — Add next sibling tree node</div><div><b>]</b> <span class="dim">(TREE)</span> — Expand the treeview panel</div><div><b>[</b> <span class="dim">(TREE)</span> — Shrink the treeview panel</div><div><b>gg</b> <span class="dim">(TREE)</span> — Select first root tree node</div><div><b>G</b> <span class="dim">(TREE)</span> — Select last root tree node</div><div><b>y</b> <span class="dim">(TREE)</span> — Copy note node</div><div><b>p</b> <span class="dim">(TREE)</span> — Paste copied note node</div><div><b>H</b> <span class="dim">(TREE)</span> — Move current node to the parent node</div><div><b>L</b> <span class="dim">(TREE)</span> — Make current node a child node</div><div><b>J</b> <span class="dim">(TREE)</span> — Move current node down</div><div><b>K</b> <span class="dim">(TREE)</span> — Move current node up</div><div><b>D</b> <span class="dim">(TREE)</span> — Delete the current node</div><div><b>i</b> <span class="dim">(TREE)</span> — Edit current note</div><div><b>/</b> <span class="dim">(TREE)</span> — Search (begin with : to search labels)</div><div><b>f</b> <span class="dim">(TREE)</span> — Find/Replace text in the current note </div><div><b>#</b> <span class="dim">(TREE)</span> — Show note links dialog</div><div><b>&lt;</b> <span class="dim">(TREE)</span> — Show the history dialog</div><div><b>X</b> <span class="dim">(TREE)</span> — Show broken note links</div><div><b>s</b> <span class="dim">(TREE)</span> — Save the current file</div><div><b>S</b> <span class="dim">(TREE)</span> — Save as</div><div><b>T</b> <span class="dim">(TREE)</span> — Export current note as .txt</div><div><b>U</b> <span class="dim">(TREE)</span> — Upgrade (import existing data)</div><div><b>m</b> <span class="dim">(TREE)</span> — Bookmark current node</div><div><b>`</b> <span class="dim">(TREE)</span> — Show bookmarks</div><div><b>!</b> <span class="dim">(TREE)</span> — Display options dialog</div><div><b>a</b> <span class="dim">(NORMAL)</span> — Enter insert mode, where you can write text normally</div><div><b>h</b> <span class="dim">(NORMAL)</span> — Move left</div><div><b>l</b> <span class="dim">(NORMAL)</span> — Move right</div><div><b>j</b> <span class="dim">(NORMAL)</span> — Move down</div><div><b>k</b> <span class="dim">(NORMAL)</span> — Move up</div><div><b>0</b> <span class="dim">(NORMAL)</span> — Jump to the beginning of the line</div><div><b>$</b> <span class="dim">(NORMAL)</span> — Jump to the end of the line</div><div><b>w</b> <span class="dim">(NORMAL)</span> — Move forward one word</div><div><b>W</b> <span class="dim">(NORMAL)</span> — Move back a word</div><div><b>D</b> <span class="dim">(NORMAL)</span> — Delete everything right of the cursor</div><div><b>dd</b> <span class="dim">(NORMAL)</span> — Delete current row</div><div><b>gg</b> <span class="dim">(NORMAL)</span> — Go to the start of the note</div><div><b>#gg</b> <span class="dim">(NORMAL)</span> — Go to the specified line (where # is a number)</div><div><b>G</b> <span class="dim">(NORMAL)</span> — Go to the end of the note</div><div><b>V</b> <span class="dim">(NORMAL)</span> — Enter line select mode</div><div><b>v</b> <span class="dim">(NORMAL)</span> — Enter standard select mode</div><div><b>x</b> <span class="dim">(NORMAL)</span> — Delete the character under the cursor</div><div><b>y</b> <span class="dim">(VISUAL)</span> — Virtual copy the selected text</div><div><b>x</b> <span class="dim">(VISUAL)</span> — Virtual cut the selected text</div><div><b>d</b> <span class="dim">(VISUAL)</span> — Delete selected text</div><div><b>Control+-</b> <span class="dim">(INSERT)</span> — Insert horizontal line</div><div><b>Control+*</b> <span class="dim">(INSERT)</span> — Convert selection to list</div><div><b>Control+\</b> <span class="dim">(INSERT)</span> — Wrap selected text</div><div><b>&lt;number&gt;</b> <span class="dim">(NORMAL)</span> — If you enter a number first, some commands will repeat that many times.</div></div>
+  <div id="helpResults" class="search-results"></div>
   <p style="margin-top:6px;">Press ESC to close.</p>
 </div>
 
@@ -650,26 +651,26 @@
         let findIndex = 0;
 
         const helpReadOnly = [
-            { key: "j", mode: "", description: "Select next tree node" },
-            { Key: "k", mode: "", description: "Select the previous tree node" },
-            { Key: ",", mode: "", description: "Select the next sibling level tree node" },
-            { Key: ".", mode: "", description: "Select the previous sibling level tree node" },
-            { Key: "l", mode: "", description: "Expand the current tree node" },
-            { Key: "h", mode: "", description: "Collapse the current tree node" },
-            { Key: "u", mode: "", description: "Go up a tree node level" },
-            { Key: "C", mode: "", description: "Collapse all the tree nodes" },
-            { Key: "E", mode: "", description: "Expand all the tree nodes" },
-            { Key: "]", mode: "", description: "Expand the treeview panel" },
-            { Key: "[", mode: "", description: "Shrink the treeview panel" },
-            { Key: "/", mode: "", description: "Search (begin with : to search labels)" },
-            { Key: "f", mode: "", description: "Find text in the current note " },
-            { Key: "#", mode: "", description: "Show note links dialog" },
-            { Key: "<", mode: "", description: "Show the history dialog" },
-            { Key: "gg", mode: "", description: "Select first root tree node" },
-            { Key: "G", mode: "", description: "Select last root tree node" },
-            { Key: "T", mode: "", description: "Export current note as .txt" },
-            { Key: "m", mode: "", description: "Bookmark current node" },
-            { Key: "`", mode: "", description: "Show bookmarks" },
+            { key: "j", mode: "TREE", description: "Select next tree node" },
+            { Key: "k", mode: "TREE", description: "Select the previous tree node" },
+            { Key: ",", mode: "TREE", description: "Select the next sibling level tree node" },
+            { Key: ".", mode: "TREE", description: "Select the previous sibling level tree node" },
+            { Key: "l", mode: "TREE", description: "Expand the current tree node" },
+            { Key: "h", mode: "TREE", description: "Collapse the current tree node" },
+            { Key: "u", mode: "TREE", description: "Go up a tree node level" },
+            { Key: "C", mode: "TREE", description: "Collapse all the tree nodes" },
+            { Key: "E", mode: "TREE", description: "Expand all the tree nodes" },
+            { Key: "]", mode: "TREE", description: "Expand the treeview panel" },
+            { Key: "[", mode: "TREE", description: "Shrink the treeview panel" },
+            { Key: "/", mode: "TREE", description: "Search (begin with : to search labels)" },
+            { Key: "f", mode: "TREE", description: "Find text in the current note " },
+            { Key: "#", mode: "TREE", description: "Show note links dialog" },
+            { Key: "<", mode: "TREE", description: "Show the history dialog" },
+            { Key: "gg", mode: "TREE", description: "Select first root tree node" },
+            { Key: "G", mode: "TREE", description: "Select last root tree node" },
+            { Key: "T", mode: "TREE", description: "Export current note as .txt" },
+            { Key: "m", mode: "TREE", description: "Bookmark current node" },
+            { Key: "`", mode: "TREE", description: "Show bookmarks" },
         ];
         
         const helpVimEnabled = [
@@ -697,7 +698,8 @@
             { key: "J", mode: "TREE", description: "Move current node down" },
             { key: "K", mode: "TREE", description: "Move current node up" },
             { key: "D", mode: "TREE", description: "Delete the current node" },
-            { key: "i", mode: "TREE", description: "Edit current note" },
+            { key: "i", mode: "TREE", description: "Edit current note - NORMAL mode" },
+            { key: "I", mode: "TREE", description: "Edit current note - INSERT mode" },
             { key: "/", mode: "TREE", description: "Search (begin with : to search labels)" },
             { key: "f", mode: "TREE", description: "Find/Replace text in the current note " },
             { key: "#", mode: "TREE", description: "Show note links dialog" },
@@ -766,6 +768,7 @@
             { key: "K", mode: "TREE", description: "Move current node up" },
             { key: "D", mode: "TREE", description: "Delete the current node" },
             { key: "i", mode: "TREE", description: "Edit current note" },
+            { key: "I", mode: "TREE", description: "Edit current note" },
             { key: "/", mode: "TREE", description: "Search (begin with : to search labels)" },
             { key: "f", mode: "TREE", description: "Find/Replace text in the current note " },
             { key: "#", mode: "TREE", description: "Show note links dialog" },
@@ -1854,7 +1857,10 @@
             syncFile();
             showMessage("Wrapped to 80 characters");
         }
-        function setMark() {
+        function setMark(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
             ensureSelection();
             let currentNode = findNodeAndParentById(selectedId).node;
             let path = computePath(currentNode.id);
@@ -2386,7 +2392,12 @@
             function matches(h, term) {
                 let t = term.trim().replace(/\s+/g, '').toLowerCase();
                 let key = h.key.replace(/\s+/g, '').toLowerCase();
-                let mode = h.mode.toLowerCase();
+                let mode = "";
+                if (mode != "ReadOnly") {
+                    mode = mode.toLowerCase();
+                } else {
+                    mode = "";
+                }
                 let desc = h.description.toLowerCase();
             
                 // If the search starts with ":", search keys only
@@ -2407,14 +2418,17 @@
                 }
                 results.innerHTML = list
                     .map(h => {
-                        const modeSuffix = h.mode && h.mode.trim() !== "" ? ` <span class="dim">(${escapeHtml(h.mode)})</span>` : "";
-                        return `<div><b>${escapeHtml(h.key)}</b>${modeSuffix} — ${escapeHtml(h.description)}</div>`;
+                        const modeSuffix = h.mode && h.mode.trim() !== "" ? ` <span class="dim">(${escapeHtml(h.mode)}) - </span>` : "";
+                        return `<div><b>${escapeHtml(h.key)}</b>${modeSuffix}${escapeHtml(h.description)}</div>`;
                     })
                     .join('');
             }
         
             // --- Escape HTML for safety ---
             function escapeHtml(str) {
+                if (str === undefined) return "";
+                if (str === "") return str;
+
                 return str.replace(/[&<>"']/g, c => ({
                     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
                 }[c]));
@@ -2612,6 +2626,18 @@
                          }
                     }
                     break;
+                case 'I':
+                    if (!readOnly) {
+                        e.preventDefault();
+                        const info = findNodeAndParentById(selectedId); if (!info) return;
+                        editing = true; render();
+                        editorArea.focus();
+                        editorArea.setSelectionRange(0, 0); 
+                        scrollToCursor();
+                        setVimMode(true);
+                        return;
+                    }
+                    break;
                 case 'Escape':
                     if (showingLinks) {
                         closeLinksDialog();
@@ -2648,7 +2674,7 @@
                 case ']': resizeTree(30); break;
                 case '[': resizeTree(-30); break;
                 case '#': openLinksDialog(); break;
-                case 'm': setMark(); break;
+                case 'm': setMark(e); break;
                 case '`': openMarksDialog(); break;
                 case 'X': openMissingLinksDialog(); break;
                 case 'y': copyNode(); break;
@@ -2707,15 +2733,6 @@
                     closeHelpDialog();
                     e.stopPropagation();
                     return;
-                } else if (helpDialogVimEdit.style.display === 'block') {
-                    helpDialogVimEdit.style.display = 'none';
-                    e.stopPropagation();
-                    return;
-                } else if (helpDialogVimDisabled.style.display === 'block') {
-                    helpDialogVimDisabled.style.display = 'none';
-                    e.stopPropagation();
-                } else {
-                    selectedNode = null;
                 }
             }
         });
@@ -3128,11 +3145,36 @@
     window.addEventListener('keydown', handleLinksKey, { capture: true });
     window.addEventListener('keydown', handleMarksKey, { capture: true });
 
-    function setAppHeight() {
-        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+
+
+
+    //---- Mobile Sizing -------------------------------------------------------
+    function isMobile() {
+        return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
-    window.addEventListener('resize', setAppHeight);
+    function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    }
     setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+
+    editorArea.addEventListener('focus', () => {
+        if (isMobile()) {
+            document.querySelector('.app').style.height = `60dvh`;
+            // document.querySelector('.app').style.height = `${window.innerHeight-400}px`;
+            // setTimeout(() => window.scrollTo(0, 0), 50);
+        }
+    });
+    
+    editorArea.addEventListener('blur', () => {
+        if (isMobile()) {
+            document.querySelector('.app').style.height = '100dvh';
+            setTimeout(setAppHeight, 100);
+        }
+    });
+
+
+
 
     //---- Init ------------------------------------------------------------
     window.addEventListener('load', function() {
