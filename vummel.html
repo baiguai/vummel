@@ -112,7 +112,9 @@
   </style>
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
+  <!-- !@! -->
   <div id="canvas" tabindex="0" style="transform: scale(1);"></div>
+  <!-- !@! -->
   <div id="helpDialog" style="
       display: none;
       position: fixed;
@@ -220,6 +222,7 @@ Escape = Deselect the current note's text field,
     let snapTarget = null;
     let zoom = 1;
     let dragging = false;
+    let pickingColor = false;
 
     // === VIM-style Marks ===
     let marks = {}; // { letter: nodeId }
@@ -1403,7 +1406,9 @@ Escape = Deselect the current note's text field,
                 break;
 
             case '#':
-                showColorPaletteMenu();
+                if (!pickingColor) {
+                    showColorPaletteMenu();
+                }
                 break;
 
             case 'Enter':
@@ -1537,6 +1542,7 @@ Escape = Deselect the current note's text field,
         }
 
         function openColorPickerModal(name) {
+            pickingColor = true;
             const pickerOverlay = document.createElement('div');
             pickerOverlay.style.position = 'fixed';
             pickerOverlay.style.top = '0';
@@ -1578,6 +1584,7 @@ Escape = Deselect the current note's text field,
                 colorPalettes[name] = hex;
                 applyColorToNode(hex);
                 document.body.removeChild(pickerOverlay);
+                pickingColor = false;
                 close();
             };
 
@@ -1610,6 +1617,7 @@ Escape = Deselect the current note's text field,
                 } else {
                     const hex = colorPalettes[selected];
                     if (hex) applyColorToNode(hex);
+                    pickingColor = false;
                     close();
                 }
             } else if (e.key === 'd' || e.key === 'D') {
@@ -1622,10 +1630,33 @@ Escape = Deselect the current note's text field,
                         rebuildSelect();
                     }
                 }
+            } else if (e.key === '#') {
+                e.preventDefault();
+                e.stopPropagation();
+                // --- Remove assigned color palette ---
+                delete selectedNode.dataset.color;
+        
+                // Restore default styles
+                selectedNode.style.background = '#111';
+                const header = selectedNode.querySelector('.node-header');
+                const textarea = selectedNode.querySelector('textarea');
+                const dropzone = selectedNode.querySelector('.dropzone');
+                if (header) header.style.color = 'white';
+                if (textarea) {
+                    textarea.style.background = '#111';
+                    textarea.style.color = 'white';
+                }
+                if (dropzone) {
+                    dropzone.style.background = '#111';
+                    dropzone.style.color = 'white';
+                }
+                pickingColor = false;
+                close();
 
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
+                pickingColor = false;
                 close();
             }
         });

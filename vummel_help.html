@@ -1,4 +1,4 @@
-<!DOCTYPE html><html style="--app-height: 987px;"><head>
+<!DOCTYPE html><html style="--app-height: 988px;"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
 <title>Vummel Help</title>
@@ -620,7 +620,7 @@
 
         let copiedNoteId = null;
 
-        let fileName = "help";
+        let fileName = "vummel_help";
         let showInitHelp = false;
         let selectedId = null;
         let editing = false;
@@ -1999,81 +1999,102 @@
             if (!info || !info.node.content) return;
 
             const content = safeRestoreText(info.node.content);
-            const urlRegex = /\b(http|file)s?:\/\/[^\s]+/gi;
-            const nodeLinkRegex = /(?:^|\s|\()_(.+?)_(?=\s|[.,!?;:)]|$)/g;
-
-            const urlMatches = content.match(urlRegex) || [];
-
-            // Collect node links
-            let nodeMatches = [];
-            let match;
-            while ((match = nodeLinkRegex.exec(content)) !== null) {
-                nodeMatches.push(match[1]);
-            }
-
             const listEl = document.getElementById('linksList');
             listEl.innerHTML = '';
 
-            if (urlMatches.length === 0 && nodeMatches.length === 0) {
+            // Markdown-style links:
+            // [Label] followed directly or by whitespace/newline with (https://...) or (_Note_)
+            const markdownLinkRegex = /\[([^\]]+)\](?:[ \t]*\r?\n[ \t]*|[ \t]*)(https?:\/\/\S+|file:\/\/\S+|_[^_]+_)/gi;
+
+            // Generic standalone links
+            const urlRegex = /\b(?:https?|file):\/\/[^\s]+/gi;
+            const nodeLinkRegex = /(?:^|\s|\()_(.+?)_(?=\s|[.,!?;:)]|$)/g;
+
+            const foundLinks = [];
+            let match;
+
+            // --- Collect properly formed markdown-style links ---
+            while ((match = markdownLinkRegex.exec(content)) !== null) {
+                const label = match[1].trim();
+                const target = match[2].trim();
+                foundLinks.push({ label, target, fromMarkdown: true });
+            }
+
+            // --- Collect plain URLs not already captured ---
+            const urlMatches = content.match(urlRegex) || [];
+            for (const url of urlMatches) {
+                if (!foundLinks.some(l => l.target === url)) {
+                    foundLinks.push({ label: url, target: url });
+                }
+            }
+
+            // --- Collect underscore note links not already captured ---
+            while ((match = nodeLinkRegex.exec(content)) !== null) {
+                const title = match[1].trim();
+                const wrapped = `_${title}_`;
+                if (!foundLinks.some(l => l.target === wrapped)) {
+                    foundLinks.push({ label: title, target: wrapped });
+                }
+            }
+
+            // --- Render the collected links ---
+            if (foundLinks.length === 0) {
                 listEl.innerHTML = '<p>No links found.</p>';
             } else {
-                // Render URL links
-                urlMatches.forEach(url => {
+                for (const { label, target, fromMarkdown } of foundLinks) {
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.target = '_blank';
-                    a.textContent = url;
+                    a.textContent = fromMarkdown ? label : target;
+
+                    if (/^(https?|file):\/\//i.test(target)) {
+                        // External URL
+                        a.href = target;
+                        a.target = '_blank';
+                    } else if (target.startsWith('_') && target.endsWith('_')) {
+                        // Note link
+                        const title = target.slice(1, -1).toLowerCase();
+                        let foundNode = null;
+
+                        (function walk(nodes) {
+                            for (const n of nodes) {
+                                if (n.title && n.title.toLowerCase() === title) {
+                                    foundNode = n;
+                                    return;
+                                }
+                                if (n.children && n.children.length) walk(n.children);
+                                if (foundNode) return;
+                            }
+                        })(treeData);
+
+                        a.href = '#';
+                        if (foundNode) {
+                            a.dataset.nodeId = foundNode.id;
+                            a.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                expandToNode(foundNode.id);
+                                selectedId = foundNode.id;
+                                closeLinksDialog();
+                                render();
+                            });
+                        } else {
+                            a.style.color = '#888';
+                            a.title = 'Node not found';
+                        }
+                    } else {
+                        // Fallback
+                        a.href = '#';
+                        a.style.color = '#888';
+                        a.title = 'Unrecognized link format';
+                    }
+
                     listEl.appendChild(a);
                     listEl.appendChild(document.createElement('br'));
-                });
-
-                // Render Node links
-                nodeMatches.forEach(title => {
-                    const lowerTitle = title.toLowerCase();
-                    let foundNode = null;
-
-                    // Search only node titles (like `:query`)
-                    (function walk(nodes) {
-                        for (const n of nodes) {
-                            if (n.title && n.title.toLowerCase() === lowerTitle) {
-                                foundNode = n;
-                                return;
-                            }
-                            if (n.children && n.children.length) walk(n.children);
-                            if (foundNode) return; // early exit if found
-                        }
-                    })(treeData);
-
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.textContent = title;
-
-                    if (foundNode) {
-                        link.dataset.nodeId = foundNode.id;
-                    }
-                    
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault(); // stop jumping to top
-                        if (link.dataset.nodeId) {
-                            expandToNode(link.dataset.nodeId);
-                            selectedId = link.dataset.nodeId;
-                            closeLinksDialog();
-                            render();
-                        }
-                    });
-
-                    if (!foundNode) {
-                        link.style.color = '#888';
-                        link.title = 'Node not found';
-                    }
-
-                    listEl.appendChild(link);
-                    listEl.appendChild(document.createElement('br'));
-                });
+                }
 
                 const links = listEl.querySelectorAll('a');
                 linksIndex = 0;
-                links[linksIndex].classList.add('selected');
+                if (links.length > 0) {
+                    links[linksIndex].classList.add('selected');
+                }
             }
 
             linksDialog.style.display = 'block';
@@ -2112,6 +2133,7 @@
                     e.preventDefault();
                     const newTitle = titleInput.value.trim() || 'Untitled';
                     const newFile = fileInput.value.trim() || 'untitled';
+                    fileName = newFile;
                     document.title = newTitle;
                     closeDialog();
                     saveAsHtml(newFile);
