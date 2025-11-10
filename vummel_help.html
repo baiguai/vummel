@@ -1,4 +1,4 @@
-<!DOCTYPE html><html style="--app-height: 988px;"><head>
+<!DOCTYPE html><html style="--app-height: 1058px;"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
 <title>Vummel Help</title>
@@ -118,7 +118,7 @@
     :root {
         --bg: #000;
         --fg: #f5f5f5;
-        --muted: #9aa0a6;
+        --muted: #555;
         --accent: #00d1b2;
         --danger: #ff5577;
         --sel-bg: #111827;
@@ -250,6 +250,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    .find-highlight {
+        background: yellow;
+        color: black;
+        font-weight: bold;
+    }
         
     /* Highlighted selection */
     .search-results div.selected, 
@@ -320,7 +326,7 @@
         display: block;
         color: #00d1b2;
         text-decoration: underline;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         word-break: break-all;
     }
     #linksDialog .close {
@@ -328,6 +334,77 @@
         color: #ccc;
         cursor: pointer;
         display: inline-block;
+    }
+    #linksList a.selected {
+        background: #444;
+        display: block;
+    }
+
+    /* History Dialog */
+    #historyDialog {
+        display: none;
+        position: fixed;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        max-width: 90vw;
+        max-height: 70vh;
+        background: #222;
+        color: #fff;
+        border: 2px solid #444;
+        border-radius: 6px;
+
+        /* move padding to children to avoid parent padding affecting height calculations */
+        padding: 0;
+        z-index: 9999;
+        font-family: monospace;
+        box-shadow: rgba(0, 0, 0, 0.8) 0 0 20px;
+
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;        /* prevent dialog itself from scrolling */
+    }
+
+    /* header: keep height predictable and out of the scroller */
+    #historyDialog > h3 {
+        margin: 0;
+        padding: 15px 20px 8px 20px;
+        border-bottom: 1px solid #444;
+        flex-shrink: 0;
+    }
+
+    /* wrapper that holds the scrollable list */
+    #historyDialog .history-content {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;       /* ensure only child scrolls */
+        min-height: 0;          /* CRITICAL: allows it to shrink inside max-height parent */
+    }
+
+    /* the actual scrollable area */
+    #historyList {
+        flex: 1 1 auto;         /* fill remaining space under header */
+        overflow-y: auto;       /* scroll only here */
+        padding: 10px 20px 20px 20px;
+        min-height: 0;          /* CRITICAL: allows the element to shrink inside flex parent */
+        border-top: 1px solid #444;
+    }
+
+    /* ✅ Responsive adjustments for smaller screens */
+    @media (max-width: 700px) {
+        #historyDialog {
+            width: 90vw;
+            top: 5%;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        #historyDialog h3 {
+            font-size: 1em;
+            padding-bottom: 6px;
+        }
     }
 
     /* Search/Replace Dialog */
@@ -438,11 +515,6 @@
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 2px; }
     ::-webkit-scrollbar-track { background: #0b0f17; }
-    
-    #linksList a.selected {
-        background: #444;
-        display: block;
-    }
     </style>
 </head>
 <body>
@@ -451,10 +523,10 @@
     <button id="hamburger" class="hamburger" style="display:none;">☰</button>
     <button id="mblSearch" onclick="closeDialogs(); activateTree(); openSearch();">Search</button>
     <button id="mblLinks" onclick="closeDialogs(); activateTree(); openLinksDialog();">Links</button>
-    &nbsp;
-    <button id="mblExport" onclick="closeDialogs(); exportNoteAsTxt();">Export Note</button>
+    <button id="mblExport" onclick="closeDialogs(); exportNoteAsTxt();">Export</button>
     <button id="mblSave" onclick="closeDialogs(); saveAsHtml('');">Save As</button>
     <button id="mblSave" onclick="closeDialogs(); saveAsHtml(fileName);">Save</button>
+    <button id="mblSave" onclick="closeDialogs(); openHelpDialog('VimDisabled');">?</button>
 </header>
 
 <div id="treeDialog" class="tree-dialog">
@@ -508,7 +580,8 @@
     <h3>Options</h3>
     <label><input type="checkbox" id="optShowInitHelp"> Show Init Help</label><br><br>
     <label>File Name: <input type="text" id="optFileName" style="background:#111;color:#fff;border:1px solid #555;"></label><br><br>
-    <label><input type="checkbox" id="optModeVim"> Enable Vim Mode</label>
+    <label><input type="checkbox" id="optModeVim"> Enable Vim Mode</label><br><br>
+    <label>Node Port: <input type="text" id="optPort" style="background:#111;color:#fff;border:1px solid #555;"></label>
     <p>Press Enter to save, Esc to cancel.</p>
 </div>
 
@@ -553,11 +626,14 @@
         </div>
     </div>
     <div id="replaceResults">Replaced 1 occurrence(s).</div>
+    <div id="findResults" style="margin-top:10px; max-height:200px; overflow:auto; font-family:monospace; white-space:pre-wrap;"></div>
 </div>
 
-<div id="historyDialog" style="display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: 600px; max-height: 70%; background: rgb(34, 34, 34); color: rgb(255, 255, 255); border: 2px solid rgb(68, 68, 68); border-radius: 2px; padding: 20px; z-index: 9999; font-family: monospace; overflow-y: auto; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 20px;">
+<div id="historyDialog" style="display: none;">
     <h3>History</h3>
-    <div id="historyList"></div>
+    <div class="history-content">
+        <div id="historyList"></div>
+    </div>
 </div>
 
 <div id="saveAsDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgb(0, 0, 0); color: rgb(255, 255, 255); border: 2px solid rgb(68, 68, 68); border-radius: 6px; padding: 20px; width: 320px; z-index: 9999; font-family: monospace; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 20px;">
@@ -572,7 +648,7 @@
 </div>
 
 
-<aside class="tree" id="tree" onclick="closeDialogs(); activateTree();"><ul><li><div class="node selected"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Welcome to the Vummel Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65"></path> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994"></rect> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883"></rect> </svg></span><span class="title">Using This Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Getting Started</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Key Bindings</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65"></path> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924"></path> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417"></rect> </g> </g> </svg></span><span class="title">Saving</span></div></li></ul></aside>
+<aside class="tree" id="tree" onclick="closeDialogs(); activateTree();"><ul><li><div class="node selected"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:none;fill-opacity:1;stroke:#a5a5a5;stroke-width:0.258464;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers" d="m 0.79069024,0.63332294 c 1.68462256,-0.00621 0.87336156,0 2.51966116,0 V 3.6027704 H 0.79069024 Z" id="path65"></path> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.3229166" height="0.24694447" x="1.3890625" y="1.3934721"></rect> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.3229166" height="0.24694447" x="1.3890625" y="1.887361"></rect> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.3229166" height="0.24694447" x="1.3890625" y="2.3812501"></rect> </svg></span><span class="title">Welcome to the Vummel Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <path style="fill:none;fill-opacity:1;stroke:#a5a5a5;stroke-width:0.258464;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers" d="m 0.79069024,0.63332294 c 1.68462256,-0.00621 0.87336156,0 2.51966116,0 V 3.6027704 H 0.79069024 Z" id="path65"></path> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.3229166" height="0.24694447" x="1.3890625" y="1.3934721"></rect> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.3229166" height="0.24694447" x="1.3890625" y="1.887361"></rect> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.3229166" height="0.24694447" x="1.3890625" y="2.3812501"></rect> </svg></span><span class="title">Using This Help System</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333332 4.2333333" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="layer1"> <path style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.264583;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 0.26458332,0.52916666 H 1.8520833 l 0.79375,0.52916664 1.3229167,1e-7 v 2.6458333 l -3.70416668,-10e-8 V 0.52916666" id="path2433"></path> </g> </svg></span><span class="title">Getting Started</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333332 4.2333333" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="layer1"> <path style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.264583;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 0.26458332,0.52916666 H 1.8520833 l 0.79375,0.52916664 1.3229167,1e-7 v 2.6458333 l -3.70416668,-10e-8 V 0.52916666" id="path2433"></path> </g> </svg></span><span class="title">Key Bindings</span></div></li><li><div class="node"><span class="twisty"><svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 L7 5 L3 9 Z" fill="currentColor"></path></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333332 4.2333333" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="layer1"> <path style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.264583;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 0.26458332,0.52916666 H 1.8520833 l 0.79375,0.52916664 1.3229167,1e-7 v 2.6458333 l -3.70416668,-10e-8 V 0.52916666" id="path2433"></path> </g> </svg></span><span class="title">Palettes</span></div></li><li><div class="node"><span class="twisty"><svg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="3" r="1" fill="currentColor"></circle></svg></span><span class="icon"><!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <svg width="16" height="16" viewBox="0 0 4.2333332 4.2333333" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2"></defs> <g id="layer1"> <path style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.264583;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 0.26458332,0.52916666 H 1.8520833 l 0.79375,0.52916664 1.3229167,1e-7 v 2.6458333 l -3.70416668,-10e-8 V 0.52916666" id="path2433"></path> </g> </svg></span><span class="title">Saving</span></div></li></ul></aside>
 <section class="editor">
     <div id="statusBar" class="status" onclick="closeDialogs();" ondblclick="toggleMobileMenu();" title="Double click to toggle Mobile Mode">
         <span class="pill" id="mode" style="display: block;">TREE</span>
@@ -594,7 +670,7 @@
 
         /** @type {NodeT[]} */
         let treeData = [
-  {"id":"6ljuj3h0","title":"Welcome to the Vummel Help System","content":"Welcome to the Vummel Help System\n--------------------------------------------------------------------------------\n\nUse the\n#\nkey to display the links dialog.\n\nBelow are some topics that can get\nyou started:\n\n_Using This Help System_\n_What is Vummel?_\n_Key Bindings_","children":[],"expanded":false},{"id":"jyyq2oq0","title":"Using This Help System","content":"Using This Help System\n--------------------------------------------------------------------------------\n\nThis is a keyboard-driven help system. To see a quick guide of its key mappings\nuse:\n\n?\n\n** Note **\nYou CAN use your mouse to expand and collapse the tree nodes, as well as\nselecting the topics you would like to read.","children":[],"expanded":false},{"id":"nk7hvnx1","title":"Getting Started","content":"","children":[{"id":"erv01jrx","title":"What is Vummel?","content":"What is Vummel?\n--------------------------------------------------------------------------------\n\nVummel is a keyboard-driven UML diagram application.\nIt allows you to create complex diagrams without ever leaving your keyboard!\n\nIf you are new to Vummel there are two challenges that you will need to learn:\n* The key bindings : _Key Bindings_\n* Saving and managing your files : _Saving_","children":[],"expanded":false}],"expanded":false},{"id":"pw96sogo","title":"Key Bindings","content":"","children":[{"id":"zzfwk2b4","title":"Adding Nodes","content":"Adding Nodes\n--------------------------------------------------------------------------------\n\nYou can add a new node to your diagram by hitting the following key:\n\na","children":[],"expanded":false},{"id":"p3jo7vh1","title":"Duplicating the Selected Node","content":"Duplicating the Selected Node\n--------------------------------------------------------------------------------\n\nIf you wish to duplicate the curently selected node you can use the following\nkey:\n\n=","children":[],"expanded":false},{"id":"igdxij3u","title":"Renaming a Node","content":"Renaming a Node\n--------------------------------------------------------------------------------\n\nTo rename a node (change its type) you can use the following key:\n\nr","children":[],"expanded":false},{"id":"8dw9v1cq","title":"Link Nodes","content":"Link Nodes\n--------------------------------------------------------------------------------\n\nYou can create a node that is simply a link to a URL. To do this you will use\nthe following key:\n\nu","children":[],"expanded":false},{"id":"qio87n34","title":"Creating Connections","content":"","children":[{"id":"miszlvgi","title":"Introduction to Connections","content":"Introduction to Connections\n--------------------------------------------------------------------------------\n\nYou can connect nodes by first intializing the connection mode, then selecting\nthe target node and making the connection.","children":[],"expanded":false},{"id":"rw06jxmk","title":"Starting a Connection","content":"Starting a Connection\n--------------------------------------------------------------------------------\n\nTo begin making a connection you can select the source node, then use the key:\n\nc","children":[],"expanded":false},{"id":"ryzc9bvi","title":"Completing the Connection","content":"Completing the Connection\n--------------------------------------------------------------------------------\n\nIf you have begun a connection (see: _Starting a Connection_) you can then\nnavigate to the target node (see _Navigating Nodes_), then to complete the\nconnection you can use one of the following:\n\nEnter\n  This will create a plain line as the connection between the two nodes.\n\n>\n  This will create a line with an arrow pointing to the target node.","children":[],"expanded":false}],"expanded":false},{"id":"atqii6xw","title":"Disconnecting Nodes","content":"Disconnecting Nodes\n--------------------------------------------------------------------------------\n\nIf you have connected two nodes that you need to now disconnect, you can select\nthe first node and hit:\n\nX\n\nThen navigate to the node you want to disconnect from and hit:\n\nEnter","children":[],"expanded":false},{"id":"gbg3qbn5","title":"Deleting Nodes","content":"Deleting Nodes\n--------------------------------------------------------------------------------\n\nIf you have created a node that you later need to delete, you can select\nit and use the following key:\n\nD","children":[],"expanded":false},{"id":"nyl91mei","title":"Editing a Node's Text","content":"Editing a Node's Text\n--------------------------------------------------------------------------------\n\nEvery node has two sections to it: The text area, and the child nodes area.\nTo edit a node's text, you can select it then hit the following key:\n\ni","children":[],"expanded":false},{"id":"zt597g6u","title":"Repeating Actions","content":"Repeating Actions\n--------------------------------------------------------------------------------\n\nWhen moving nodes or resizing nodes, you can do this multiple times by first\nentering a number followed by its key-code.","children":[],"expanded":false},{"id":"u4unbqdy","title":"Navigating Nodes","content":"","children":[{"id":"nbofydam","title":"Introduction to Navigation","content":"Introduction to Navigation\n--------------------------------------------------------------------------------\n\nThere are a number of ways that you can navigate through your Vummel diagram.\n\nIt is important to be familiar with all of them - especially if your diagrams\nare large (full of many nodes). For instance, if you are just looking to\nselect a specific node you could use the search tool, or you could use _Marks_\nto select commonly accessed nodes.\n\nIf you are performing multi-step actions such as linking nodes, unlinking nodes,\nsnapping nodes etc - you can use either the search feature, the marks feature,\nOR the history feature to make your life easier.","children":[],"expanded":false},{"id":"ttl2v5ej","title":"Navigating Forward and Backward","content":"Navigating Forward and Backward\n--------------------------------------------------------------------------------\n\nYou can move forward and backward through your nodes using the following keys:\n\nw = Forward through your nodes (in the order they were created).\nW = Backward through your nodes.\n\n** Note **\nWith larger diagrams this becomes less useful.\nFor large diagrams you can use:\n* _Searching Nodes_\n* _Marks_\n* _History_","children":[],"expanded":false},{"id":"1fxv0pdk","title":"Searching Nodes","content":"Searching Nodes\n--------------------------------------------------------------------------------\n\nYou can search through your nodes and select the one you want to go to using\nthe following key:\n\n/\n\nEnter the search string and use the up and down arrow keys to highlight\nthe node you want, then hit Enter. Or you can hit the Escape key to simply close\nthe dialog.","children":[],"expanded":false},{"id":"by2qyo8l","title":"Marks","content":"Marks\n--------------------------------------------------------------------------------\n\nFor nodes that you need to access often, you can bookmark those nodes.\nThis feature is similar to Vim's Marks. To set a mark use the following key:\n\nm\n\nThen enter a lower OR upper case letter. This letter will be how you\naccess the mark later. To access marks use the following key:\n\n`\n\nThen enter the mark's lower or upper case identifying letter.","children":[],"expanded":false},{"id":"twqd74tk","title":"History","content":"History\n--------------------------------------------------------------------------------\n\nAnother way to navigate among your diagram's nodes is by using the history\nfeature. Every time you select a node, it is added to the history list. To\nview this list and select nodes from within it, use the following key:\n\n'","children":[],"expanded":false}],"expanded":false}],"expanded":false},{"id":"kiypm5vn","title":"Saving","content":"","children":[],"expanded":false}
+  {"id":"6ljuj3h0","title":"Welcome to the Vummel Help System","content":"Welcome to the Vummel Help System\n--------------------------------------------------------------------------------\n\nUse the\n#\nkey to display the links dialog.\n\nBelow are some topics that can get\nyou started:\n\n_Using This Help System_\n_What is Vummel?_\n_Key Bindings_","children":[],"expanded":false},{"id":"jyyq2oq0","title":"Using This Help System","content":"Using This Help System\n--------------------------------------------------------------------------------\n\nThis is a keyboard-driven help system. To see a quick guide of its key mappings\nuse:\n\n?\n\n** Note **\nYou CAN use your mouse to expand and collapse the tree nodes, as well as\nselecting the topics you would like to read.","children":[],"expanded":false},{"id":"nk7hvnx1","title":"Getting Started","content":"","children":[{"id":"erv01jrx","title":"What is Vummel?","content":"What is Vummel?\n--------------------------------------------------------------------------------\n\nVummel is a keyboard-driven UML diagram application.\nIt allows you to create complex diagrams without ever leaving your keyboard!\n\nIf you are new to Vummel there are two challenges that you will need to learn:\n* The key bindings : _Key Bindings_\n* Saving and managing your files : _Saving_","children":[],"expanded":false}],"expanded":false},{"id":"pw96sogo","title":"Key Bindings","content":"","children":[{"id":"zzfwk2b4","title":"Adding Nodes","content":"Adding Nodes\n--------------------------------------------------------------------------------\n\nYou can add a new node to your diagram by hitting the following key:\n\na","children":[],"expanded":false},{"id":"p3jo7vh1","title":"Duplicating the Selected Node","content":"Duplicating the Selected Node\n--------------------------------------------------------------------------------\n\nIf you wish to duplicate the curently selected node you can use the following\nkey:\n\n=","children":[],"expanded":false},{"id":"igdxij3u","title":"Renaming a Node","content":"Renaming a Node\n--------------------------------------------------------------------------------\n\nTo rename a node (change its type) you can use the following key:\n\nr","children":[],"expanded":false},{"id":"8dw9v1cq","title":"Link Nodes","content":"Link Nodes\n--------------------------------------------------------------------------------\n\nYou can create a node that is simply a link to a URL. To do this you will use\nthe following key:\n\nu","children":[],"expanded":false},{"id":"qio87n34","title":"Creating Connections","content":"","children":[{"id":"miszlvgi","title":"Introduction to Connections","content":"Introduction to Connections\n--------------------------------------------------------------------------------\n\nYou can connect nodes by first intializing the connection mode, then selecting\nthe target node and making the connection.","children":[],"expanded":false},{"id":"rw06jxmk","title":"Starting a Connection","content":"Starting a Connection\n--------------------------------------------------------------------------------\n\nTo begin making a connection you can select the source node, then use the key:\n\nc","children":[],"expanded":false},{"id":"ryzc9bvi","title":"Completing the Connection","content":"Completing the Connection\n--------------------------------------------------------------------------------\n\nIf you have begun a connection (see: _Starting a Connection_) you can then\nnavigate to the target node (see _Navigating Nodes_), then to complete the\nconnection you can use one of the following:\n\nEnter\n  This will create a plain line as the connection between the two nodes.\n\n>\n  This will create a line with an arrow pointing to the target node.","children":[],"expanded":false}],"expanded":false},{"id":"atqii6xw","title":"Disconnecting Nodes","content":"Disconnecting Nodes\n--------------------------------------------------------------------------------\n\nIf you have connected two nodes that you need to now disconnect, you can select\nthe first node and hit:\n\nX\n\nThen navigate to the node you want to disconnect from and hit:\n\nEnter","children":[],"expanded":false},{"id":"gbg3qbn5","title":"Deleting Nodes","content":"Deleting Nodes\n--------------------------------------------------------------------------------\n\nIf you have created a node that you later need to delete, you can select\nit and use the following key:\n\nD","children":[],"expanded":false},{"id":"nyl91mei","title":"Editing a Node's Text","content":"Editing a Node's Text\n--------------------------------------------------------------------------------\n\nEvery node has two sections to it: The text area, and the child nodes area.\nTo edit a node's text, you can select it then hit the following key:\n\ni","children":[],"expanded":false},{"id":"zt597g6u","title":"Repeating Actions","content":"Repeating Actions\n--------------------------------------------------------------------------------\n\nWhen moving nodes or resizing nodes, you can do this multiple times by first\nentering a number followed by its key-code.","children":[],"expanded":false},{"id":"u4unbqdy","title":"Navigating Nodes","content":"","children":[{"id":"nbofydam","title":"Introduction to Navigation","content":"Introduction to Navigation\n--------------------------------------------------------------------------------\n\nThere are a number of ways that you can navigate through your Vummel diagram.\n\nIt is important to be familiar with all of them - especially if your diagrams\nare large (full of many nodes). For instance, if you are just looking to\nselect a specific node you could use the search tool, or you could use _Marks_\nto select commonly accessed nodes.\n\nIf you are performing multi-step actions such as linking nodes, unlinking nodes,\nsnapping nodes etc - you can use either the search feature, the marks feature,\nOR the history feature to make your life easier.","children":[],"expanded":false},{"id":"ttl2v5ej","title":"Navigating Forward and Backward","content":"Navigating Forward and Backward\n--------------------------------------------------------------------------------\n\nYou can move forward and backward through your nodes using the following keys:\n\nw = Forward through your nodes (in the order they were created).\nW = Backward through your nodes.\n\n** Note **\nWith larger diagrams this becomes less useful.\nFor large diagrams you can use:\n* _Searching Nodes_\n* _Marks_\n* _History_","children":[],"expanded":false},{"id":"1fxv0pdk","title":"Searching Nodes","content":"Searching Nodes\n--------------------------------------------------------------------------------\n\nYou can search through your nodes and select the one you want to go to using\nthe following key:\n\n/\n\nEnter the search string and use the up and down arrow keys to highlight\nthe node you want, then hit Enter. Or you can hit the Escape key to simply close\nthe dialog.","children":[],"expanded":false},{"id":"by2qyo8l","title":"Marks","content":"Marks\n--------------------------------------------------------------------------------\n\nFor nodes that you need to access often, you can bookmark those nodes.\nThis feature is similar to Vim's Marks. To set a mark use the following key:\n\nm\n\nThen enter a lower OR upper case letter. This letter will be how you\naccess the mark later. To access marks use the following key:\n\n`\n\nThen enter the mark's lower or upper case identifying letter.","children":[],"expanded":false},{"id":"twqd74tk","title":"History","content":"History\n--------------------------------------------------------------------------------\n\nAnother way to navigate among your diagram's nodes is by using the history\nfeature. Every time you select a node, it is added to the history list. To\nview this list and select nodes from within it, use the following key:\n\n'","children":[],"expanded":false}],"expanded":false}],"expanded":false},{"id":"tmbma459","title":"Palettes","content":"","children":[{"id":"v34mdopx","title":"Introduction to Palettes","content":"Introduction to Palettes\n--------------------------------------------------------------------------------\n\nEach Vummel node can have its own color palette.\n\nTo create, or select a color palette:\n\n* Select a node.\n* Use the key-binding: #\n\nThis will display a dialog that lets you create a new color palette or select\nfrom an existing one.\n\nTo clear a color palette, hit # and when the dialog is displayed, hit # again.","children":[],"expanded":false}],"expanded":false},{"id":"kiypm5vn","title":"Saving","content":"","children":[],"expanded":false}
 ];
 
 
@@ -613,10 +689,13 @@
             "\\);": "^^^func^^^"
         };
 
+        let nodePort = 0;
+
         let currentEditorNodeId = null;
         let historyStack = [];
         let showingHistory = false;
         let historyIndex = 0;
+        const historyStackMax = 30;
 
         let copiedNoteId = null;
 
@@ -663,11 +742,9 @@
         const optShowInitHelp = document.getElementById('optShowInitHelp');
         const optFileName = document.getElementById('optFileName');
         const optModeVim = document.getElementById('optModeVim');
+        const optPort = document.getElementById('optPort');
         let optionFields = [optShowInitHelp, optFileName, optModeVim];
         let optionIndex = 0;
-
-        let findMatches = [];
-        let findIndex = 0;
 
         const helpReadOnly = [
             { key: "j", mode: "TREE", description: "Select next tree node" },
@@ -689,9 +766,6 @@
             { key: "m", mode: "TREE", description: "Bookmark current node" },
             { key: "`", mode: "TREE", description: "Show bookmarks" },
         ];
-
-//            { key: ",", mode: "TREE", description: "Select the next sibling level tree node" },
-//            { key: ".", mode: "TREE", description: "Select the previous sibling level tree node" },
         
         const helpVimEnabled = [
             { key: "r", mode: "TREE", description: "Add root level node" },
@@ -725,6 +799,7 @@
             { key: "X", mode: "TREE", description: "Show broken note links" },
             { key: "s", mode: "TREE", description: "Save the current file" },
             { key: "S", mode: "TREE", description: "Save as" },
+            { key: "n", mode: "TREE", description: "Save via NodeJs saver server" },
             { key: "T", mode: "TREE", description: "Export current note as .txt" },
             { key: "U", mode: "TREE", description: "Upgrade (import existing data)" },
             { key: "m", mode: "TREE", description: "Bookmark current node" },
@@ -794,6 +869,7 @@
             { key: "X", mode: "TREE", description: "Show broken note links" },
             { key: "s", mode: "TREE", description: "Save the current file" },
             { key: "S", mode: "TREE", description: "Save as" },
+            { key: "n", mode: "TREE", description: "Save via NodeJs saver server" },
             { key: "T", mode: "TREE", description: "Export current note as .txt" },
             { key: "U", mode: "TREE", description: "Upgrade (import existing data)" },
             { key: "m", mode: "TREE", description: "Bookmark current node" },
@@ -872,8 +948,7 @@
             // Add it at the end (latest)
             historyStack.push({ id, title: node.title || "(untitled)" });
         
-            // Cap size at 100
-            if (historyStack.length > 100) {
+            if (historyStack.length > historyStackMax) {
                 historyStack.shift();
             }
         }
@@ -933,8 +1008,8 @@
                 const icon = document.createElement('span');
                 icon.className = 'icon';
                 icon.innerHTML = isFolder(n)
-                    ? `<?xml version="1.0" encoding="UTF-8" standalone="no"?> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2" /> <g id="g5951" transform="matrix(0.18666667,0,0,0.18666667,-0.22930552,-0.10583338)"> <g id="layer1"> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="M 2.6458333,3.96875 H 11.90625 l 2.645833,2.6458332 h 7.9375 V 19.84375 H 2.6458333 Z" id="path65" /> <path style="fill:#466779;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 3.96875,5.2916667 h 7.408333 l 2.38125,2.38125 h 7.408334 V 18.520833 H 3.96875 Z" id="path924" /> <rect style="fill:#364750;fill-opacity:1;stroke-width:7.9375;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect1561" width="17.197916" height="9.260417" x="3.96875" y="9.260417" /> </g> </g> </svg>`
-                    : `<?xml version="1.0" encoding="UTF-8" standalone="no"?> <!-- Created with Inkscape (http://www.inkscape.org/) --> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2" /> <path style="fill:#80a5ba;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 0.79374997,0.63637699 c 1.76898013,-0.006197 0.91709523,0 2.64583343,0 V 3.5997107 H 0.79374997 Z" id="path65" /> <path style="fill:#787878;fill-opacity:1;stroke-width:1.22694;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" d="m 1.0583332,0.93243487 c 1.4151843,-0.004957 0.7336763,0 2.116667,0 V 3.303102 h -2.116667 z" id="path4404" /> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.0583334" height="0.24694447" x="1.5875001" y="1.3772104" /> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.0583334" height="0.24694447" x="1.5875001" y="1.8710994" /> <rect style="fill:#364750;fill-opacity:1;stroke-width:1.53367;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.0583334" height="0.24694447" x="1.5875001" y="2.3649883" /> </svg>`;
+                    ? `<?xml version="1.0" encoding="UTF-8" standalone="no"?> <svg width="16" height="16" viewBox="0 0 4.2333332 4.2333333" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2" /> <g id="layer1"> <path style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.264583;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 0.26458332,0.52916666 H 1.8520833 l 0.79375,0.52916664 1.3229167,1e-7 v 2.6458333 l -3.70416668,-10e-8 V 0.52916666" id="path2433" /> </g> </svg>`
+                    : `<?xml version="1.0" encoding="UTF-8" standalone="no"?> <svg width="16" height="16" viewBox="0 0 4.2333334 4.2333334" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"> <defs id="defs2" /> <path style="fill:none;fill-opacity:1;stroke:#a5a5a5;stroke-width:0.258464;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers" d="m 0.79069024,0.63332294 c 1.68462256,-0.00621 0.87336156,0 2.51966116,0 V 3.6027704 H 0.79069024 Z" id="path65" /> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5117" width="1.3229166" height="0.24694447" x="1.3890625" y="1.3934721" /> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5737" width="1.3229166" height="0.24694447" x="1.3890625" y="1.887361" /> <rect style="fill:#757575;fill-opacity:1;stroke-width:1.7147;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers" id="rect5739" width="1.3229166" height="0.24694447" x="1.3890625" y="2.3812501" /> </svg>`;
 
                 const title = document.createElement('span');
                 title.className = 'title';
@@ -1018,12 +1093,15 @@
         //---- Editor Sync -----------------------------------------------------
         editorArea.addEventListener('input', () => {
             syncFile();
+            scheduleAutoSave();
         });
 
         editorArea.addEventListener('click', () => {
-            mode_insert = true;
-            editing = true;
-            render();
+            if (!readOnly) {
+                mode_insert = true;
+                editing = true;
+                render();
+            }
 
             // Close dialogs - this is for mobile envs
             closeDialogs();
@@ -1125,6 +1203,8 @@
                     break;
         
                 case 'Enter':
+                    if (finding) break;
+
                     e.preventDefault();
                     e.stopPropagation();
         
@@ -1140,8 +1220,11 @@
                     break;
             }
 
-            setAppHeight();
-            scrollToCursor();
+            if (!mode_insert) {
+                // Only adjust scrolling when *not* editing
+                setAppHeight();
+                scrollToCursor();
+            }
 
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -1236,7 +1319,8 @@
                 }
             }
 
-        
+
+            //---- These are the keys to be processed when in NORMAL mode ------
             switch (e.key) {
                 case "i": // Enter insert mode
                 case "a":
@@ -1373,6 +1457,7 @@
                     scrollToCursor();
                     break;
             }
+            //------------------------------------------------------------------
         
             if (performed) {
                 keyPerformed();
@@ -1878,26 +1963,30 @@
                     return value.slice(ls, le === -1 ? value.length : le);
                 })();
 
-            if (!/\|/.test(sel)) return;
+            if (!/\|/.test(sel)) return; // no table detected
 
             const rawLines = sel.trim().split(/\r?\n/);
-            const dividerPattern = /^\s*\|?\s*-+\s*(\|\s*-+\s*)*\|?\s*$/;
 
-            // Detect whether any divider line exists
+            // Matches:
+            //   | ---- | ---- |   (old markdown style)
+            //   +------+------+
+            //   ----             (plain)
+            const dividerPattern = /^\s*(?:[\|+]\s*-+\s*(?:[\|+]\s*-+\s*)*[\|+]|-+)\s*$/;
+
             const hasDivider = rawLines.some(line => dividerPattern.test(line));
 
-            // Build table rows ignoring dividers for now
+            // Filter out dividers for measuring widths
             const contentLines = rawLines.filter(line => !dividerPattern.test(line));
             if (contentLines.length === 0) return;
 
-            // Parse cells
+            // Parse rows into cells
             const table = contentLines.map(line =>
                 line.split("|")
                     .map(c => c.trimEnd())
                     .filter((c, i, arr) => !(i === 0 && c === "") && !(i === arr.length - 1 && c === ""))
             );
 
-            // Compute max width for each column
+            // Compute max width per column
             const widths = [];
             table.forEach(row => {
                 row.forEach((cell, i) => {
@@ -1905,11 +1994,10 @@
                 });
             });
 
-            // Create a properly sized divider row
-            const makeSep = () =>
-                "|" + widths.map(w => " " + "-".repeat(w) + " ").join("|") + "|";
+            // Build ASCII-style separator
+            const makeSep = () => "+" + widths.map(w => "-".repeat(w + 2)).join("+") + "+";
 
-            // Format rows cleanly
+            // Build padded table rows
             const padded = table.map(row =>
                 "|" + row.map((cell, i) => {
                     const trimmed = cell.trim();
@@ -1918,23 +2006,21 @@
                 }).join("|") + "|"
             );
 
-            // Rebuild the output respecting divider placement
+            // Rebuild all lines: regenerate every separator, reformat all content
             const finalRows = [];
-            let nextRow = 0;
+            let rowIndex = 0;
 
-            for (let i = 0; i < rawLines.length; i++) {
-                const line = rawLines[i];
-
+            for (const line of rawLines) {
                 if (dividerPattern.test(line)) {
-                    // Proper divider → regenerate it at correct width
+                    // Always rebuild separator lines
                     finalRows.push(makeSep());
-                } else if (nextRow < padded.length) {
-                    // Proper content → add it in order
-                    finalRows.push(padded[nextRow++]);
+                } else if (rowIndex < padded.length) {
+                    // Replace content rows with padded versions
+                    finalRows.push(padded[rowIndex++]);
                 }
             }
 
-            // If there were no dividers at all, just use the padded content
+            // If no dividers were present at all, just output the padded content
             if (!hasDivider) {
                 finalRows.length = 0;
                 finalRows.push(...padded);
@@ -1976,6 +2062,7 @@
             optShowInitHelp.checked = showInitHelp;
             optFileName.value = fileName;
             optModeVim.checked = mode_vim;
+            optPort.value = nodePort;
             optionsDialog.style.display = 'block';
             optionIndex = 0;
             optionFields[optionIndex].focus();
@@ -1987,6 +2074,7 @@
             showInitHelp = optShowInitHelp.checked;
             fileName = optFileName.value || fileName;
             mode_vim = optModeVim.checked;
+            nodePort = optPort.value;
             closeOptionsDialog();
         }
 
@@ -2030,7 +2118,7 @@
 
             // --- Collect underscore note links not already captured ---
             while ((match = nodeLinkRegex.exec(content)) !== null) {
-                const title = match[1].trim();
+                const title = match[1].trim().replace(/^_+|_+$/g, "");
                 const wrapped = `_${title}_`;
                 if (!foundLinks.some(l => l.target === wrapped)) {
                     foundLinks.push({ label: title, target: wrapped });
@@ -2043,7 +2131,14 @@
             } else {
                 for (const { label, target, fromMarkdown } of foundLinks) {
                     const a = document.createElement('a');
-                    a.textContent = fromMarkdown ? label : target;
+                    let displayLabel = fromMarkdown ? label : target;
+                    
+                    // If it's a wrapped note link (e.g. _Some Note_), show only the inner text
+                    if (/^_.+_$/.test(displayLabel)) {
+                        displayLabel = displayLabel.slice(1, -1);
+                    }
+                    
+                    a.textContent = displayLabel;
 
                     if (/^(https?|file):\/\//i.test(target)) {
                         // External URL
@@ -2087,7 +2182,6 @@
                     }
 
                     listEl.appendChild(a);
-                    listEl.appendChild(document.createElement('br'));
                 }
 
                 const links = listEl.querySelectorAll('a');
@@ -2136,6 +2230,8 @@
                     fileName = newFile;
                     document.title = newTitle;
                     closeDialog();
+                    historyStack = [];
+                    bookmarks = [];
                     saveAsHtml(newFile);
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
@@ -2154,13 +2250,14 @@
         function renderHistoryList() {
             const listEl = document.getElementById('historyList');
             listEl.innerHTML = '';
-            const recent = historyStack.slice(-15).reverse(); // latest first
+            const recent = historyStack.slice(-historyStackMax).reverse(); // latest first
             recent.forEach((entry, i) => {
                 const div = document.createElement('div');
                 div.textContent = entry.title;
                 if (i === historyIndex) {
                     div.classList.add('selected');
                     div.style.background = '#444'; // ensure visible
+                    requestAnimationFrame(() => div.scrollIntoView({ block: "nearest", behavior: "smooth" }));
                 }
                 listEl.appendChild(div);
             });
@@ -2197,6 +2294,10 @@
         //---- Finding and Replacing -------------------------------------------
         function openReplaceDialog() {
             finding = true;
+            findMatches = [];
+            currentFindIndex = -1;
+            const resultsEl = document.getElementById('findResults');
+            resultsEl.innerHTML = '';
             document.getElementById('searchText').value = '';
             document.getElementById('replaceText').value = '';
             document.getElementById('replaceDialog').style.display = 'block';
@@ -2204,49 +2305,102 @@
         }
 
         function closeReplaceDialog() {
-            finding = false;
             document.getElementById('replaceDialog').style.display = 'none';
+            finding = false;
         }
 
         function doFind() {
             const info = findNodeAndParentById(selectedId);
             if (!info) return;
 
-            const searchVal = document.getElementById('searchText').value;
-            const resultsEl = document.getElementById('replaceResults');
+            const searchVal = document.getElementById('searchText').value.trim();
+            const resultsEl = document.getElementById('findResults');
             const area = document.getElementById('editorArea');
+            const content = safeRestoreText(info.node.content) || '';
+
+            resultsEl.innerHTML = '';
+            findMatches = [];
+            currentFindIndex = -1;
 
             if (!searchVal) {
                 resultsEl.textContent = 'Enter something to search for.';
                 return;
             }
 
-            const content = safeRestoreText(info.node.content) || '';
-            // Escape user input for regex
             const regex = new RegExp(searchVal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-
-            // Create a list of match start indexes
-            findMatches = [];
             let match;
+            const contextRadius = 20;
+            let resultHTML = '';
+
             while ((match = regex.exec(content)) !== null) {
-                findMatches.push({ start: match.index, end: match.index + match[0].length });
+                const start = Math.max(0, match.index - contextRadius);
+                const end = Math.min(content.length, match.index + match[0].length + contextRadius);
+                const context = content.substring(start, end)
+                    .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const highlighted = context.replace(new RegExp(searchVal, 'gi'), 
+                    m => `<span class="find-highlight">${m}</span>`);
+
+                findMatches.push({ index: match.index, length: match[0].length });
+                resultHTML += `<div class="find-item" data-idx="${findMatches.length - 1}" 
+                                style="cursor:pointer; padding:2px; overflow: auto; font-size: 60%;">
+                                ${highlighted}
+                               </div>`;
             }
 
             if (findMatches.length === 0) {
                 resultsEl.textContent = 'No matches found.';
-                return;
+            } else {
+                resultsEl.innerHTML = resultHTML;
             }
 
-            // Cycle to the next match
-            if (findIndex >= findMatches.length) findIndex = 0;
-            const current = findMatches[findIndex];
+            if (findMatches.length > 0) {
+                currentFindIndex = 0;
+                const first = resultsEl.querySelectorAll('.find-item')[0];
+                if (first) {
+                    first.style.background = '#333';
+                    first.scrollIntoView({ block: 'nearest' });
+                }
+            }
 
-            // Move the caret/selection to the match
+            // Click handler
+            resultsEl.querySelectorAll('.find-item').forEach(div => {
+                div.addEventListener('click', e => {
+                    const idx = parseInt(div.dataset.idx);
+                    selectFindMatch(idx);
+                    closeReplaceDialog();
+                });
+            });
+        }
+        function selectFindMatch(idx) {
+            if (idx < 0 || idx >= findMatches.length) return;
+
+            const area = document.getElementById('editorArea');
+            const match = findMatches[idx];
+            currentFindIndex = idx;
+
+            // Scroll and select
+            area.setSelectionRange(match.index, match.index + match.length);
+            setVimMode(false);
+            editing = true;
             area.focus();
-            area.setSelectionRange(current.start, current.end);
+        }
+        function navigateFindResults(dir) {
+            if (findMatches.length === 0) return;
+            if (currentFindIndex === -1) currentFindIndex = 0;
+            else currentFindIndex = (currentFindIndex + dir + findMatches.length) % findMatches.length;
 
-            resultsEl.textContent = `Match ${findIndex + 1} of ${findMatches.length}`;
-            findIndex++;
+            const resultDivs = document.querySelectorAll('#findResults .find-item');
+            resultDivs.forEach(div => div.style.background = '');
+            const active = resultDivs[currentFindIndex];
+            if (active) {
+                active.style.background = '#333';
+                active.scrollIntoView({ block: 'nearest' });
+            }
+            // Keep selection synced with highlighted result
+            const area = document.getElementById('editorArea');
+            const match = findMatches[currentFindIndex];
+            area.focus();
+            area.setSelectionRange(match.index, match.index + match.length);
         }
 
         function doReplaceAll() {
@@ -2268,6 +2422,7 @@
 
             if (matchCount > 0) {
                 content = content.replace(regex, replaceVal);
+                editorArea.value = content;
                 info.node.content = safeStoreText(content);
                 render();
                 resultsEl.textContent = `Replaced ${matchCount} occurrence(s).`;
@@ -2284,6 +2439,7 @@
         replaceInputEl.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                e.stopPropagation();
                 doReplaceAll(); // replaces all
                 closeReplaceDialog();
             }
@@ -2336,7 +2492,6 @@
             editorArea.value = undoValue;
             syncFile();
         }
-
 
 
         //---- Visual Mode Helpers ---------------------------------------------
@@ -2424,6 +2579,7 @@
                 editorArea.setRangeText("", lineStart, lineEnd, "start");
                 editorArea.selectionStart = editorArea.selectionEnd = lineStart;
             } else {
+                if (end === start) end += 1;
                 const deletedLength = end - start;
                 visual_end = visual_start;
                 editorArea.setRangeText("", start, end, "start");
@@ -2473,7 +2629,10 @@
             searchMatches.forEach((n, i) => {
                 const item = document.createElement('div');
                 item.textContent = n.title || '(untitled)';
-                if (i === searchIndex) item.classList.add('selected');
+                if (i === searchIndex) {
+                    item.classList.add('selected');
+                    requestAnimationFrame(() => item.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+                }
                 item.addEventListener('click', () => {
                     if (searchMatches.length > 0) {
                         selectSearchResult(i);
@@ -2550,21 +2709,16 @@
             function matches(h, term) {
                 let t = term.trim().replace(/\s+/g, '').toLowerCase();
                 let key = h.key.replace(/\s+/g, '').toLowerCase();
-                let mode = "";
-                if (mode != "ReadOnly") {
-                    mode = mode.toLowerCase();
-                } else {
-                    mode = "";
-                }
+                let mode = h.mode ? h.mode.toLowerCase() : "";
                 let desc = h.description.toLowerCase();
             
                 // If the search starts with ":", search keys only
                 if (t.startsWith(':')) {
                     t = t.slice(1); // remove ':'
-                    mode = '';
-                    desc = '';
+                    return key.includes(t);
                 }
             
+                // Otherwise search all fields
                 return key.includes(t) || mode.includes(t) || desc.includes(t);
             }
         
@@ -2615,15 +2769,7 @@
 
 
         //---- Saving ----------------------------------------------------------
-        function saveAsHtml(currentFileName) {
-            let name = currentFileName;
-            let saveName = false;
-            if (name === "") {
-                name = prompt("Save as .html (enter name without extension):", "");
-                if (!name) return;
-                saveName = true;
-            }
-
+        function getContents(name, saveName) {
             const elemLimit = 20; // Number of elements per line
             const htmlDoc = document.documentElement.cloneNode(true);
 
@@ -2661,18 +2807,59 @@
               `let mode_vim = ${mode_vim};`
             );
 
+            // nodePort
+            htmlContent = htmlContent.replace(
+                /let\s+nodePort\s*=\s*\d+;/,
+                `let nodePort = ${nodePort};`
+            );
+
             htmlContent = htmlContent.replace(/let\s+treeData\s*=\s*\[[\s\S]*?\];/, `let treeData = ${formattedDatabase};`);
 
             htmlContent = htmlContent.replace(
                 /let\s+bookmarks\s*=\s*\[[\s\S]*?\];/,
                 "let bookmarks = " + JSON.stringify(bookmarks, null, 4) + ";"
             );
+            htmlContent = htmlContent.replace(
+                /let\s+historyStack\s*=\s*\[[\s\S]*?\];/,
+                "let historyStack = " + JSON.stringify(historyStack, null, 4) + ";"
+            );
+
+            return htmlContent;
+        }
+
+
+        function saveAsHtml(currentFileName) {
+            let name = currentFileName;
+            let saveName = false;
+            if (name === "") {
+                name = prompt("Save as .html (enter name without extension):", "");
+                if (!name) return;
+                saveName = true;
+            }
+
+            let htmlContent = getContents(name, saveName);
 
             let blob = new Blob([htmlContent], { type: "text/html" });
             let a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = `${name}.html`;
             a.click();
+        }
+
+        async function saveViaNode() {
+            const content = getContents(fileName, false);
+
+            const res = await fetch("http://localhost:"+nodePort+"/save", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: content
+            });
+
+            if (res.ok) {
+                showMessage("Saved successfully");
+            } else {
+                showMessage("Save failed: " + (await res.text()));
+            }
         }
 
         function exportNoteAsTxt() {
@@ -2738,9 +2925,24 @@
                     case 'Escape':
                         closeReplaceDialog();
                         break;
-
+                    case 'ArrowDown':
+                        navigateFindResults(1);
+                        e.preventDefault();
+                        break;
+                    case 'ArrowUp':
+                        navigateFindResults(-1);
+                        e.preventDefault();
+                        break;
                     case "Enter":
-                        doFind();
+                        if (document.getElementById('replaceText').value !== "") break;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (currentFindIndex !== -1) {
+                            selectFindMatch(currentFindIndex);
+                            closeReplaceDialog();
+                        } else {
+                            doFind();
+                        }
                         break;
                 }
 
@@ -2808,8 +3010,6 @@
                 case 'R': if (!readOnly) renameFolder(); break;
                 case 'j': if (!dialogOpen()) selectNextSibling(true); break;
                 case 'k': if (!dialogOpen()) selectPrevSibling(false); break;
-                case ',': selectNextSibling(true); break;
-                case '.': selectPrevSibling(true); break;
                 case 'l': moveRight(); break;
                 case 'h': moveLeft(true); break;
                 case 'u': moveLeft(false); break;
@@ -2826,6 +3026,7 @@
                 case 'D': deleteNode(); break;
                 case 's': saveAsHtml(fileName); break;
                 case 'S': openSaveAsDialog(); break;
+                case 'n': saveViaNode(); break;
                 case 'T': exportNoteAsTxt(); break;
                 case ']': resizeTree(30); break;
                 case '[': resizeTree(-30); break;
@@ -2905,6 +3106,8 @@
 
     let linksIndex = 0;
     let linksCount = 0;
+    let findMatches = [];
+    let currentFindIndex = -1;
 
     function openMissingLinksDialog() {
         if (readOnly) return;
@@ -3088,7 +3291,7 @@
     function handleHistoryKey(e) {
         if (!showingHistory) return;
         if (e.key === 'ArrowDown' || e.key === 'j') {
-            historyIndex = Math.min(historyIndex + 1, Math.min(14, historyStack.length - 1));
+            historyIndex = Math.min(historyIndex + 1, Math.min(historyStackMax, historyStack.length - 1));
             renderHistoryList();
             e.preventDefault();
         } else if (e.key === 'ArrowUp' || e.key === 'k') {
@@ -3344,7 +3547,23 @@
         selectedId = treeData[0]?.id || null;
         render();
     });
+
+
+    //---- Node AutoSaver ------------------------------------------------------
+    let autoSaveTimer = null;
+
+    function scheduleAutoSave() {
+        if (nodePort == 0) return;
+        if (!mode_insert) return;
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+        saveViaNode();
+        }, 3000);                               // wait 3s after last change
+    }
 </script>
+
+
 
 
 </body></html>
