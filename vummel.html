@@ -1933,6 +1933,22 @@ Escape = Deselect the current note's text field,
             document.body.appendChild(marksScript);
         }
         marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        // Save history data
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(
+            history.map(n => n.id),
+            null,
+            2
+        );
+
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
@@ -1970,11 +1986,26 @@ Escape = Deselect the current note's text field,
             console.error('Failed to restore connectors:', err);
         }
     }
+
+    function restoreHistoryFromDOM() {
+        const script = document.getElementById('history-data');
+        if (!script) return;
+    
+        try {
+            const ids = JSON.parse(script.textContent);
+            history = ids
+                .map(id => document.getElementById(id))
+                .filter(n => n); // remove nulls
+        } catch (err) {
+            console.error('Failed to restore history:', err);
+        }
+    }
       
     window.onload = () => {
         initializeNodes();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
+        restoreHistoryFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {
