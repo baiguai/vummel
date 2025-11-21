@@ -1,0 +1,42 @@
+{
+  "name": "Light Theme",
+  "description": "Clean light theme for the UML diagram app",
+  "styles": {
+    "body": {
+      "background": "white",
+      "color": "black"
+    },
+    "canvas": {
+      "background": "white"
+    },
+    "node": {
+      "background": "#f8f9fa",
+      "color": "black",
+      "border": "1px solid #dee2e6"
+    },
+    "nodeHeader": {
+      "color": "black"
+    },
+    "nodeContent": {
+      "background": "#ffffff",
+      "color": "black"
+    },
+    "dropzone": {
+      "background": "#f8f9fa",
+      "color": "black"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "black",
+      "border": "2px solid #dee2e6"
+    },
+    "button": {
+      "background": "#e9ecef",
+      "color": "black",
+      "border": "1px solid #adb5bd"
+    },
+    "connector": {
+      "stroke": "#6c757d"
+    }
+  }
+}

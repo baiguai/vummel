@@ -1,4 +1,4 @@
-<!DOCTYPE html><html style="--app-height: 1058px;"><head>
+<!DOCTYPE html><html style="--app-height: 1052px;"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
 <title>Vummel Help</title>
@@ -813,8 +813,10 @@
             { key: "k", mode: "NORMAL", description: "Move up" },
             { key: "0", mode: "NORMAL", description: "Jump to the beginning of the line" },
             { key: "$", mode: "NORMAL", description: "Jump to the end of the line" },
+            { key: "b", mode: "NORMAL", description: "Move backward one word" },
+            { key: "B", mode: "NORMAL", description: "Move backward to the next space" },
             { key: "w", mode: "NORMAL", description: "Move forward one word" },
-            { key: "W", mode: "NORMAL", description: "Move back a word" },
+            { key: "W", mode: "NORMAL", description: "Move forward to the next space" },
             { key: "D", mode: "NORMAL", description: "Delete everything right of the cursor" },
             { key: "dd", mode: "NORMAL", description: "Delete current row" },
             { key: "gg", mode: "NORMAL", description: "Go to the start of the note" },
@@ -1393,10 +1395,52 @@
                     performed = true;
                     break;
 
-                case "W": // Backward word(s)
+                case "W":
+                    const area = document.getElementById('editorArea');
+                    if (!area) break;
+                
+                    const wtext = area.value;
+                    const pos = area.selectionStart;
+                
+                    // Find end of current line
+                    const newlineIdx = wtext.indexOf('\n', pos);
+                    const lineEnd = newlineIdx === -1 ? wtext.length : newlineIdx;
+                
+                    // Find next space within the same line
+                    let nextSpace = wtext.indexOf(' ', pos + 1);
+                    if (nextSpace === -1 || nextSpace > lineEnd) nextSpace = lineEnd;
+                
+                    // Skip consecutive spaces
+                    while (nextSpace < wtext.length && wtext[nextSpace] === ' ') nextSpace++;
+                
+                    area.setSelectionRange(nextSpace, nextSpace);
+                    e.preventDefault();
+                    break;
+
                 case "b": // Backward word(s)
                     for (let i = 0; i < mode_repeat; i++) moveWord(-1);
                     performed = true;
+                    break;
+
+                case "B":
+                    const barea = document.getElementById('editorArea');
+                    if (!barea) break;
+                
+                    const btext = barea.value;
+                    const bpos = barea.selectionStart;
+                
+                    // Find start of current line
+                    const lineStart = btext.lastIndexOf('\n', bpos - 1) + 1;
+                
+                    // Move backward until hitting space or start of line
+                    let prevSpace = btext.lastIndexOf(' ', bpos - 1);
+                    if (prevSpace < lineStart && lineStart > 0) prevSpace = lineStart;
+                
+                    // Skip consecutive spaces
+                    while (prevSpace > 0 && btext[prevSpace - 1] === ' ') prevSpace--;
+                
+                    barea.setSelectionRange(prevSpace, prevSpace);
+                    e.preventDefault();
                     break;
         
                 case "x": // Delete character(s) under cursor

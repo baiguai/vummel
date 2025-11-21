@@ -186,6 +186,7 @@ p = Start snap (select the second node
     snap to the right of the second node.
 # = Sets a custom color for the node.
     OR manages existing color 'palettes'.
+% = Import a theme from a JSON file.
 / = Search and select a node.
 m&lt;letter&gt; = Set mark (A-Z, a-z).
 `&lt;letter&gt; = Go to mark (A-Z, a-z).
@@ -223,6 +224,7 @@ Escape = Deselect the current note's text field,
     let zoom = 1;
     let dragging = false;
     let pickingColor = false;
+    let currentTheme = null;
 
     // === VIM-style Marks ===
     let marks = {}; // { letter: nodeId }
@@ -478,6 +480,11 @@ Escape = Deselect the current note's text field,
         div.appendChild(dropzone);
 
         setupNode(div);
+        
+        // Apply theme to new node if one is active
+        if (currentTheme && !div.dataset.color) {
+            applyThemeToNode(div);
+        }
 
         // === Nesting logic ===
         if (selectedNode) {
@@ -619,6 +626,13 @@ Escape = Deselect the current note's text field,
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        setupNode(div);
+        
+        // Apply theme to new link node if one is active
+        if (currentTheme && !div.dataset.color) {
+            applyThemeToNode(div);
+        }
+
         nodes.push(div);
         setSelectedNode(div);
     }
@@ -665,9 +679,14 @@ Escape = Deselect the current note's text field,
         dialog.style.width = '400px';
         dialog.style.maxHeight = '70%';
         dialog.style.overflow = 'hidden';
-        dialog.style.background = '#222';
-        dialog.style.color = '#fff';
-        dialog.style.border = '2px solid #444';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
         dialog.style.borderRadius = '10px';
         dialog.style.zIndex = 9999;
         dialog.style.fontFamily = 'monospace';
@@ -681,9 +700,16 @@ Escape = Deselect the current note's text field,
         filter.placeholder = 'Filter by type or text...';
         filter.style.padding = '5px';
         filter.style.marginBottom = '10px';
-        filter.style.background = '#111';
-        filter.style.color = '#fff';
-        filter.style.border = '1px solid #555';
+        // Apply theme colors for input if available
+        if (currentTheme && currentTheme.styles.nodeContent) {
+            filter.style.background = currentTheme.styles.nodeContent.background;
+            filter.style.color = currentTheme.styles.nodeContent.color;
+            filter.style.border = '1px solid #555';
+        } else {
+            filter.style.background = '#111';
+            filter.style.color = '#fff';
+            filter.style.border = '1px solid #555';
+        }
 
         const listContainer = document.createElement('div');
         listContainer.style.overflowY = 'auto';
@@ -801,9 +827,14 @@ Escape = Deselect the current note's text field,
         dialog.style.width = '400px';
         dialog.style.maxHeight = '70%';
         dialog.style.overflow = 'hidden';
-        dialog.style.background = '#222';
-        dialog.style.color = '#fff';
-        dialog.style.border = '2px solid #444';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
         dialog.style.borderRadius = '10px';
         dialog.style.zIndex = 9999;
         dialog.style.fontFamily = 'monospace';
@@ -1056,6 +1087,12 @@ Escape = Deselect the current note's text field,
 
         if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
             document.getElementById('helpDialog').style.display = 'block';
+            e.preventDefault();
+            return;
+        }
+
+        if (e.key === '%' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            showThemeImportDialog();
             e.preventDefault();
             return;
         }
@@ -1456,6 +1493,184 @@ Escape = Deselect the current note's text field,
         e.preventDefault();
     });
 
+    function showThemeImportDialog() {
+        // Remove any existing dialog
+        const existing = document.getElementById('themeImportDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'themeImportDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '500px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        dialog.style.background = '#222';
+        dialog.style.color = '#fff';
+        dialog.style.border = '2px solid #444';
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '20px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Import Theme';
+        title.style.margin = '0 0 15px 0';
+        dialog.appendChild(title);
+
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Select a theme file to import:';
+        instructions.style.margin = '0 0 15px 0';
+        instructions.style.fontSize = '14px';
+        dialog.appendChild(instructions);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.marginBottom = '15px';
+        fileInput.style.background = '#111';
+        fileInput.style.color = '#fff';
+        fileInput.style.border = '1px solid #555';
+        fileInput.style.padding = '5px';
+
+        const status = document.createElement('div');
+        status.style.marginBottom = '15px';
+        status.style.fontSize = '12px';
+        status.style.color = '#aaa';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const themeData = JSON.parse(event.target.result);
+                    if (validateTheme(themeData)) {
+                        applyTheme(themeData);
+                        status.textContent = `Theme "${themeData.name}" applied successfully!`;
+                        status.style.color = '#7af';
+                        setTimeout(() => {
+                            dialog.remove();
+                        }, 1500);
+                    } else {
+                        status.textContent = 'Invalid theme file format.';
+                        status.style.color = '#f77';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error parsing theme file: ' + error.message;
+                    status.style.color = '#f77';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        dialog.appendChild(fileInput);
+        dialog.appendChild(status);
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Cancel (ESC)';
+        closeButton.style.background = '#333';
+        closeButton.style.color = '#fff';
+        closeButton.style.border = '1px solid #666';
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => dialog.remove();
+        dialog.appendChild(closeButton);
+
+        document.body.appendChild(dialog);
+        fileInput.focus();
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                dialog.remove();
+            }
+        });
+    }
+
+    function validateTheme(theme) {
+        return theme && 
+               typeof theme === 'object' &&
+               theme.name &&
+               theme.styles &&
+               typeof theme.styles === 'object';
+    }
+
+    function applyThemeToNode(node) {
+        if (!currentTheme || !node || node.dataset.color) return;
+        
+        const styles = currentTheme.styles;
+        
+        if (styles.node) {
+            Object.assign(node.style, {
+                background: styles.node.background,
+                color: styles.node.color,
+                border: styles.node.border
+            });
+        }
+
+        const header = node.querySelector('.node-header');
+        if (header && styles.nodeHeader) {
+            Object.assign(header.style, styles.nodeHeader);
+        }
+
+        const textarea = node.querySelector('textarea');
+        if (textarea && styles.nodeContent) {
+            Object.assign(textarea.style, styles.nodeContent);
+        }
+
+        const dropzone = node.querySelector('.dropzone');
+        if (dropzone && styles.dropzone) {
+            Object.assign(dropzone.style, styles.dropzone);
+        }
+    }
+
+    function applyTheme(theme) {
+        currentTheme = theme;
+        const styles = theme.styles;
+
+        // Apply body styles
+        if (styles.body) {
+            Object.assign(document.body.style, styles.body);
+        }
+
+        // Apply canvas styles
+        if (styles.canvas && canvas) {
+            Object.assign(canvas.style, styles.canvas);
+        }
+
+        // Apply node styles to nodes without custom colors
+        document.querySelectorAll('.node').forEach(node => {
+            applyThemeToNode(node);
+        });
+
+        // Apply dialog styles
+        if (styles.dialog) {
+            document.querySelectorAll('#helpDialog, #nodeSelectorDialog, #historyDialog, #themeImportDialog').forEach(dialog => {
+                Object.assign(dialog.style, styles.dialog);
+            });
+        }
+
+        // Apply button styles
+        if (styles.button) {
+            document.querySelectorAll('button').forEach(button => {
+                Object.assign(button.style, styles.button);
+            });
+        }
+
+        // Apply connector styles
+        if (styles.connector) {
+            updateConnectors();
+        }
+    }
+
     function showColorPaletteMenu() {
         if (!selectedNode) return;
 
@@ -1818,7 +2033,7 @@ Escape = Deselect the current note's text field,
             line.setAttribute("y1", startY - minY);
             line.setAttribute("x2", endX - minX);
             line.setAttribute("y2", endY - minY);
-            line.setAttribute("stroke", "#ccc");
+            line.setAttribute("stroke", currentTheme?.styles?.connector?.stroke || "#ccc");
             line.setAttribute("stroke-width", "2");
             svg.appendChild(line);
 
@@ -1858,7 +2073,7 @@ Escape = Deselect the current note's text field,
                     "points",
                     `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
                 );
-                polygon.setAttribute("fill", "#ccc");
+                polygon.setAttribute("fill", currentTheme?.styles?.connector?.stroke || "#ccc");
 
                 svg.appendChild(polygon);
             }
@@ -1934,6 +2149,17 @@ Escape = Deselect the current note's text field,
         }
         marksScript.textContent = JSON.stringify(marks, null, 2);
 
+        // Save theme data
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
         // Save history data
         let historyScript = document.querySelector('script[data-history]');
         if (!historyScript) {
@@ -1987,6 +2213,20 @@ Escape = Deselect the current note's text field,
         }
     }
 
+    function restoreThemeFromDOM() {
+        const script = document.getElementById('theme-data');
+        if (!script) return;
+
+        try {
+            const theme = JSON.parse(script.textContent);
+            if (validateTheme(theme)) {
+                applyTheme(theme);
+            }
+        } catch (err) {
+            console.error('Failed to restore theme:', err);
+        }
+    }
+
     function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
@@ -2003,6 +2243,7 @@ Escape = Deselect the current note's text field,
       
     window.onload = () => {
         initializeNodes();
+        restoreThemeFromDOM();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
         restoreHistoryFromDOM();

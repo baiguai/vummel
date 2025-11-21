@@ -1,0 +1,42 @@
+{
+  "name": "Ocean Theme",
+  "description": "Ocean-inspired blue theme",
+  "styles": {
+    "body": {
+      "background": "#001f3f",
+      "color": "#7fdbff"
+    },
+    "canvas": {
+      "background": "#001f3f"
+    },
+    "node": {
+      "background": "#003366",
+      "color": "#7fdbff",
+      "border": "1px solid #0074d9"
+    },
+    "nodeHeader": {
+      "color": "#7fdbff"
+    },
+    "nodeContent": {
+      "background": "#004080",
+      "color": "#7fdbff"
+    },
+    "dropzone": {
+      "background": "#002244",
+      "color": "#7fdbff"
+    },
+    "dialog": {
+      "background": "#003366",
+      "color": "#7fdbff",
+      "border": "2px solid #0074d9"
+    },
+    "button": {
+      "background": "#0074d9",
+      "color": "#7fdbff",
+      "border": "1px solid #39cccc"
+    },
+    "connector": {
+      "stroke": "#39cccc"
+    }
+  }
+}
