@@ -1,0 +1,50 @@
+{
+  "name": "Cyber Grid",
+  "description": "Futuristic cyber grid theme with electric blue accents",
+  "styles": {
+    "body": {
+      "background": "#0a0a0a",
+      "color": "#00d4ff"
+    },
+    "canvas": {
+      "background": "linear-gradient(to bottom, #0a0a0a, #1a1a2e)",
+      "backgroundImage": "repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0, 212, 255, 0.1) 19px, rgba(0, 212, 255, 0.1) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0, 212, 255, 0.1) 19px, rgba(0, 212, 255, 0.1) 20px)"
+    },
+    "node": {
+      "background": "#16213e",
+      "color": "#00d4ff",
+      "border": "2px solid #00d4ff",
+      "boxShadow": "0 0 15px rgba(0, 212, 255, 0.4)"
+    },
+    "nodeHeader": {
+      "color": "#00d4ff",
+      "background": "#0f3460"
+    },
+    "nodeContent": {
+      "background": "#0a1628",
+      "color": "#00d4ff",
+      "border": "1px solid #00d4ff"
+    },
+    "dropzone": {
+      "background": "#050a15",
+      "color": "#00d4ff",
+      "border": "1px dashed #00d4ff"
+    },
+    "dialog": {
+      "background": "#16213e",
+      "color": "#00d4ff",
+      "border": "2px solid #00d4ff",
+      "boxShadow": "0 0 25px rgba(0, 212, 255, 0.6)"
+    },
+    "button": {
+      "background": "#0f3460",
+      "color": "#00d4ff",
+      "border": "1px solid #00d4ff"
+    },
+    "connector": {
+      "stroke": "#00d4ff",
+      "strokeWidth": "2",
+      "strokeDasharray": "5,5"
+    }
+  }
+}

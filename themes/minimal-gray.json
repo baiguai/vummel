@@ -1,0 +1,48 @@
+{
+  "name": "Minimal Gray",
+  "description": "Clean minimal theme with subtle gray tones",
+  "styles": {
+    "body": {
+      "background": "#fafafa",
+      "color": "#333333"
+    },
+    "canvas": {
+      "background": "#ffffff"
+    },
+    "node": {
+      "background": "#ffffff",
+      "color": "#333333",
+      "border": "1px solid #e0e0e0",
+      "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"
+    },
+    "nodeHeader": {
+      "color": "#333333",
+      "background": "#f5f5f5"
+    },
+    "nodeContent": {
+      "background": "#ffffff",
+      "color": "#333333",
+      "border": "none"
+    },
+    "dropzone": {
+      "background": "#f9f9f9",
+      "color": "#666666",
+      "border": "1px dashed #e0e0e0"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "#333333",
+      "border": "1px solid #e0e0e0",
+      "boxShadow": "0 4px 12px rgba(0,0,0,0.15)"
+    },
+    "button": {
+      "background": "#f5f5f5",
+      "color": "#333333",
+      "border": "1px solid #e0e0e0"
+    },
+    "connector": {
+      "stroke": "#999999",
+      "strokeWidth": "1"
+    }
+  }
+}

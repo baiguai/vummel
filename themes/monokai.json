@@ -1,0 +1,46 @@
+{
+  "name": "Monokai",
+  "description": "Classic Monokai theme for code editors",
+  "styles": {
+    "body": {
+      "background": "#272822",
+      "color": "#f8f8f2"
+    },
+    "canvas": {
+      "background": "#272822"
+    },
+    "node": {
+      "background": "#3e3d32",
+      "color": "#f8f8f2",
+      "border": "1px solid "#75715e"
+    },
+    "nodeHeader": {
+      "color": "#f8f8f2",
+      "background": "#3e3d32"
+    },
+    "nodeContent": {
+      "background": "#272822",
+      "color": "#f8f8f2",
+      "border": "1px solid #75715e"
+    },
+    "dropzone": {
+      "background": "#3e3d32",
+      "color": "#f8f8f2",
+      "border": "1px dashed #75715e"
+    },
+    "dialog": {
+      "background": "#3e3d32",
+      "color": "#f8f8f2",
+      "border": "2px solid #f92672"
+    },
+    "button": {
+      "background": "#75715e",
+      "color": "#f8f8f2",
+      "border": "1px solid #f92672"
+    },
+    "connector": {
+      "stroke": "#66d9ef",
+      "strokeWidth": "2"
+    }
+  }
+}

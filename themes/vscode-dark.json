@@ -1,0 +1,46 @@
+{
+  "name": "VS Code Dark",
+  "description": "Inspired by VS Code's default dark theme",
+  "styles": {
+    "body": {
+      "background": "#1e1e1e",
+      "color": "#d4d4d4"
+    },
+    "canvas": {
+      "background": "#1e1e1e"
+    },
+    "node": {
+      "background": "#252526",
+      "color": "#d4d4d4",
+      "border": "1px solid #3e3e42"
+    },
+    "nodeHeader": {
+      "color": "#ffffff",
+      "background": "#2d2d30"
+    },
+    "nodeContent": {
+      "background": "#1e1e1e",
+      "color": "#d4d4d4",
+      "border": "1px solid #3e3e42"
+    },
+    "dropzone": {
+      "background": "#252526",
+      "color": "#d4d4d4",
+      "border": "1px dashed #3e3e42"
+    },
+    "dialog": {
+      "background": "#2d2d30",
+      "color": "#d4d4d4",
+      "border": "2px solid #3e3e42"
+    },
+    "button": {
+      "background": "#0e639c",
+      "color": "#ffffff",
+      "border": "1px solid #007acc"
+    },
+    "connector": {
+      "stroke": "#007acc",
+      "strokeWidth": "2"
+    }
+  }
+}

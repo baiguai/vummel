@@ -1,0 +1,50 @@
+{
+  "name": "Synthwave",
+  "description": "80s synthwave retro cyberpunk theme",
+  "styles": {
+    "body": {
+      "background": "#2c003e",
+      "color": "#ff6ec7"
+    },
+    "canvas": {
+      "background": "linear-gradient(to bottom, #2c003e, #1a0033, #0f0015)"
+    },
+    "node": {
+      "background": "#4a0080",
+      "color": "#ff6ec7",
+      "border": "2px solid #ff6ec7",
+      "boxShadow": "0 0 20px rgba(255, 110, 199, 0.5)"
+    },
+    "nodeHeader": {
+      "color": "#ff6ec7",
+      "background": "#6600cc",
+      "textShadow": "0 0 10px rgba(255, 110, 199, 0.8)"
+    },
+    "nodeContent": {
+      "background": "#330066",
+      "color": "#ff6ec7",
+      "border": "1px solid #ff6ec7"
+    },
+    "dropzone": {
+      "background": "#1a0033",
+      "color": "#ff6ec7",
+      "border": "1px dashed #ff6ec7"
+    },
+    "dialog": {
+      "background": "#4a0080",
+      "color": "#ff6ec7",
+      "border": "2px solid #ff6ec7",
+      "boxShadow": "0 0 30px rgba(255, 110, 199, 0.7)"
+    },
+    "button": {
+      "background": "#6600cc",
+      "color": "#ff6ec7",
+      "border": "1px solid #ff6ec7"
+    },
+    "connector": {
+      "stroke": "#ff6ec7",
+      "strokeWidth": "3",
+      "filter": "drop-shadow(0 0 5px rgba(255, 110, 199, 0.8))"
+    }
+  }
+}

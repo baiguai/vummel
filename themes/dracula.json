@@ -1,0 +1,46 @@
+{
+  "name": "Dracula",
+  "description": "Popular Dracula theme for developers",
+  "styles": {
+    "body": {
+      "background": "#282a36",
+      "color": "#f8f8f2"
+    },
+    "canvas": {
+      "background": "#282a36"
+    },
+    "node": {
+      "background": "#44475a",
+      "color": "#f8f8f2",
+      "border": "1px solid #6272a4"
+    },
+    "nodeHeader": {
+      "color": "#f8f8f2",
+      "background": "#44475a"
+    },
+    "nodeContent": {
+      "background": "#282a36",
+      "color": "#f8f8f2",
+      "border": "1px solid #6272a4"
+    },
+    "dropzone": {
+      "background": "#44475a",
+      "color": "#f8f8f2",
+      "border": "1px dashed #6272a4"
+    },
+    "dialog": {
+      "background": "#44475a",
+      "color": "#f8f8f2",
+      "border": "2px solid #bd93f9"
+    },
+    "button": {
+      "background": "#6272a4",
+      "color": "#f8f8f2",
+      "border": "1px solid #bd93f9"
+    },
+    "connector": {
+      "stroke": "#bd93f9",
+      "strokeWidth": "2"
+    }
+  }
+}

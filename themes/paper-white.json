@@ -1,0 +1,48 @@
+{
+  "name": "Paper White",
+  "description": "Clean paper-like theme for documentation",
+  "styles": {
+    "body": {
+      "background": "#fefefe",
+      "color": "#2c3e50"
+    },
+    "canvas": {
+      "background": "#ffffff"
+    },
+    "node": {
+      "background": "#ffffff",
+      "color": "#2c3e50",
+      "border": "1px solid #bdc3c7",
+      "boxShadow": "0 1px 3px rgba(0,0,0,0.1)"
+    },
+    "nodeHeader": {
+      "color": "#2c3e50",
+      "background": "#ecf0f1"
+    },
+    "nodeContent": {
+      "background": "#ffffff",
+      "color": "#34495e",
+      "border": "none"
+    },
+    "dropzone": {
+      "background": "#fafafa",
+      "color": "#7f8c8d",
+      "border": "1px dashed #bdc3c7"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "#2c3e50",
+      "border": "1px solid #bdc3c7",
+      "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+    },
+    "button": {
+      "background": "#ecf0f1",
+      "color": "#2c3e50",
+      "border": "1px solid #bdc3c7"
+    },
+    "connector": {
+      "stroke": "#7f8c8d",
+      "strokeWidth": "1"
+    }
+  }
+}

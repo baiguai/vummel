@@ -1,0 +1,49 @@
+{
+  "name": "Cyber City",
+  "description": "Futuristic cyberpunk city theme with purple and orange",
+  "styles": {
+    "body": {
+      "background": "#0f0f23",
+      "color": "#ff9500"
+    },
+    "canvas": {
+      "background": "linear-gradient(to bottom, #0f0f23, #1a1a3e, #2d1b69)"
+    },
+    "node": {
+      "background": "#1a1a3e",
+      "color": "#ff9500",
+      "border": "2px solid #ff9500",
+      "boxShadow": "0 0 20px rgba(255, 149, 0, 0.4)"
+    },
+    "nodeHeader": {
+      "color": "#ff9500",
+      "background": "#2d1b69"
+    },
+    "nodeContent": {
+      "background": "#0f0f23",
+      "color": "#ff9500",
+      "border": "1px solid #ff9500"
+    },
+    "dropzone": {
+      "background": "#1a1a2e",
+      "color": "#ff9500",
+      "border": "1px dashed #ff9500"
+    },
+    "dialog": {
+      "background": "#1a1a3e",
+      "color": "#ff9500",
+      "border": "2px solid #ff9500",
+      "boxShadow": "0 0 30px rgba(255, 149, 0, 0.6)"
+    },
+    "button": {
+      "background": "#2d1b69",
+      "color": "#ff9500",
+      "border": "1px solid #ff9500"
+    },
+    "connector": {
+      "stroke": "#ff9500",
+      "strokeWidth": "2",
+      "filter": "drop-shadow(0 0 5px rgba(255, 149, 0, 0.8))"
+    }
+  }
+}
