@@ -1,0 +1,49 @@
+{
+  "name": "Slate",
+  "description": "Modern slate theme with clean aesthetics",
+  "styles": {
+    "body": {
+      "background": "#f8fafc",
+      "color": "#334155"
+    },
+    "canvas": {
+      "background": "#ffffff"
+    },
+    "node": {
+      "background": "#ffffff",
+      "color": "#334155",
+      "border": "1px solid #e2e8f0",
+      "borderRadius": "6px"
+    },
+    "nodeHeader": {
+      "color": "#ffffff",
+      "background": "#475569"
+    },
+    "nodeContent": {
+      "background": "#f8fafc",
+      "color": "#334155",
+      "border": "1px solid #e2e8f0"
+    },
+    "dropzone": {
+      "background": "#f1f5f9",
+      "color": "#64748b",
+      "border": "1px dashed #cbd5e1"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "#334155",
+      "border": "1px solid #e2e8f0",
+      "boxShadow": "0 4px 6px rgba(0,0,0,0.05)"
+    },
+    "button": {
+      "background": "#475569",
+      "color": "#ffffff",
+      "border": "1px solid #334155",
+      "borderRadius": "4px"
+    },
+    "connector": {
+      "stroke": "#64748b",
+      "strokeWidth": "2"
+    }
+  }
+}

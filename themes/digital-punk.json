@@ -1,0 +1,49 @@
+{
+  "name": "Digital Punk",
+  "description": "Digital rain and neon lights cyberpunk theme",
+  "styles": {
+    "body": {
+      "background": "#000000",
+      "color": "#ff00ff"
+    },
+    "canvas": {
+      "background": "linear-gradient(to bottom, #000000, #1a0033, #000000)"
+    },
+    "node": {
+      "background": "#1a0033",
+      "color": "#ff00ff",
+      "border": "2px solid #00ffff",
+      "boxShadow": "0 0 20px rgba(255, 0, 255, 0.4)"
+    },
+    "nodeHeader": {
+      "color": "#00ffff",
+      "background": "#330066"
+    },
+    "nodeContent": {
+      "background": "#0a001a",
+      "color": "#ff00ff",
+      "border": "1px solid #00ffff"
+    },
+    "dropzone": {
+      "background": "#1a002a",
+      "color": "#00ffff",
+      "border": "1px dashed #ff00ff"
+    },
+    "dialog": {
+      "background": "#1a0033",
+      "color": "#ff00ff",
+      "border": "2px solid #00ffff",
+      "boxShadow": "0 0 30px rgba(0, 255, 255, 0.6)"
+    },
+    "button": {
+      "background": "#330066",
+      "color": "#00ffff",
+      "border": "1px solid #ff00ff"
+    },
+    "connector": {
+      "stroke": "#ff00ff",
+      "strokeWidth": "2",
+      "filter": "drop-shadow(0 0 5px rgba(255, 0, 255, 0.8))"
+    }
+  }
+}

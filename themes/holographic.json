@@ -1,0 +1,49 @@
+{
+  "name": "Holographic",
+  "description": "Futuristic holographic theme with iridescent colors",
+  "styles": {
+    "body": {
+      "background": "#0a0e27",
+      "color": "#ffffff"
+    },
+    "canvas": {
+      "background": "linear-gradient(45deg, #0a0e27, #1a1f3a, #2d1b69, #0a0e27)"
+    },
+    "node": {
+      "background": "linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(30, 144, 255, 0.3))",
+      "color": "#ffffff",
+      "border": "2px solid #8a2be2",
+      "backdropFilter": "blur(10px)"
+    },
+    "nodeHeader": {
+      "color": "#e0b3ff",
+      "background": "linear-gradient(90deg, #8a2be2, #1e90ff)"
+    },
+    "nodeContent": {
+      "background": "rgba(26, 31, 58, 0.8)",
+      "color": "#ffffff",
+      "border": "1px solid #8a2be2"
+    },
+    "dropzone": {
+      "background": "rgba(10, 14, 39, 0.6)",
+      "color": "#b3d9ff",
+      "border": "1px dashed #1e90ff"
+    },
+    "dialog": {
+      "background": "linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(30, 144, 255, 0.9))",
+      "color": "#ffffff",
+      "border": "2px solid #e0b3ff",
+      "backdropFilter": "blur(15px)"
+    },
+    "button": {
+      "background": "linear-gradient(135deg, #8a2be2, #1e90ff)",
+      "color": "#ffffff",
+      "border": "1px solid #e0b3ff"
+    },
+    "connector": {
+      "stroke": "url(#holographicGradient)",
+      "strokeWidth": "3",
+      "opacity": "0.8"
+    }
+  }
+}

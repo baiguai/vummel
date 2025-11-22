@@ -1,0 +1,50 @@
+{
+  "name": "Matrix Code",
+  "description": "Matrix-inspired theme with green digital rain aesthetic",
+  "styles": {
+    "body": {
+      "background": "#000000",
+      "color": "#00ff00",
+      "fontFamily": "monospace"
+    },
+    "canvas": {
+      "background": "#000000"
+    },
+    "node": {
+      "background": "#0d0d0d",
+      "color": "#00ff00",
+      "border": "1px solid #00ff00",
+      "boxShadow": "0 0 15px rgba(0, 255, 0, 0.3)"
+    },
+    "nodeHeader": {
+      "color": "#00ff00",
+      "textShadow": "0 0 5px rgba(0, 255, 0, 0.8)"
+    },
+    "nodeContent": {
+      "background": "#0a0a0a",
+      "color": "#00ff00",
+      "border": "1px solid #008800"
+    },
+    "dropzone": {
+      "background": "#050505",
+      "color": "#00ff00",
+      "border": "1px dashed #00ff00"
+    },
+    "dialog": {
+      "background": "#0d0d0d",
+      "color": "#00ff00",
+      "border": "2px solid #00ff00",
+      "boxShadow": "0 0 20px rgba(0, 255, 0, 0.5)"
+    },
+    "button": {
+      "background": "#0a0a0a",
+      "color": "#00ff00",
+      "border": "1px solid #00ff00"
+    },
+    "connector": {
+      "stroke": "#00ff00",
+      "strokeWidth": "2",
+      "opacity": "0.8"
+    }
+  }
+}

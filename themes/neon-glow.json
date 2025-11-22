@@ -1,0 +1,49 @@
+{
+  "name": "Neon Glow",
+  "description": "Futuristic neon theme with bright glowing colors",
+  "styles": {
+    "body": {
+      "background": "#0a0a0a",
+      "color": "#ffffff"
+    },
+    "canvas": {
+      "background": "linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%)"
+    },
+    "node": {
+      "background": "#1a1a2e",
+      "color": "#00ffff",
+      "border": "2px solid #ff00ff",
+      "boxShadow": "0 0 20px rgba(0, 255, 255, 0.5)"
+    },
+    "nodeHeader": {
+      "color": "#ff00ff",
+      "textShadow": "0 0 10px rgba(255, 0, 255, 0.8)"
+    },
+    "nodeContent": {
+      "background": "#16213e",
+      "color": "#00ffff",
+      "border": "1px solid #0f3460"
+    },
+    "dropzone": {
+      "background": "#0f3460",
+      "color": "#00ffff",
+      "border": "1px dashed #ff00ff"
+    },
+    "dialog": {
+      "background": "#1a1a2e",
+      "color": "#00ffff",
+      "border": "2px solid #ff00ff",
+      "boxShadow": "0 0 30px rgba(0, 255, 255, 0.7)"
+    },
+    "button": {
+      "background": "#0f3460",
+      "color": "#00ffff",
+      "border": "1px solid #ff00ff"
+    },
+    "connector": {
+      "stroke": "#00ffff",
+      "strokeWidth": "2",
+      "filter": "drop-shadow(0 0 3px rgba(0, 255, 255, 0.8))"
+    }
+  }
+}

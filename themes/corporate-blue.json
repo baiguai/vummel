@@ -1,0 +1,49 @@
+{
+  "name": "Corporate Blue",
+  "description": "Professional corporate theme with blue tones",
+  "styles": {
+    "body": {
+      "background": "#f8f9fa",
+      "color": "#212529"
+    },
+    "canvas": {
+      "background": "#ffffff"
+    },
+    "node": {
+      "background": "#e3f2fd",
+      "color": "#1565c0",
+      "border": "1px solid #1976d2",
+      "borderRadius": "4px"
+    },
+    "nodeHeader": {
+      "color": "#ffffff",
+      "background": "#1976d2"
+    },
+    "nodeContent": {
+      "background": "#ffffff",
+      "color": "#212529",
+      "border": "1px solid #bbdefb"
+    },
+    "dropzone": {
+      "background": "#f5f5f5",
+      "color": "#1565c0",
+      "border": "1px dashed #1976d2"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "#212529",
+      "border": "2px solid #1976d2",
+      "borderRadius": "8px"
+    },
+    "button": {
+      "background": "#1976d2",
+      "color": "#ffffff",
+      "border": "1px solid #1565c0",
+      "borderRadius": "4px"
+    },
+    "connector": {
+      "stroke": "#1976d2",
+      "strokeWidth": "2"
+    }
+  }
+}
