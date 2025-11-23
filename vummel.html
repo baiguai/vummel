@@ -173,6 +173,7 @@ z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
 s = Save the current diagram.
+U = Upgrade from another Vummel diagram file.
 G = Scroll to the top left.
 , = Zoom out.
 . = Zoom in.
@@ -1182,6 +1183,11 @@ Escape = Deselect the current note's text field,
                 repeatCount = 1;
                 break;
 
+            case 'U':
+                showUpgradeDialog();
+                repeatCount = 1;
+                break;
+
             case '/':
                 showNodeSelectorDialog();
                 repeatCount = 1;
@@ -1593,6 +1599,430 @@ Escape = Deselect the current note's text field,
                 dialog.remove();
             }
         });
+    }
+
+    function showUpgradeDialog() {
+        // Remove any existing dialog
+        const existing = document.getElementById('upgradeDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'upgradeDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '500px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '20px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Upgrade Vummel Diagram';
+        title.style.margin = '0 0 15px 0';
+        dialog.appendChild(title);
+
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Select a Vummel diagram file to upgrade:';
+        instructions.style.margin = '0 0 15px 0';
+        instructions.style.fontSize = '14px';
+        dialog.appendChild(instructions);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.html';
+        fileInput.style.marginBottom = '15px';
+        // Apply theme colors for input if available
+        if (currentTheme && currentTheme.styles.nodeContent) {
+            fileInput.style.background = currentTheme.styles.nodeContent.background;
+            fileInput.style.color = currentTheme.styles.nodeContent.color;
+            fileInput.style.border = '1px solid #555';
+        } else {
+            fileInput.style.background = '#111';
+            fileInput.style.color = '#fff';
+            fileInput.style.border = '1px solid #555';
+        }
+        fileInput.style.padding = '5px';
+
+        const status = document.createElement('div');
+        status.style.marginBottom = '15px';
+        status.style.fontSize = '12px';
+        status.style.color = '#aaa';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const htmlContent = event.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    
+                    // Extract data from the loaded file
+                    const upgradeData = extractUpgradeData(doc);
+                    
+                    if (upgradeData) {
+                        // Apply the loaded data to current diagram
+                        applyUpgradeData(upgradeData);
+                        
+                        status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
+                        status.style.color = '#7af';
+                        
+                        // Download with the same filename after a short delay
+                        setTimeout(() => {
+                            downloadWithFileName(file.name);
+                            dialog.remove();
+                        }, 1000);
+                    } else {
+                        status.textContent = 'No valid Vummel data found in the file.';
+                        status.style.color = '#f77';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error processing file: ' + error.message;
+                    status.style.color = '#f77';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        dialog.appendChild(fileInput);
+        dialog.appendChild(status);
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Cancel (ESC)';
+        // Apply theme colors for button if available
+        if (currentTheme && currentTheme.styles.button) {
+            Object.assign(closeButton.style, currentTheme.styles.button);
+        } else {
+            closeButton.style.background = '#333';
+            closeButton.style.color = '#fff';
+            closeButton.style.border = '1px solid #666';
+        }
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => dialog.remove();
+        dialog.appendChild(closeButton);
+
+        document.body.appendChild(dialog);
+        fileInput.focus();
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                dialog.remove();
+            }
+        });
+    }
+
+    function extractUpgradeData(doc) {
+        const data = {};
+        
+        // Extract only top-level nodes from the source canvas (not nested ones)
+        const sourceCanvas = doc.querySelector('#canvas');
+        if (sourceCanvas) {
+            // Get only direct children of canvas that are nodes
+            const topLevelNodes = Array.from(sourceCanvas.children).filter(child => 
+                child.classList && child.classList.contains('node')
+            );
+            
+            data.nodes = topLevelNodes.map(node => {
+                const nodeClone = node.cloneNode(true);
+                // Generate new ID to avoid conflicts
+                const newId = 'node-' + crypto.randomUUID();
+                nodeClone.id = newId;
+                
+                // Update all nested node IDs recursively
+                updateNestedNodeIds(nodeClone, node.id, newId);
+                
+                return {
+                    html: nodeClone.outerHTML,
+                    originalId: node.id,
+                    newId: newId
+                };
+            });
+        }
+        
+        // Extract theme data
+        const themeScript = doc.querySelector('script[data-theme="true"]');
+        if (themeScript) {
+            try {
+                data.theme = JSON.parse(themeScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse theme data:', e);
+            }
+        }
+        
+        // Extract color palettes
+        const paletteScript = doc.querySelector('script[data-colorpalettes="true"]');
+        if (paletteScript) {
+            try {
+                data.colorPalettes = JSON.parse(paletteScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse color palettes:', e);
+            }
+        }
+        
+        // Extract marks
+        const marksScript = doc.querySelector('script[data-marks="true"]');
+        if (marksScript) {
+            try {
+                data.marks = JSON.parse(marksScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse marks:', e);
+            }
+        }
+        
+        // Extract connectors
+        const connectorScript = doc.querySelector('script[data-connectors="true"]');
+        if (connectorScript) {
+            try {
+                data.connectors = JSON.parse(connectorScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse connectors:', e);
+            }
+        }
+        
+        // Extract history
+        const historyScript = doc.querySelector('script[data-history="true"]');
+        if (historyScript) {
+            try {
+                data.history = JSON.parse(historyScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse history:', e);
+            }
+        }
+        
+        // Return null if no data found
+        if (!data.theme && !data.colorPalettes && !data.marks && !data.connectors && !data.history && !data.nodes) {
+            return null;
+        }
+        
+        return data;
+    }
+
+    function updateNestedNodeIds(element, oldParentId, newParentId) {
+        // Create a mapping of old IDs to new IDs for all nested nodes
+        const idMapping = {};
+        
+        // Find all nested nodes and generate new IDs for them
+        const nestedNodes = element.querySelectorAll('.node');
+        nestedNodes.forEach(nestedNode => {
+            if (nestedNode.id !== newParentId) { // Don't update the parent node itself
+                const newId = 'node-' + crypto.randomUUID();
+                idMapping[nestedNode.id] = newId;
+                nestedNode.id = newId;
+            }
+        });
+        
+        // Store the mapping for later use in connector updates
+        if (!element._idMapping) element._idMapping = {};
+        element._idMapping[oldParentId] = {
+            newId: newParentId,
+            nestedMapping: idMapping
+        };
+    }
+
+    function applyUpgradeData(data) {
+        // Clear current canvas first
+        canvas.innerHTML = '';
+        nodes = [];
+        connectors = [];
+        history = [];
+        marks = {};
+        selectedNode = null;
+        
+        // Create a comprehensive mapping from old IDs to new IDs
+        const idMapping = {};
+        
+        // Apply nodes
+        if (data.nodes && Array.isArray(data.nodes)) {
+            data.nodes.forEach(nodeData => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = nodeData.html;
+                const newNode = tempDiv.firstChild;
+                
+                // Update the ID mapping for the main node
+                idMapping[nodeData.originalId] = nodeData.newId;
+                
+                // Extract nested node ID mappings from the temp element
+                const tempElement = tempDiv.firstChild;
+                if (tempElement._idMapping && tempElement._idMapping[nodeData.originalId]) {
+                    Object.assign(idMapping, tempElement._idMapping[nodeData.originalId].nestedMapping);
+                }
+                
+                // Add to canvas and setup
+                canvas.appendChild(newNode);
+                setupNode(newNode);
+                nodes.push(newNode);
+                
+                // Apply theme to node if theme is available
+                if (data.theme && validateTheme(data.theme)) {
+                    currentTheme = data.theme;
+                    applyThemeToNode(newNode);
+                }
+            });
+        }
+        
+        // Apply theme
+        if (data.theme && validateTheme(data.theme)) {
+            applyTheme(data.theme);
+        }
+        
+        // Apply color palettes
+        if (data.colorPalettes && typeof data.colorPalettes === 'object') {
+            colorPalettes = data.colorPalettes;
+        }
+        
+        // Apply marks with updated IDs
+        if (data.marks && typeof data.marks === 'object') {
+            const updatedMarks = {};
+            Object.keys(data.marks).forEach(letter => {
+                const oldNodeId = data.marks[letter];
+                const newNodeId = idMapping[oldNodeId];
+                if (newNodeId) {
+                    updatedMarks[letter] = newNodeId;
+                }
+            });
+            marks = updatedMarks;
+            
+            // Apply mark badges to nodes
+            Object.keys(updatedMarks).forEach(letter => {
+                const node = document.getElementById(updatedMarks[letter]);
+                if (node) {
+                    addMarkBadge(node, letter);
+                }
+            });
+        }
+        
+        // Apply connectors with updated IDs
+        if (data.connectors && Array.isArray(data.connectors)) {
+            connectors = [];
+            data.connectors.forEach(({ a, b, arrow }) => {
+                const newA = idMapping[a];
+                const newB = idMapping[b];
+                const nodeA = document.getElementById(newA);
+                const nodeB = document.getElementById(newB);
+                if (nodeA && nodeB) {
+                    connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+                }
+            });
+            updateConnectors();
+        }
+        
+        // Apply history with updated IDs
+        if (data.history && Array.isArray(data.history)) {
+            history = data.history
+                .map(oldId => {
+                    const newId = idMapping[oldId];
+                    return newId ? document.getElementById(newId) : null;
+                })
+                .filter(n => n); // remove nulls
+        }
+    }
+
+    function downloadWithFileName(fileName) {
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        // Remove any previous connector data
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+
+        // Serialize connectors using node IDs
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+
+        document.body.appendChild(script);
+
+        // Save color palette data
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+        // Save marks data
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        // Save theme data
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        // Save history data
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(
+            history.map(n => n.id),
+            null,
+            2
+        );
+
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+
+        script.remove(); // Remove after save to avoid duplicate
+        paletteScript.remove();
     }
 
     function validateTheme(theme) {
