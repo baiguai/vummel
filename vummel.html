@@ -187,6 +187,8 @@ p = Start snap (select the second node
     snap to the right of the second node.
 # = Sets a custom color for the node.
     OR manages existing color 'palettes'.
+@ = Reset a node's color to the theme's
+    default.
 % = Import a theme from a JSON file.
 / = Search and select a node.
 m&lt;letter&gt; = Set mark (A-Z, a-z).
@@ -1451,6 +1453,34 @@ Escape = Deselect the current note's text field,
             case '#':
                 if (!pickingColor) {
                     showColorPaletteMenu();
+                }
+                break;
+
+            case '@':
+                if (selectedNode) {
+                    delete selectedNode.dataset.color;
+                    if (currentTheme) {
+                        applyThemeToNode(selectedNode);
+                    } else {
+                        // If no theme, reset to default hardcoded styles from the CSS
+                        selectedNode.style.background = '';
+
+                        const header = selectedNode.querySelector('.node-header');
+                        if (header) {
+                            header.style.color = '';
+                            header.style.background = '';
+                        }
+                        const textarea = selectedNode.querySelector('textarea.node-content');
+                        if (textarea) {
+                            textarea.style.background = '';
+                            textarea.style.color = '';
+                        }
+                        const dropzone = selectedNode.querySelector('.dropzone');
+                        if (dropzone) {
+                            dropzone.style.background = '';
+                            dropzone.style.color = '';
+                        }
+                    }
                 }
                 break;
 
