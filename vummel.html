@@ -191,6 +191,7 @@ p = Start snap (select the second node
     default.
 % = Import a theme from a JSON file.
 / = Search and select a node.
+    (begin search with '#' to search by palette)
 m&lt;letter&gt; = Set mark (A-Z, a-z).
 `&lt;letter&gt; = Go to mark (A-Z, a-z).
 m- = Remove mark.
@@ -700,7 +701,7 @@ Escape = Deselect the current note's text field,
 
         const filter = document.createElement('input');
         filter.type = 'text';
-        filter.placeholder = 'Filter by type or text...';
+        filter.placeholder = 'Filter by type, text, or #palette...';
         filter.style.padding = '5px';
         filter.style.marginBottom = '10px';
         // Apply theme colors for input if available
@@ -727,12 +728,29 @@ Escape = Deselect the current note's text field,
         function renderList() {
             listContainer.innerHTML = '';
             const search = filter.value.toLowerCase();
-            filteredList = nodesList.filter(n => {
-                const type = n.dataset.type?.toLowerCase() || '';
-                const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
-                const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
-                return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
-            });
+
+            if (search.startsWith('#')) {
+                const colorSearch = search.substring(1).trim();
+                filteredList = nodesList.filter(n => {
+                    const nodeColor = n.dataset.color;
+                    if (!nodeColor) return false;
+
+                    // Find the palette name for this node's color
+                    const paletteName = Object.keys(colorPalettes).find(name => colorPalettes[name] === nodeColor);
+
+                    if (paletteName) {
+                        return paletteName.toLowerCase().includes(colorSearch);
+                    }
+                    return false;
+                });
+            } else {
+                filteredList = nodesList.filter(n => {
+                    const type = n.dataset.type?.toLowerCase() || '';
+                    const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+                    const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+                    return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
+                });
+            }
 
             filteredList.forEach((node, index) => {
                 const type = node.dataset.type || '(no type)';
