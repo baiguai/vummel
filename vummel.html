@@ -2370,7 +2370,11 @@ Escape = Deselect the current note's text field,
         const textarea = selectedNode.querySelector('textarea');
         const dropzone = selectedNode.querySelector('.dropzone');
 
-        if (header) header.style.color = fg;
+        if (header) {
+            header.style.color = fg;
+            header.style.background = 'transparent';
+        }
+
         if (textarea) {
             textarea.style.background = contentBg;
             textarea.style.color = fg;
