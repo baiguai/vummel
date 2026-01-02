@@ -1686,6 +1686,7 @@ Escape = Deselect the current note's text field,
                         
                         // Download with the same filename after a short delay
                         setTimeout(() => {
+                            dialog.style.display = 'none';
                             downloadWithFileName(file.name);
                             dialog.remove();
                         }, 1000);
