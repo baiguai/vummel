@@ -960,6 +960,114 @@ Escape = Deselect the current note's text field,
         dialog.focus();
     }
 
+    function showMarkList() {
+        const existing = document.getElementById('markListDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'markListDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '400px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '10px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
+
+        const markKeys = Object.keys(marks);
+        let selectedIndex = 0;
+
+        function renderList() {
+            listContainer.innerHTML = '';
+
+            markKeys.forEach((key, index) => {
+                const nodeId = marks[key];
+                const node = document.getElementById(nodeId);
+                const type = node ? node.dataset.type : '(unknown)';
+                
+                const item = document.createElement('div');
+                item.textContent = `${key}: [${type}]`;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
+
+                item.addEventListener('click', () => {
+                    gotoMark(key);
+                    dialog.remove();
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            if (markKeys.length === 0) {
+                const empty = document.createElement('div');
+                empty.textContent = '(no marks set)';
+                empty.style.padding = '5px';
+                empty.style.color = '#888';
+                listContainer.appendChild(empty);
+            }
+        }
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'j') {
+                selectedIndex = Math.min(selectedIndex + 1, markKeys.length - 1);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp' || e.key === 'k') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (markKeys[selectedIndex]) {
+                    gotoMark(markKeys[selectedIndex]);
+                    dialog.remove();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            } else if (e.key === 'Escape') {
+                dialog.remove();
+                e.stopPropagation();
+            }
+        });
+
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+        renderList();
+        dialog.tabIndex = -1;
+        dialog.focus();
+    }
+
     function setupNode(div) {
         const type = div.dataset.type;
         const textarea = div.querySelector('textarea');
@@ -1155,6 +1263,12 @@ Escape = Deselect the current note's text field,
             }
         }
         if (gotoMarkMode) {
+            if (e.key === '`') {
+                showMarkList();
+                gotoMarkMode = false;
+                e.preventDefault();
+                return;
+            }
             if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
                 gotoMark(e.key);
                 gotoMarkMode = false;
