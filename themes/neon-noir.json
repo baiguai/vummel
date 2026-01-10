@@ -1,0 +1,49 @@
+{
+  "name": "Neon Noir",
+  "description": "Dark cyberpunk theme with neon pink and cyan",
+  "styles": {
+    "body": {
+      "background": "#0a0a0f",
+      "color": "#ffffff"
+    },
+    "canvas": {
+      "background": "linear-gradient(135deg, #0a0a0f 0%, #1a0a2e 50%, #16213e 100%)"
+    },
+    "node": {
+      "background": "#1a0a2e",
+      "color": "#ffffff",
+      "border": "2px solid #ff006e",
+      "boxShadow": "0 0 15px rgba(255, 0, 110, 0.4)"
+    },
+    "nodeHeader": {
+      "color": "#ff006e",
+      "background": "#16213e"
+    },
+    "nodeContent": {
+      "background": "#0f0f1e",
+      "color": "#ffffff",
+      "border": "1px solid #ff006e"
+    },
+    "dropzone": {
+      "background": "#0a0a1a",
+      "color": "#00f5ff",
+      "border": "1px dashed #00f5ff"
+    },
+    "dialog": {
+      "background": "#1a0a2e",
+      "color": "#ffffff",
+      "border": "2px solid #ff006e",
+      "boxShadow": "0 0 25px rgba(255, 0, 110, 0.6)"
+    },
+    "button": {
+      "background": "#16213e",
+      "color": "#00f5ff",
+      "border": "1px solid #ff006e"
+    },
+    "connector": {
+      "stroke": "#00f5ff",
+      "strokeWidth": "2",
+      "filter": "drop-shadow(0 0 3px rgba(0, 245, 255, 0.8))"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "Space Station",
+  "description": "Futuristic space station theme with metallic blues",
+  "styles": {
+    "body": {
+      "background": "#000814",
+      "color": "#ffffff"
+    },
+    "canvas": {
+      "background": "radial-gradient(circle at center, #001d3d 0%, #000814 100%)"
+    },
+    "node": {
+      "background": "#003566",
+      "color": "#ffffff",
+      "border": "2px solid #0077b6",
+      "borderRadius": "8px"
+    },
+    "nodeHeader": {
+      "color": "#90e0ef",
+      "background": "#0077b6"
+    },
+    "nodeContent": {
+      "background": "#001d3d",
+      "color": "#caf0f8",
+      "border": "1px solid #003566"
+    },
+    "dropzone": {
+      "background": "#000814",
+      "color": "#90e0ef",
+      "border": "1px dashed #0077b6"
+    },
+    "dialog": {
+      "background": "#003566",
+      "color": "#ffffff",
+      "border": "2px solid #0077b6",
+      "borderRadius": "12px"
+    },
+    "button": {
+      "background": "#0077b6",
+      "color": "#ffffff",
+      "border": "1px solid #003566",
+      "borderRadius": "4px"
+    },
+    "connector": {
+      "stroke": "#90e0ef",
+      "strokeWidth": "2"
+    }
+  }
+}

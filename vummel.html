@@ -112,7 +112,9 @@
   </style>
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
+  <!-- !@! -->
   <div id="canvas" tabindex="0" style="transform: scale(1);"></div>
+  <!-- !@! -->
   <div id="helpDialog" style="
       display: none;
       position: fixed;
@@ -171,6 +173,7 @@ z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
 s = Save the current diagram.
+U = Upgrade from another Vummel diagram file.
 G = Scroll to the top left.
 , = Zoom out.
 . = Zoom in.
@@ -184,8 +187,13 @@ p = Start snap (select the second node
     snap to the right of the second node.
 # = Sets a custom color for the node.
     OR manages existing color 'palettes'.
+@ = Reset a node's color to the theme's
+    default.
+% = Import a theme from a JSON file.
 / = Search and select a node.
+    (begin search with '#' to search by palette)
 m&lt;letter&gt; = Set mark (A-Z, a-z).
+`&lt;`&gt; = Show a list of current marks.
 `&lt;letter&gt; = Go to mark (A-Z, a-z).
 m- = Remove mark.
 Escape = Deselect the current note's text field,
@@ -220,6 +228,8 @@ Escape = Deselect the current note's text field,
     let snapTarget = null;
     let zoom = 1;
     let dragging = false;
+    let pickingColor = false;
+    let currentTheme = null;
 
     // === VIM-style Marks ===
     let marks = {}; // { letter: nodeId }
@@ -475,6 +485,11 @@ Escape = Deselect the current note's text field,
         div.appendChild(dropzone);
 
         setupNode(div);
+        
+        // Apply theme to new node if one is active
+        if (currentTheme && !div.dataset.color) {
+            applyThemeToNode(div);
+        }
 
         // === Nesting logic ===
         if (selectedNode) {
@@ -616,6 +631,13 @@ Escape = Deselect the current note's text field,
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        setupNode(div);
+        
+        // Apply theme to new link node if one is active
+        if (currentTheme && !div.dataset.color) {
+            applyThemeToNode(div);
+        }
+
         nodes.push(div);
         setSelectedNode(div);
     }
@@ -662,9 +684,14 @@ Escape = Deselect the current note's text field,
         dialog.style.width = '400px';
         dialog.style.maxHeight = '70%';
         dialog.style.overflow = 'hidden';
-        dialog.style.background = '#222';
-        dialog.style.color = '#fff';
-        dialog.style.border = '2px solid #444';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
         dialog.style.borderRadius = '10px';
         dialog.style.zIndex = 9999;
         dialog.style.fontFamily = 'monospace';
@@ -675,12 +702,19 @@ Escape = Deselect the current note's text field,
 
         const filter = document.createElement('input');
         filter.type = 'text';
-        filter.placeholder = 'Filter by type or text...';
+        filter.placeholder = 'Filter by type, text, or #palette...';
         filter.style.padding = '5px';
         filter.style.marginBottom = '10px';
-        filter.style.background = '#111';
-        filter.style.color = '#fff';
-        filter.style.border = '1px solid #555';
+        // Apply theme colors for input if available
+        if (currentTheme && currentTheme.styles.nodeContent) {
+            filter.style.background = currentTheme.styles.nodeContent.background;
+            filter.style.color = currentTheme.styles.nodeContent.color;
+            filter.style.border = '1px solid #555';
+        } else {
+            filter.style.background = '#111';
+            filter.style.color = '#fff';
+            filter.style.border = '1px solid #555';
+        }
 
         const listContainer = document.createElement('div');
         listContainer.style.overflowY = 'auto';
@@ -695,12 +729,29 @@ Escape = Deselect the current note's text field,
         function renderList() {
             listContainer.innerHTML = '';
             const search = filter.value.toLowerCase();
-            filteredList = nodesList.filter(n => {
-                const type = n.dataset.type?.toLowerCase() || '';
-                const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
-                const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
-                return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
-            });
+
+            if (search.startsWith('#')) {
+                const colorSearch = search.substring(1).trim();
+                filteredList = nodesList.filter(n => {
+                    const nodeColor = n.dataset.color;
+                    if (!nodeColor) return false;
+
+                    // Find the palette name for this node's color
+                    const paletteName = Object.keys(colorPalettes).find(name => colorPalettes[name] === nodeColor);
+
+                    if (paletteName) {
+                        return paletteName.toLowerCase().includes(colorSearch);
+                    }
+                    return false;
+                });
+            } else {
+                filteredList = nodesList.filter(n => {
+                    const type = n.dataset.type?.toLowerCase() || '';
+                    const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+                    const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+                    return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
+                });
+            }
 
             filteredList.forEach((node, index) => {
                 const type = node.dataset.type || '(no type)';
@@ -798,9 +849,14 @@ Escape = Deselect the current note's text field,
         dialog.style.width = '400px';
         dialog.style.maxHeight = '70%';
         dialog.style.overflow = 'hidden';
-        dialog.style.background = '#222';
-        dialog.style.color = '#fff';
-        dialog.style.border = '2px solid #444';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
         dialog.style.borderRadius = '10px';
         dialog.style.zIndex = 9999;
         dialog.style.fontFamily = 'monospace';
@@ -901,6 +957,114 @@ Escape = Deselect the current note's text field,
         renderList();
 
         // Trap focus for keyboard navigation
+        dialog.tabIndex = -1;
+        dialog.focus();
+    }
+
+    function showMarkList() {
+        const existing = document.getElementById('markListDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'markListDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '400px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '10px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
+
+        const markKeys = Object.keys(marks);
+        let selectedIndex = 0;
+
+        function renderList() {
+            listContainer.innerHTML = '';
+
+            markKeys.forEach((key, index) => {
+                const nodeId = marks[key];
+                const node = document.getElementById(nodeId);
+                const type = node ? node.dataset.type : '(unknown)';
+                
+                const item = document.createElement('div');
+                item.textContent = `${key}: [${type}]`;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
+
+                item.addEventListener('click', () => {
+                    gotoMark(key);
+                    dialog.remove();
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            if (markKeys.length === 0) {
+                const empty = document.createElement('div');
+                empty.textContent = '(no marks set)';
+                empty.style.padding = '5px';
+                empty.style.color = '#888';
+                listContainer.appendChild(empty);
+            }
+        }
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'j') {
+                selectedIndex = Math.min(selectedIndex + 1, markKeys.length - 1);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp' || e.key === 'k') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (markKeys[selectedIndex]) {
+                    gotoMark(markKeys[selectedIndex]);
+                    dialog.remove();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            } else if (e.key === 'Escape') {
+                dialog.remove();
+                e.stopPropagation();
+            }
+        });
+
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+        renderList();
         dialog.tabIndex = -1;
         dialog.focus();
     }
@@ -1057,6 +1221,12 @@ Escape = Deselect the current note's text field,
             return;
         }
 
+        if (e.key === '%' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            showThemeImportDialog();
+            e.preventDefault();
+            return;
+        }
+
         if (e.key === 'Escape') {
             repeatCount = 1;
 
@@ -1094,6 +1264,12 @@ Escape = Deselect the current note's text field,
             }
         }
         if (gotoMarkMode) {
+            if (e.key === '`') {
+                showMarkList();
+                gotoMarkMode = false;
+                e.preventDefault();
+                return;
+            }
             if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
                 gotoMark(e.key);
                 gotoMarkMode = false;
@@ -1139,6 +1315,11 @@ Escape = Deselect the current note's text field,
 
             case 's':
                 download();
+                repeatCount = 1;
+                break;
+
+            case 'U':
+                showUpgradeDialog();
                 repeatCount = 1;
                 break;
 
@@ -1403,7 +1584,37 @@ Escape = Deselect the current note's text field,
                 break;
 
             case '#':
-                showColorPaletteMenu();
+                if (!pickingColor) {
+                    showColorPaletteMenu();
+                }
+                break;
+
+            case '@':
+                if (selectedNode) {
+                    delete selectedNode.dataset.color;
+                    if (currentTheme) {
+                        applyThemeToNode(selectedNode);
+                    } else {
+                        // If no theme, reset to default hardcoded styles from the CSS
+                        selectedNode.style.background = '';
+
+                        const header = selectedNode.querySelector('.node-header');
+                        if (header) {
+                            header.style.color = '';
+                            header.style.background = '';
+                        }
+                        const textarea = selectedNode.querySelector('textarea.node-content');
+                        if (textarea) {
+                            textarea.style.background = '';
+                            textarea.style.color = '';
+                        }
+                        const dropzone = selectedNode.querySelector('.dropzone');
+                        if (dropzone) {
+                            dropzone.style.background = '';
+                            dropzone.style.color = '';
+                        }
+                    }
+                }
                 break;
 
             case 'Enter':
@@ -1450,6 +1661,609 @@ Escape = Deselect the current note's text field,
         repeatCount = 1;
         e.preventDefault();
     });
+
+    function showThemeImportDialog() {
+        // Remove any existing dialog
+        const existing = document.getElementById('themeImportDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'themeImportDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '500px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        dialog.style.background = '#222';
+        dialog.style.color = '#fff';
+        dialog.style.border = '2px solid #444';
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '20px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Import Theme';
+        title.style.margin = '0 0 15px 0';
+        dialog.appendChild(title);
+
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Select a theme file to import:';
+        instructions.style.margin = '0 0 15px 0';
+        instructions.style.fontSize = '14px';
+        dialog.appendChild(instructions);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.marginBottom = '15px';
+        fileInput.style.background = '#111';
+        fileInput.style.color = '#fff';
+        fileInput.style.border = '1px solid #555';
+        fileInput.style.padding = '5px';
+
+        const status = document.createElement('div');
+        status.style.marginBottom = '15px';
+        status.style.fontSize = '12px';
+        status.style.color = '#aaa';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const themeData = JSON.parse(event.target.result);
+                    if (validateTheme(themeData)) {
+                        applyTheme(themeData);
+                        status.textContent = `Theme "${themeData.name}" applied successfully!`;
+                        status.style.color = '#7af';
+                        setTimeout(() => {
+                            dialog.remove();
+                        }, 1500);
+                    } else {
+                        status.textContent = 'Invalid theme file format.';
+                        status.style.color = '#f77';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error parsing theme file: ' + error.message;
+                    status.style.color = '#f77';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        dialog.appendChild(fileInput);
+        dialog.appendChild(status);
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Cancel (ESC)';
+        closeButton.style.background = '#333';
+        closeButton.style.color = '#fff';
+        closeButton.style.border = '1px solid #666';
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => dialog.remove();
+        dialog.appendChild(closeButton);
+
+        document.body.appendChild(dialog);
+        fileInput.focus();
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                dialog.remove();
+            }
+        });
+    }
+
+    function showUpgradeDialog() {
+        // Remove any existing dialog
+        const existing = document.getElementById('upgradeDialog');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'upgradeDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '500px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        // Apply theme if available
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '20px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Upgrade Vummel Diagram';
+        title.style.margin = '0 0 15px 0';
+        dialog.appendChild(title);
+
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Select a Vummel diagram file to upgrade:';
+        instructions.style.margin = '0 0 15px 0';
+        instructions.style.fontSize = '14px';
+        dialog.appendChild(instructions);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.html';
+        fileInput.style.marginBottom = '15px';
+        // Apply theme colors for input if available
+        if (currentTheme && currentTheme.styles.nodeContent) {
+            fileInput.style.background = currentTheme.styles.nodeContent.background;
+            fileInput.style.color = currentTheme.styles.nodeContent.color;
+            fileInput.style.border = '1px solid #555';
+        } else {
+            fileInput.style.background = '#111';
+            fileInput.style.color = '#fff';
+            fileInput.style.border = '1px solid #555';
+        }
+        fileInput.style.padding = '5px';
+
+        const status = document.createElement('div');
+        status.style.marginBottom = '15px';
+        status.style.fontSize = '12px';
+        status.style.color = '#aaa';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const htmlContent = event.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    
+                    // Extract data from the loaded file
+                    const upgradeData = extractUpgradeData(doc);
+                    
+                    if (upgradeData) {
+                        // Apply the loaded data to current diagram
+                        applyUpgradeData(upgradeData);
+                        
+                        status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
+                        status.style.color = '#7af';
+                        
+                        // Download with the same filename after a short delay
+                        setTimeout(() => {
+                            dialog.style.display = 'none';
+                            downloadWithFileName(file.name);
+                            dialog.remove();
+                        }, 1000);
+                    } else {
+                        status.textContent = 'No valid Vummel data found in the file.';
+                        status.style.color = '#f77';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error processing file: ' + error.message;
+                    status.style.color = '#f77';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        dialog.appendChild(fileInput);
+        dialog.appendChild(status);
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Cancel (ESC)';
+        // Apply theme colors for button if available
+        if (currentTheme && currentTheme.styles.button) {
+            Object.assign(closeButton.style, currentTheme.styles.button);
+        } else {
+            closeButton.style.background = '#333';
+            closeButton.style.color = '#fff';
+            closeButton.style.border = '1px solid #666';
+        }
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => dialog.remove();
+        dialog.appendChild(closeButton);
+
+        document.body.appendChild(dialog);
+        fileInput.focus();
+
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                dialog.remove();
+            }
+        });
+    }
+
+    function extractUpgradeData(doc) {
+        const data = {};
+        
+        // Extract only top-level nodes from the source canvas (not nested ones)
+        const sourceCanvas = doc.querySelector('#canvas');
+        if (sourceCanvas) {
+            // Get only direct children of canvas that are nodes
+            const topLevelNodes = Array.from(sourceCanvas.children).filter(child => 
+                child.classList && child.classList.contains('node')
+            );
+            
+            data.nodes = topLevelNodes.map(node => {
+                const nodeClone = node.cloneNode(true);
+                // Generate new ID to avoid conflicts
+                const newId = 'node-' + crypto.randomUUID();
+                nodeClone.id = newId;
+                
+                // Update all nested node IDs recursively
+                updateNestedNodeIds(nodeClone, node.id, newId);
+                
+                return {
+                    html: nodeClone.outerHTML,
+                    originalId: node.id,
+                    newId: newId
+                };
+            });
+        }
+        
+        // Extract theme data
+        const themeScript = doc.querySelector('script[data-theme="true"]');
+        if (themeScript) {
+            try {
+                data.theme = JSON.parse(themeScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse theme data:', e);
+            }
+        }
+        
+        // Extract color palettes
+        const paletteScript = doc.querySelector('script[data-colorpalettes="true"]');
+        if (paletteScript) {
+            try {
+                data.colorPalettes = JSON.parse(paletteScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse color palettes:', e);
+            }
+        }
+        
+        // Extract marks
+        const marksScript = doc.querySelector('script[data-marks="true"]');
+        if (marksScript) {
+            try {
+                data.marks = JSON.parse(marksScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse marks:', e);
+            }
+        }
+        
+        // Extract connectors
+        const connectorScript = doc.querySelector('script[data-connectors="true"]');
+        if (connectorScript) {
+            try {
+                data.connectors = JSON.parse(connectorScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse connectors:', e);
+            }
+        }
+        
+        // Extract history
+        const historyScript = doc.querySelector('script[data-history="true"]');
+        if (historyScript) {
+            try {
+                data.history = JSON.parse(historyScript.textContent);
+            } catch (e) {
+                console.warn('Could not parse history:', e);
+            }
+        }
+        
+        // Return null if no data found
+        if (!data.theme && !data.colorPalettes && !data.marks && !data.connectors && !data.history && !data.nodes) {
+            return null;
+        }
+        
+        return data;
+    }
+
+    function updateNestedNodeIds(element, oldParentId, newParentId) {
+        // Create a mapping of old IDs to new IDs for all nested nodes
+        const idMapping = {};
+        
+        // Find all nested nodes and generate new IDs for them
+        const nestedNodes = element.querySelectorAll('.node');
+        nestedNodes.forEach(nestedNode => {
+            if (nestedNode.id !== newParentId) { // Don't update the parent node itself
+                const newId = 'node-' + crypto.randomUUID();
+                idMapping[nestedNode.id] = newId;
+                nestedNode.id = newId;
+            }
+        });
+        
+        // Store the mapping for later use in connector updates
+        if (!element._idMapping) element._idMapping = {};
+        element._idMapping[oldParentId] = {
+            newId: newParentId,
+            nestedMapping: idMapping
+        };
+    }
+
+    function applyUpgradeData(data) {
+        // Clear current canvas first
+        canvas.innerHTML = '';
+        nodes = [];
+        connectors = [];
+        history = [];
+        marks = {};
+        selectedNode = null;
+        
+        // Create a comprehensive mapping from old IDs to new IDs
+        const idMapping = {};
+        
+        // Apply nodes
+        if (data.nodes && Array.isArray(data.nodes)) {
+            data.nodes.forEach(nodeData => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = nodeData.html;
+                const newNode = tempDiv.firstChild;
+                
+                // Update the ID mapping for the main node
+                idMapping[nodeData.originalId] = nodeData.newId;
+                
+                // Extract nested node ID mappings from the temp element
+                const tempElement = tempDiv.firstChild;
+                if (tempElement._idMapping && tempElement._idMapping[nodeData.originalId]) {
+                    Object.assign(idMapping, tempElement._idMapping[nodeData.originalId].nestedMapping);
+                }
+                
+                // Add to canvas and setup
+                canvas.appendChild(newNode);
+                setupNode(newNode);
+                nodes.push(newNode);
+                
+                // Apply theme to node if theme is available
+                if (data.theme && validateTheme(data.theme)) {
+                    currentTheme = data.theme;
+                    applyThemeToNode(newNode);
+                }
+            });
+        }
+        
+        // Apply theme
+        if (data.theme && validateTheme(data.theme)) {
+            applyTheme(data.theme);
+        }
+        
+        // Apply color palettes
+        if (data.colorPalettes && typeof data.colorPalettes === 'object') {
+            colorPalettes = data.colorPalettes;
+        }
+        
+        // Apply marks with updated IDs
+        if (data.marks && typeof data.marks === 'object') {
+            const updatedMarks = {};
+            Object.keys(data.marks).forEach(letter => {
+                const oldNodeId = data.marks[letter];
+                const newNodeId = idMapping[oldNodeId];
+                if (newNodeId) {
+                    updatedMarks[letter] = newNodeId;
+                }
+            });
+            marks = updatedMarks;
+            
+            // Apply mark badges to nodes
+            Object.keys(updatedMarks).forEach(letter => {
+                const node = document.getElementById(updatedMarks[letter]);
+                if (node) {
+                    addMarkBadge(node, letter);
+                }
+            });
+        }
+        
+        // Apply connectors with updated IDs
+        if (data.connectors && Array.isArray(data.connectors)) {
+            connectors = [];
+            data.connectors.forEach(({ a, b, arrow }) => {
+                const newA = idMapping[a];
+                const newB = idMapping[b];
+                const nodeA = document.getElementById(newA);
+                const nodeB = document.getElementById(newB);
+                if (nodeA && nodeB) {
+                    connectors.push({ a: nodeA, b: nodeB, arrow: !!arrow });
+                }
+            });
+            updateConnectors();
+        }
+        
+        // Apply history with updated IDs
+        if (data.history && Array.isArray(data.history)) {
+            history = data.history
+                .map(oldId => {
+                    const newId = idMapping[oldId];
+                    return newId ? document.getElementById(newId) : null;
+                })
+                .filter(n => n); // remove nulls
+        }
+    }
+
+    function downloadWithFileName(fileName) {
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        // Remove any previous connector data
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+
+        // Serialize connectors using node IDs
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+
+        document.body.appendChild(script);
+
+        // Save color palette data
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+        // Save marks data
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        // Save theme data
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        // Save history data
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(
+            history.map(n => n.id),
+            null,
+            2
+        );
+
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+
+        script.remove(); // Remove after save to avoid duplicate
+        paletteScript.remove();
+    }
+
+    function validateTheme(theme) {
+        return theme && 
+               typeof theme === 'object' &&
+               theme.name &&
+               theme.styles &&
+               typeof theme.styles === 'object';
+    }
+
+    function applyThemeToNode(node) {
+        if (!currentTheme || !node || node.dataset.color) return;
+        
+        const styles = currentTheme.styles;
+        
+        if (styles.node) {
+            Object.assign(node.style, {
+                background: styles.node.background,
+                color: styles.node.color,
+                border: styles.node.border
+            });
+        }
+
+        const header = node.querySelector('.node-header');
+        if (header && styles.nodeHeader) {
+            Object.assign(header.style, styles.nodeHeader);
+        }
+
+        const textarea = node.querySelector('textarea');
+        if (textarea && styles.nodeContent) {
+            Object.assign(textarea.style, styles.nodeContent);
+        }
+
+        const dropzone = node.querySelector('.dropzone');
+        if (dropzone && styles.dropzone) {
+            Object.assign(dropzone.style, styles.dropzone);
+        }
+    }
+
+    function applyTheme(theme) {
+        currentTheme = theme;
+        const styles = theme.styles;
+
+        // Apply body styles
+        if (styles.body) {
+            Object.assign(document.body.style, styles.body);
+        }
+
+        // Apply canvas styles
+        if (styles.canvas && canvas) {
+            Object.assign(canvas.style, styles.canvas);
+        }
+
+        // Apply node styles to nodes without custom colors
+        document.querySelectorAll('.node').forEach(node => {
+            applyThemeToNode(node);
+        });
+
+        // Apply dialog styles
+        if (styles.dialog) {
+            document.querySelectorAll('#helpDialog, #nodeSelectorDialog, #historyDialog, #themeImportDialog').forEach(dialog => {
+                Object.assign(dialog.style, styles.dialog);
+            });
+        }
+
+        // Apply button styles
+        if (styles.button) {
+            document.querySelectorAll('button').forEach(button => {
+                Object.assign(button.style, styles.button);
+            });
+        }
+
+        // Apply connector styles
+        if (styles.connector) {
+            updateConnectors();
+        }
+    }
 
     function showColorPaletteMenu() {
         if (!selectedNode) return;
@@ -1537,6 +2351,7 @@ Escape = Deselect the current note's text field,
         }
 
         function openColorPickerModal(name) {
+            pickingColor = true;
             const pickerOverlay = document.createElement('div');
             pickerOverlay.style.position = 'fixed';
             pickerOverlay.style.top = '0';
@@ -1578,6 +2393,7 @@ Escape = Deselect the current note's text field,
                 colorPalettes[name] = hex;
                 applyColorToNode(hex);
                 document.body.removeChild(pickerOverlay);
+                pickingColor = false;
                 close();
             };
 
@@ -1610,6 +2426,7 @@ Escape = Deselect the current note's text field,
                 } else {
                     const hex = colorPalettes[selected];
                     if (hex) applyColorToNode(hex);
+                    pickingColor = false;
                     close();
                 }
             } else if (e.key === 'd' || e.key === 'D') {
@@ -1622,10 +2439,33 @@ Escape = Deselect the current note's text field,
                         rebuildSelect();
                     }
                 }
+            } else if (e.key === '#') {
+                e.preventDefault();
+                e.stopPropagation();
+                // --- Remove assigned color palette ---
+                delete selectedNode.dataset.color;
+        
+                // Restore default styles
+                selectedNode.style.background = '#111';
+                const header = selectedNode.querySelector('.node-header');
+                const textarea = selectedNode.querySelector('textarea');
+                const dropzone = selectedNode.querySelector('.dropzone');
+                if (header) header.style.color = 'white';
+                if (textarea) {
+                    textarea.style.background = '#111';
+                    textarea.style.color = 'white';
+                }
+                if (dropzone) {
+                    dropzone.style.background = '#111';
+                    dropzone.style.color = 'white';
+                }
+                pickingColor = false;
+                close();
 
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
+                pickingColor = false;
                 close();
             }
         });
@@ -1694,7 +2534,11 @@ Escape = Deselect the current note's text field,
         const textarea = selectedNode.querySelector('textarea');
         const dropzone = selectedNode.querySelector('.dropzone');
 
-        if (header) header.style.color = fg;
+        if (header) {
+            header.style.color = fg;
+            header.style.background = 'transparent';
+        }
+
         if (textarea) {
             textarea.style.background = contentBg;
             textarea.style.color = fg;
@@ -1787,7 +2631,7 @@ Escape = Deselect the current note's text field,
             line.setAttribute("y1", startY - minY);
             line.setAttribute("x2", endX - minX);
             line.setAttribute("y2", endY - minY);
-            line.setAttribute("stroke", "#ccc");
+            line.setAttribute("stroke", currentTheme?.styles?.connector?.stroke || "#ccc");
             line.setAttribute("stroke-width", "2");
             svg.appendChild(line);
 
@@ -1827,7 +2671,7 @@ Escape = Deselect the current note's text field,
                     "points",
                     `${tipX - minX},${tipY - minY} ${baseLeftX - minX},${baseLeftY - minY} ${baseRightX - minX},${baseRightY - minY}`
                 );
-                polygon.setAttribute("fill", "#ccc");
+                polygon.setAttribute("fill", currentTheme?.styles?.connector?.stroke || "#ccc");
 
                 svg.appendChild(polygon);
             }
@@ -1902,6 +2746,33 @@ Escape = Deselect the current note's text field,
             document.body.appendChild(marksScript);
         }
         marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        // Save theme data
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        // Save history data
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(
+            history.map(n => n.id),
+            null,
+            2
+        );
+
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
@@ -1939,11 +2810,41 @@ Escape = Deselect the current note's text field,
             console.error('Failed to restore connectors:', err);
         }
     }
+
+    function restoreThemeFromDOM() {
+        const script = document.getElementById('theme-data');
+        if (!script) return;
+
+        try {
+            const theme = JSON.parse(script.textContent);
+            if (validateTheme(theme)) {
+                applyTheme(theme);
+            }
+        } catch (err) {
+            console.error('Failed to restore theme:', err);
+        }
+    }
+
+    function restoreHistoryFromDOM() {
+        const script = document.getElementById('history-data');
+        if (!script) return;
+    
+        try {
+            const ids = JSON.parse(script.textContent);
+            history = ids
+                .map(id => document.getElementById(id))
+                .filter(n => n); // remove nulls
+        } catch (err) {
+            console.error('Failed to restore history:', err);
+        }
+    }
       
     window.onload = () => {
         initializeNodes();
+        restoreThemeFromDOM();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
+        restoreHistoryFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {

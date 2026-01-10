@@ -1,0 +1,50 @@
+{
+  "name": "Acid Rain",
+  "description": "Toxic green cyberpunk theme with acid colors",
+  "styles": {
+    "body": {
+      "background": "#0a1a0a",
+      "color": "#00ff41"
+    },
+    "canvas": {
+      "background": "linear-gradient(45deg, #0a1a0a, #1a2a1a, #0a1a0a)"
+    },
+    "node": {
+      "background": "#1a3a1a",
+      "color": "#00ff41",
+      "border": "2px solid #00ff41",
+      "boxShadow": "0 0 15px rgba(0, 255, 65, 0.5)"
+    },
+    "nodeHeader": {
+      "color": "#00ff41",
+      "background": "#0a2a0a",
+      "textShadow": "0 0 8px rgba(0, 255, 65, 0.8)"
+    },
+    "nodeContent": {
+      "background": "#0a1a0a",
+      "color": "#00ff41",
+      "border": "1px solid #00ff41"
+    },
+    "dropzone": {
+      "background": "#0a2a0a",
+      "color": "#00ff41",
+      "border": "1px dashed #00ff41"
+    },
+    "dialog": {
+      "background": "#1a3a1a",
+      "color": "#00ff41",
+      "border": "2px solid #00ff41",
+      "boxShadow": "0 0 25px rgba(0, 255, 65, 0.7)"
+    },
+    "button": {
+      "background": "#0a2a0a",
+      "color": "#00ff41",
+      "border": "1px solid #00ff41"
+    },
+    "connector": {
+      "stroke": "#00ff41",
+      "strokeWidth": "2",
+      "filter": "drop-shadow(0 0 4px rgba(0, 255, 65, 0.8))"
+    }
+  }
+}

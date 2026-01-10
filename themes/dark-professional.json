@@ -1,0 +1,46 @@
+{
+  "name": "Dark Professional",
+  "description": "Professional dark theme for low-light environments",
+  "styles": {
+    "body": {
+      "background": "#1a1a1a",
+      "color": "#e0e0e0"
+    },
+    "canvas": {
+      "background": "#1a1a1a"
+    },
+    "node": {
+      "background": "#2d2d2d",
+      "color": "#e0e0e0",
+      "border": "1px solid #404040"
+    },
+    "nodeHeader": {
+      "color": "#ffffff",
+      "background": "#404040"
+    },
+    "nodeContent": {
+      "background": "#1a1a1a",
+      "color": "#e0e0e0",
+      "border": "1px solid #404040"
+    },
+    "dropzone": {
+      "background": "#262626",
+      "color": "#b0b0b0",
+      "border": "1px dashed #404040"
+    },
+    "dialog": {
+      "background": "#2d2d2d",
+      "color": "#e0e0e0",
+      "border": "2px solid #404040"
+    },
+    "button": {
+      "background": "#404040",
+      "color": "#e0e0e0",
+      "border": "1px solid #5a5a5a"
+    },
+    "connector": {
+      "stroke": "#808080",
+      "strokeWidth": "2"
+    }
+  }
+}

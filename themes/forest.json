@@ -1,0 +1,42 @@
+{
+  "name": "Forest Theme",
+  "description": "Nature-inspired green theme",
+  "styles": {
+    "body": {
+      "background": "#0d2818",
+      "color": "#90ee90"
+    },
+    "canvas": {
+      "background": "#0d2818"
+    },
+    "node": {
+      "background": "#1a4332",
+      "color": "#90ee90",
+      "border": "1px solid #2d5a47"
+    },
+    "nodeHeader": {
+      "color": "#90ee90"
+    },
+    "nodeContent": {
+      "background": "#24553d",
+      "color": "#90ee90"
+    },
+    "dropzone": {
+      "background": "#163a2a",
+      "color": "#90ee90"
+    },
+    "dialog": {
+      "background": "#1a4332",
+      "color": "#90ee90",
+      "border": "2px solid #2d5a47"
+    },
+    "button": {
+      "background": "#2d5a47",
+      "color": "#90ee90",
+      "border": "1px solid #3d6a57"
+    },
+    "connector": {
+      "stroke": "#5cb85c"
+    }
+  }
+}

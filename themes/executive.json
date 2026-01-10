@@ -1,0 +1,48 @@
+{
+  "name": "Executive",
+  "description": "Elegant executive theme with navy and gold",
+  "styles": {
+    "body": {
+      "background": "#f8f9fa",
+      "color": "#212529"
+    },
+    "canvas": {
+      "background": "#ffffff"
+    },
+    "node": {
+      "background": "#ffffff",
+      "color": "#1a365d",
+      "border": "2px solid #2c5282",
+      "boxShadow": "0 4px 6px rgba(0,0,0,0.1)"
+    },
+    "nodeHeader": {
+      "color": "#ffffff",
+      "background": "#2c5282"
+    },
+    "nodeContent": {
+      "background": "#f7fafc",
+      "color": "#2d3748",
+      "border": "1px solid #e2e8f0"
+    },
+    "dropzone": {
+      "background": "#edf2f7",
+      "color": "#2c5282",
+      "border": "1px dashed #2c5282"
+    },
+    "dialog": {
+      "background": "#ffffff",
+      "color": "#2d3748",
+      "border": "2px solid #2c5282",
+      "boxShadow": "0 10px 25px rgba(0,0,0,0.15)"
+    },
+    "button": {
+      "background": "#2c5282",
+      "color": "#ffffff",
+      "border": "1px solid #2a4e7c"
+    },
+    "connector": {
+      "stroke": "#d69e2e",
+      "strokeWidth": "2"
+    }
+  }
+}
