@@ -626,9 +626,9 @@
     <div class="search-results" id="searchList"><div class="selected">Other Options</div></div>
 </div>
 
-<div class="search-dialog" id="helpDialogUnified" style="display: none;">
+<div class="search-dialog" id="helpDialogUnified" style="display:none;">
   <input id="helpFilter" type="text" placeholder="Filter help (Start with : to search keys only)...">
-  <div id="helpResults" class="search-results"><div><b>s</b> <span class="dim">(TREE) - </span>Save as HTML</div><div><b>S</b> <span class="dim">(TREE) - </span>Save as HTML with new name</div><div><b>Escape</b> <span class="dim">(NORMAL) - </span>Return to TREE mode</div><div><b>s</b> <span class="dim">(NORMAL) - </span>Save as HTML</div><div><b>S</b> <span class="dim">(NORMAL) - </span>Save as HTML with new name</div><div><b>Escape</b> <span class="dim">(VISUAL) - </span>Exit to NORMAL mode</div><div><b>Escape</b> <span class="dim">(INSERT) - </span>Exit to NORMAL mode</div></div>
+  <div id="helpResults" class="search-results"></div>
   <p><a href="https://hcjsuite.infinityfreeapp.com/httree_help.html" target="_blank">Full Help System</a></p>
   <p style="margin-top:6px;">Press ESC to close.</p>
 </div>
@@ -688,7 +688,7 @@
 <section class="editor">
     <div id="statusBar" class="status" onclick="closeDialogs();" ondblclick="toggleMobileMenu();" title="Double click to toggle Mobile Mode">
         <span class="pill" id="mode" style="display: block;">TREE</span>
-        <span class="pill" id="kind">FILE</span>
+        <span class="pill" id="kind">NOTE</span>
         <span class="dim" id="path">/</span>
         <span class="pill" id="msg"></span>
     </div>
@@ -732,12 +732,12 @@
 
         let currentEditorNodeId = null;
 
-
         let showingHistory = false;
         let historyIndex = 0;
         const historyStackMax = 30;
 
         let copiedNoteId = null;
+        let importedFileName = null;
 
         let fileName = "vummel_help";
         let showInitHelp = false;
@@ -761,8 +761,11 @@
         let visual_start = 0;
         let visual_end = 0;
         let vim_clipboard = '';
+        let mode_replacing = false;
 
-        let undoValue = "";
+        let undoStack = [];
+        let redoStack = [];
+        const UNDO_LIMIT = 50;
 
         let searchActive = false;
         let searchMatches = [];
@@ -808,6 +811,7 @@
             { key: "T", mode: "TREE", description: "Export current note as .txt" },
             { key: "m", mode: "TREE", description: "Bookmark current node" },
             { key: "`", mode: "TREE", description: "Show bookmarks" },
+            { key: "``", mode: "TREE", description: "Show bookmarks list" },
             { key: "%", mode: "TREE", description: "Import theme file" },
             { key: "!", mode: "TREE", description: "Display options dialog" },
 
@@ -831,11 +835,12 @@
             { key: "V", mode: "NORMAL", description: "Enter line select mode" },
             { key: "v", mode: "NORMAL", description: "Enter standard select mode" },
             { key: "x", mode: "NORMAL", description: "Delete the character under the cursor" },
-            { key: "r", mode: "NORMAL", description: "Updates the undo cache with the current note text" },
-            { key: "u", mode: "NORMAL", description: "Restores the note text to the undo cache value" },
+            { key: "r", mode: "NORMAL", description: "Replace the character under the cursor" },
+            { key: "u", mode: "NORMAL", description: "Undo last change" },
+            { key: "Ctrl+r", mode: "NORMAL", description: "Redo last undone change" },
 
-            { key: "y", mode: "VISUAL", description: "Virtual copy the selected text" },
-            { key: "x", mode: "VISUAL", description: "Virtual cut the selected text" },
+            { key: "y", mode: "VISUAL", description: "Copy the selected text" },
+            { key: "x", mode: "VISUAL", description: "Cut the selected text" },
             { key: "d", mode: "VISUAL", description: "Delete selected text" },
 
             { key: "<number>", mode: "NORMAL", description: "If you enter a number first, some commands will repeat that many times." },
@@ -884,44 +889,11 @@
             { key: "Control+-", mode: "INSERT", description: "Insert horizontal line" },
             { key: "Control+*", mode: "INSERT", description: "Convert selection to list" },
             { key: "Control+\\", mode: "INSERT", description: "Wrap selected text" },
+            { key: "Control+;", mode: "INSERT", description: "Create/Update table" },
         ];
         
-        const helpVimEnabled = [
-            { key: "i", mode: "TREE", description: "Enter INSERT mode (start editing)" },
-            { key: "I", mode: "TREE", description: "Enter INSERT mode at start" },
-            { key: "r", mode: "TREE", description: "Add root level node" },
-            { key: "R", mode: "TREE", description: "Rename current Folder" },
-            { key: "j", mode: "TREE", description: "Select next tree node" },
-            { key: "k", mode: "TREE", description: "Select previous tree node" },
-            { key: "l", mode: "TREE", description: "Expand current tree node" },
-            { key: "h", mode: "TREE", description: "Collapse current tree node" },
-            { key: "u", mode: "TREE", description: "go up a tree node level" },
-            { key: "C", mode: "TREE", description: "Collapse all tree nodes" },
-            { key: "E", mode: "TREE", description: "Expand all tree nodes" },
-            { key: "A", mode: "TREE", description: "Add child tree node" },
-            { key: "a", mode: "TREE", description: "Add next sibling tree node" },
-            { key: "]", mode: "TREE", description: "Expand treeview panel" },
-            { key: "[", mode: "TREE", description: "Shrink treeview panel" },
-            { key: "gg", mode: "TREE", description: "Select first root tree node" },
-            { key: "G", mode: "TREE", description: "Select last root tree node" },
-            { key: "H", mode: "TREE", description: "Move node out to parent level" },
-            { key: "L", mode: "TREE", description: "Move node into child level" },
-            { key: "J", mode: "TREE", description: "Move node down among siblings" },
-            { key: "K", mode: "TREE", description: "Move node up among siblings" },
-            { key: "D", mode: "TREE", description: "Delete current node" },
-            { key: "s", mode: "TREE", description: "Save as HTML" },
-            { key: "S", mode: "TREE", description: "Save as HTML with new name" },
-            { key: "n", mode: "TREE", description: "Save via Node server" },
-            { key: "T", mode: "TREE", description: "Export current note as .txt" },
-            { key: "f", mode: "TREE", description: "Find/Replace in current note" },
-            { key: "/", mode: "TREE", description: "Search tree" },
-            { key: "#", mode: "TREE", description: "Show links in current note" },
-            { key: "m", mode: "TREE", description: "Bookmark current node" },
-            { key: "`", mode: "TREE", description: "Show bookmarks" },
-            { key: "%", mode: "TREE", description: "Import theme file" },
-            { key: "!", mode: "TREE", description: "Display options dialog" },
+        let helpVimEnabled = [
             { key: "?", mode: "TREE", description: "Show this help" },
-
             { key: "Escape", mode: "NORMAL", description: "Return to TREE mode" },
             { key: "h", mode: "NORMAL", description: "Move cursor left" },
             { key: "j", mode: "NORMAL", description: "Move cursor down" },
@@ -945,12 +917,14 @@
             { key: "x", mode: "NORMAL", description: "Delete character" },
             { key: "p", mode: "NORMAL", description: "Paste after cursor" },
             { key: "P", mode: "NORMAL", description: "Paste before cursor" },
+            { key: "u", mode: "NORMAL", description: "Undo last change" },
+            { key: "r", mode: "NORMAL", description: "Replace character under cursor" },
+            { key: "Ctrl+r", mode: "NORMAL", description: "Redo last undone change" },
             { key: "s", mode: "NORMAL", description: "Save as HTML" },
             { key: "S", mode: "NORMAL", description: "Save as HTML with new name" },
             { key: "yy", mode: "NORMAL", description: "Copy current line" },
             { key: "v", mode: "NORMAL", description: "Enter VISUAL mode" },
             { key: "V", mode: "NORMAL", description: "Enter VISUAL LINE mode" },
-
             { key: "Escape", mode: "VISUAL", description: "Exit to NORMAL mode" },
             { key: "h", mode: "VISUAL", description: "Extend selection left" },
             { key: "j", mode: "VISUAL", description: "Extend selection down" },
@@ -959,13 +933,11 @@
             { key: "w", mode: "VISUAL", description: "Extend to next word" },
             { key: "b", mode: "VISUAL", description: "Extend to previous word" },
             { key: "d", mode: "VISUAL", description: "Delete selection" },
+            { key: "x", mode: "VISUAL", description: "Cut selection" },
             { key: "y", mode: "VISUAL", description: "Copy selection" },
+            { key: "Control+;", mode: "VISUAL", description: "Create/Update table" },
             { key: "Escape", mode: "INSERT", description: "Exit to NORMAL mode" },
-            { key: "Control+-", mode: "INSERT", description: "Insert horizontal rule" },
-            { key: "Control+;", mode: "INSERT", description: "Format markdown table" },
-            { key: "Control+\\", mode: "INSERT", description: "Wrap selected text" },
-            { key: "Control+*", mode: "INSERT", description: "Convert selection to list" },
-            { key: "<number>", mode: "NORMAL", description: "If you enter a number first, some commands will repeat that many times." },
+            { key: "<number>", mode: "NORMAL", description: "If you enter a number first, some commands will repeat that many times." }
         ];
 
 
@@ -993,7 +965,9 @@
             const index = siblings.findIndex(n => n.id === id);
             return { siblings, index, parent: info.parent };
         }
-        function isFolder(n){ return (n.content || "").trim().length === 0; }
+        function isFolder(n){
+            return (n.content || "").trim().length === 0;
+        }
         function updateTitleFromContent(n){
             if (n.content === "") return;
             const firstLine = (n.content||"").split(/\r?\n/)[0].trim();
@@ -1136,11 +1110,13 @@
             const selInfo = findNodeAndParentById(selectedId);
             if (selInfo){
                 pathEl.textContent = computePath(selInfo.node.id);
-                kindEl.textContent = isFolder(selInfo.node) ? 'FOLDER' : 'FILE';
+                kindEl.textContent = isFolder(selInfo.node) ? 'FOLDER' : 'NOTE';
                 if (!editing) {
                     if (currentEditorNodeId !== selInfo.node.id) {
                         editorArea.value = safeRestoreText(selInfo.node.content) || '';
-                        addUndo();
+                        undoStack = [];
+                        redoStack = [];
+                        recordUndoState(true);
                         currentEditorNodeId = selInfo.node.id;
                     }
                     editorArea.setAttribute('readonly', 'readonly');
@@ -1208,8 +1184,69 @@
             render();
         }
 
+        function recordUndoState(force = false) {
+            const currentState = {
+                content: editorArea.value,
+                selectionStart: editorArea.selectionStart,
+                selectionEnd: editorArea.selectionEnd,
+            };
+
+            // Avoid saving identical consecutive states
+            const lastState = undoStack[undoStack.length - 1];
+            if (!force && lastState && lastState.content === currentState.content) {
+                return;
+            }
+
+            undoStack.push(currentState);
+            redoStack = []; // Clear redo stack on new action
+
+            if (undoStack.length > UNDO_LIMIT) {
+                undoStack.shift(); // Remove the oldest state
+            }
+        }
+
         function addUndo() {
-            undoValue = editorArea.value;
+            recordUndoState();
+        }
+
+        function doUndo() {
+            if (undoStack.length === 0) {
+                showMessage("Already at oldest change");
+                return;
+            }
+
+            const currentState = {
+                content: editorArea.value,
+                selectionStart: editorArea.selectionStart,
+                selectionEnd: editorArea.selectionEnd,
+            };
+            redoStack.push(currentState);
+
+            const prevState = undoStack.pop();
+            editorArea.value = prevState.content;
+            editorArea.selectionStart = prevState.selectionStart;
+            editorArea.selectionEnd = prevState.selectionEnd;
+            syncFile();
+        }
+
+        function doRedo() {
+            if (redoStack.length === 0) {
+                showMessage("Already at newest change");
+                return;
+            }
+
+            const currentState = {
+                content: editorArea.value,
+                selectionStart: editorArea.selectionStart,
+                selectionEnd: editorArea.selectionEnd,
+            };
+            undoStack.push(currentState);
+
+            const nextState = redoStack.pop();
+            editorArea.value = nextState.content;
+            editorArea.selectionStart = nextState.selectionStart;
+            editorArea.selectionEnd = nextState.selectionEnd;
+            syncFile();
         }
 
         function safeStoreText(text) {
@@ -1309,7 +1346,6 @@
 
             if (!mode_insert) {
                 // Only adjust scrolling when *not* editing and cursor is out of view
-                setAppHeight();
                 if (isCursorOutOfView()) {
                     scrollToCursor();
                 }
@@ -1321,6 +1357,7 @@
                 syncFile();
 
                 if (mode_insert && mode_vim) {
+                    recordUndoState();
                     setVimMode(false);
                     editorArea.setSelectionRange(editorArea.selectionStart,editorArea.selectionStart);
                 } else if (mode_visual && mode_vim) {
@@ -1344,6 +1381,26 @@
 
         // ---- VIM Keys -------------------------------------------------------
         function vimKeys(e) {
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                doRedo();
+                return;
+            }
+
+            if (mode_replacing) {
+                const charToReplace = e.key;
+                if (charToReplace.length === 1) {
+                    const start = editorArea.selectionStart;
+                    editorArea.setRangeText(charToReplace, start, start + 1, "end");
+                    editorArea.selectionStart = editorArea.selectionEnd = start; // Move cursor back
+                    syncFile();
+                    recordUndoState();
+                }
+                mode_replacing = false;
+                e.preventDefault();
+                return;
+            }
+
             if (mode_visual) {
                 let visProcessed = visualKeys(e);
                 if (visProcessed) {
@@ -1373,7 +1430,7 @@
             if (e.key !== 'g') {
                 mode_going = false;
             }
-            if (e.key !== 'd') {
+            if (e.key !== 'd' && e.key !== 'w' && e.key !== 'W' && e.key !== 'b' && e.key !== 'B') {
                 mode_deleting = false;
             }
             if (mode_counting && isNaN(parseInt(e.key, 10))) {
@@ -1421,56 +1478,44 @@
                     performed = true;
                     modeEl.textContent = 'INSERT';
                     break;
-        
                 case "h": // Move left
                     let newPosBack = Math.max(0, editorArea.selectionStart - mode_repeat);
                     moveChar(newPosBack, true);
                     performed = true;
                     break;
-        
                 case "l": // Move right
                     let newPosFwd = Math.min(editorArea.value.length, editorArea.selectionStart + mode_repeat);
                     moveChar(newPosFwd, false);
                     performed = true;
                     break;
-        
                 case "j": // Move down lines
                     for (let i = 0; i < mode_repeat; i++) moveCursorVertical(1);
                     performed = true;
                     break;
-        
                 case "k": // Move up lines
                     for (let i = 0; i < mode_repeat; i++) moveCursorVertical(-1);
                     performed = true;
                     break;
-        
                 case "0": // Jump to beginning of line
                     const before0 = editorArea.value.lastIndexOf("\n", editorArea.selectionStart - 1);
                     let moveStart = editorArea.selectionEnd = (before0 === -1 ? 0 : before0 + 1);
                     moveChar(moveStart, false);
                     performed = true;
                     break;
-        
                 case "$": // Jump to end of line
                     const after$ = editorArea.value.indexOf("\n", editorArea.selectionStart);
                     let moveEnd = editorArea.selectionEnd = (after$ === -1 ? editorArea.value.length : after$);
                     moveChar(moveEnd, false);
                     performed = true;
                     break;
-
                 case "u":
-                    if (!mode_insert) {
-                        doUndo();
-                        performed = true;
-                    }
+                    doUndo();
+                    performed = true;
                     break;
                 case "r":
-                    if (!mode_insert) {
-                        addUndo();
-                        performed = true;
-                    }
+                    mode_replacing = true;
+                    // Does not set performed to true, waits for next key
                     break;
-
                 case "v": // Enter visual mode
                     enterVisualMode(false);
                     performed = true;
@@ -1479,68 +1524,85 @@
                     enterVisualMode(true);
                     performed = true;
                     break;
-
                 case "w": // Forward word(s)
-                    for (let i = 0; i < mode_repeat; i++) moveWord(1);
-                    performed = true;
-                    break;
+                    if (mode_deleting) {
+                        recordUndoState();
+                        const getNextWordPos = (currentPos) => {
+                            const text = editorArea.value;
+                            let pos = currentPos;
+                            if (pos >= text.length) return text.length;
 
-                case "W":
-                    const area = document.getElementById('editorArea');
-                    if (!area) break;
-                
-                    const wtext = area.value;
-                    const pos = area.selectionStart;
-                
-                    // Find end of current line
-                    const newlineIdx = wtext.indexOf('\n', pos);
-                    const lineEnd = newlineIdx === -1 ? wtext.length : newlineIdx;
-                
-                    // Find next space within the same line
-                    let nextSpace = wtext.indexOf(' ', pos + 1);
-                    if (nextSpace === -1 || nextSpace > lineEnd) nextSpace = lineEnd;
-                
-                    // Skip consecutive spaces
-                    while (nextSpace < wtext.length && wtext[nextSpace] === ' ') nextSpace++;
-                
-                    area.setSelectionRange(nextSpace, nextSpace);
-                    e.preventDefault();
-                    break;
+                            const charClass = (char) => {
+                                if (!char || /\s/.test(char)) return 'space';
+                                if (/\w/.test(char)) return 'word';
+                                return 'other';
+                            };
+                            
+                            let initialCharClass = charClass(text[pos]);
 
+                            if (initialCharClass === 'space') {
+                                while (pos < text.length && charClass(text[pos]) === 'space') pos++;
+                            } else {
+                                let currentRunClass = charClass(text[pos]);
+                                while (pos < text.length && charClass(text[pos]) === currentRunClass) pos++;
+                                while (pos < text.length && charClass(text[pos]) === 'space') pos++;
+                            }
+                            return pos;
+                        };
+
+                        const startPos = editorArea.selectionStart;
+                        let endPos = startPos;
+                        for (let i = 0; i < mode_repeat; i++) {
+                            endPos = getNextWordPos(endPos);
+                        }
+                        
+                        const lineEnd = editorArea.value.indexOf('\n', startPos);
+                        if (lineEnd !== -1 && endPos > lineEnd) {
+                            const between = editorArea.value.substring(startPos, lineEnd);
+                            if (!/^\s*$/.test(between)) {
+                                const nextWord = editorArea.value.substring(lineEnd).trim();
+                                if (nextWord.length > 0) {
+                                    endPos = lineEnd;
+                                }
+                            }
+                        }
+
+                        editorArea.setRangeText("", startPos, endPos, "start");
+                        syncFile();
+                        performed = true;
+                    } else {
+                        for (let i = 0; i < mode_repeat; i++) moveWord(1);
+                        performed = true;
+                    }
+                    break;
                 case "b": // Backward word(s)
-                    for (let i = 0; i < mode_repeat; i++) moveWord(-1);
-                    performed = true;
-                    break;
+                    if (mode_deleting) {
+                        recordUndoState();
+                        const startPos = editorArea.selectionStart;
+                        let endPos = startPos;
+                        
+                        for (let i = 0; i < mode_repeat; i++) {
+                            endPos = getPrevWordPos(endPos);
+                        }
 
-                case "B":
-                    const barea = document.getElementById('editorArea');
-                    if (!barea) break;
-                
-                    const btext = barea.value;
-                    const bpos = barea.selectionStart;
-                
-                    // Find start of current line
-                    const lineStart = btext.lastIndexOf('\n', bpos - 1) + 1;
-                
-                    // Move backward until hitting space or start of line
-                    let prevSpace = btext.lastIndexOf(' ', bpos - 1);
-                    if (prevSpace < lineStart && lineStart > 0) prevSpace = lineStart;
-                
-                    // Skip consecutive spaces
-                    while (prevSpace > 0 && btext[prevSpace - 1] === ' ') prevSpace--;
-                
-                    barea.setSelectionRange(prevSpace, prevSpace);
-                    e.preventDefault();
+                        editorArea.setRangeText("", endPos, startPos, "start");
+                        editorArea.selectionStart = editorArea.selectionEnd = endPos;
+                        syncFile();
+                        performed = true;
+                    } else {
+                        for (let i = 0; i < mode_repeat; i++) moveWord(-1);
+                        performed = true;
+                    }
                     break;
-        
                 case "x": // Delete character(s) under cursor
+                    recordUndoState();
                     const start = editorArea.selectionStart;
                     if (start < editorArea.value.length) {
                         editorArea.setRangeText("", start, start + mode_repeat, "end");
+                        syncFile();
                     }
                     performed = true;
                     break;
-
                 case "g": // Possible gg
                     if (mode_going) {
                         if (mode_repeat > 1) {
@@ -1564,8 +1626,8 @@
                         mode_going = true;
                     }
                     break;
-
                 case "D": // Delete to end of line(s)
+                    recordUndoState();
                     const text = editorArea.value;
                     let startDelEnd = editorArea.selectionStart;
                     let end = text.indexOf("\n", startDelEnd);
@@ -1579,11 +1641,9 @@
                     syncFile();
                     performed = true;
                     break;
-
                 case "d": // Possible dd
                     doDelete();
                     break;
-
                 case "G": // End of buffer, or Nth line
                     const bufEnd = editorArea.selectionEnd = editorArea.value.length;
                     moveChar(bufEnd, false);
@@ -1594,164 +1654,286 @@
                     setMark(e, getCurrentLineNumber());
                     performed = true;
                     break;
+                case 'n':
+                    saveViaNode();
+                    performed = true;
+                    break;
             }
             //------------------------------------------------------------------
         
             if (performed) {
                 keyPerformed();
             }
-        
-            // --- Helper for j/k ---
-            function moveCursorVertical(direction) {
-                const text = editorArea.value;
-                let pos = 0;
+        }
+        // ---------------------------------------------------------------------
 
-                if (mode_visual) {
-                    pos = visual_end;
-                } else {
-                    pos = editorArea.selectionStart;
-                }
-        
-                // Find current line start/end
-                const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
-                const lineEnd = text.indexOf("\n", pos);
-                const currentCol = pos - lineStart;
-        
-                // Target line
-                let targetLineStart, targetLineEnd;
-                if (direction > 0) { // down
-                    if (lineEnd === -1) return; // already last line
-                    targetLineStart = lineEnd + 1;
-                    targetLineEnd = text.indexOf("\n", targetLineStart);
-                    if (targetLineEnd === -1) targetLineEnd = text.length;
-                } else { // up
-                    if (lineStart === 0) return; // already first line
-                    targetLineEnd = lineStart - 1;
-                    targetLineStart = text.lastIndexOf("\n", targetLineEnd - 1) + 1;
-                }
-        
-                // Keep column if possible, else move to end of line
-                const targetPos = Math.min(targetLineStart + currentCol, targetLineEnd);
+        function getPrevWordPos(currentPos) {
+            const text = editorArea.value;
+            let pos = currentPos;
+            if (pos > 0) {
+                pos--;
+                while (pos > 0 && /\s/.test(text[pos])) pos--;
+                const charClass = (char) => {
+                    if (!char || /\s/.test(char)) return 'space';
+                    if (/\w/.test(char)) return 'word';
+                    return 'other';
+                };
+                let currentRunClass = charClass(text[pos]);
+                while (pos > 0 && charClass(text[pos - 1]) === currentRunClass) pos--;
+            }
+            return pos;
+        };
 
-                if (mode_visual) {
-                    visual_end = targetPos;
-                    updateVisualSelection();
-                } else {
-                    editorArea.selectionStart = editorArea.selectionEnd = targetPos;
-                }
+        function moveCursorVertical(direction) {
+            const text = editorArea.value;
+            let pos = 0;
+
+            if (mode_visual) {
+                pos = visual_end;
+            } else {
+                pos = editorArea.selectionStart;
+            }
+    
+            // Find current line start/end
+            const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
+            const lineEnd = text.indexOf("\n", pos);
+            const currentCol = pos - lineStart;
+    
+            // Target line
+            let targetLineStart, targetLineEnd;
+            if (direction > 0) { // down
+                if (lineEnd === -1) return; // already last line
+                targetLineStart = lineEnd + 1;
+                targetLineEnd = text.indexOf("\n", targetLineStart);
+                if (targetLineEnd === -1) targetLineEnd = text.length;
+            } else { // up
+                if (lineStart === 0) return; // already first line
+                targetLineEnd = lineStart - 1;
+                targetLineStart = text.lastIndexOf("\n", targetLineEnd - 1) + 1;
+            }
+    
+            // Keep column if possible, else move to end of line
+            const targetPos = Math.min(targetLineStart + currentCol, targetLineEnd);
+
+            if (mode_visual) {
+                visual_end = targetPos;
+                updateVisualSelection();
+            } else {
+                editorArea.selectionStart = editorArea.selectionEnd = targetPos;
+            }
+        }
+
+        function moveWord(direction) {
+            const text = editorArea.value;
+            let pos;
+
+            if (mode_visual) {
+                pos = visual_end;
+            } else {
+                pos = editorArea.selectionStart;
             }
 
-            function moveWord(direction) {
-                const text = editorArea.value;
-                let pos = 0;
-
-                if (mode_visual) {
-                    pos = visual_end;
-                } else {
-                    pos = editorArea.selectionStart;
-                }
-
-                if (direction > 0) {
-                    // Skip current non-word chars
-                    while (pos < text.length && /\W/.test(text[pos])) pos++;
-                    // Skip word chars
-                    while (pos < text.length && /\w/.test(text[pos])) pos++;
-                } else {
-                    // Move left past non-word chars
-                    while (pos > 0 && /\W/.test(text[pos - 1])) pos--;
-                    // Move left past word chars
-                    while (pos > 0 && /\w/.test(text[pos - 1])) pos--;
-                }
-
-                if (mode_visual) {
-                    visual_end = pos;
-                    updateVisualSelection();
-                } else {
-                    editorArea.selectionStart = editorArea.selectionEnd = pos;
-                }
-            }
-
-            function moveChar(newPos, goingBack) {
-                const text = editorArea.value;
-
-                if (mode_visual) {
-                    visual_end = newpos;
-                    if (goingBack) {
-                        visual_end = newPos + 1;
-                    }
-                    updateVisualSelection();
-                } else {
-                    editorArea.selectionStart = editorArea.selectionEnd = newPos;
-                }
-            }
-
-            function doDelete() {
-                if (mode_deleting) {
-                    const text = editorArea.value;
-                    const pos = editorArea.selectionStart;
-                
-                    // Find start of current line
-                    const lineStart = text.lastIndexOf("\n", pos - 1) + 1;
-                
-                    // Find end of current line INCLUDING newline
-                    let lineEnd = text.indexOf("\n", pos);
-                    if (lineEnd === -1) {
-                        lineEnd = text.length;
+            if (direction > 0) { // 'w'
+                if (pos < text.length) {
+                    const charClass = (char) => {
+                        if (!char || /\s/.test(char)) return 'space';
+                        if (/\w/.test(char)) return 'word';
+                        return 'other';
+                    };
+                    let initialCharClass = charClass(text[pos]);
+                    if (initialCharClass === 'space') {
+                        while (pos < text.length && charClass(text[pos]) === 'space') pos++;
                     } else {
-                        lineEnd += 1;
+                        let currentRunClass = charClass(text[pos]);
+                        while (pos < text.length && charClass(text[pos]) === currentRunClass) pos++;
+                        while (pos < text.length && charClass(text[pos]) === 'space') pos++;
                     }
-                
-                    // Repeat delete for mode_repeat > 1
-                    for (let i = 1; i < mode_repeat; i++) {
-                        const nextEnd = text.indexOf("\n", lineEnd);
-                        if (nextEnd === -1) {
-                            lineEnd = text.length;
-                            break;
-                        } else {
-                            lineEnd = nextEnd + 1;
-                        }
+                }
+            } else { // 'b'
+                if (pos > 0) {
+                    pos--;
+                    while (pos > 0 && /\s/.test(text[pos])) pos--;
+                    
+                    const charClass = (char) => {
+                        if (!char || /\s/.test(char)) return 'space';
+                        if (/\w/.test(char)) return 'word';
+                        return 'other';
+                    };
+
+                    let currentRunClass = charClass(text[pos]);
+                    while (pos > 0 && charClass(text[pos-1]) === currentRunClass) pos--;
+                }
+            }
+
+            if (mode_visual) {
+                visual_end = pos;
+                updateVisualSelection();
+            } else {
+                editorArea.selectionStart = editorArea.selectionEnd = pos;
+            }
+        }
+
+        function moveChar(newPos, goingBack) {
+            const text = editorArea.value;
+
+            if (mode_visual) {
+                visual_end = newPos; // Fixed newpos to newPos
+                if (goingBack) {
+                    // visual_end = newPos + 1; // Removed this line, as it was incorrect
+                }
+                updateVisualSelection();
+            } else {
+                editorArea.selectionStart = editorArea.selectionEnd = newPos;
+            }
+        }
+
+        function doDelete() {
+            if (mode_deleting) {
+                recordUndoState();
+                const text = editorArea.value; 
+                const originalCursorPos = editorArea.selectionStart; 
+            
+                const currentLineStart = text.lastIndexOf("\n", originalCursorPos - 1) + 1;
+                const column = originalCursorPos - currentLineStart;
+
+                let lineStartToDelete = text.lastIndexOf("\n", originalCursorPos - 1) + 1;
+                let lineEndToDelete = text.indexOf("\n", originalCursorPos);
+                if (lineEndToDelete === -1) {
+                    lineEndToDelete = text.length;
+                } else {
+                    lineEndToDelete += 1;
+                }
+            
+                for (let i = 1; i < mode_repeat; i++) {
+                    const nextEnd = text.indexOf("\n", lineEndToDelete);
+                    if (nextEnd === -1) {
+                        lineEndToDelete = text.length;
+                        break;
+                    } else {
+                        lineEndToDelete += 1;
                     }
+                }
+            
+                let effectiveLineStart = lineStartToDelete;
+                if (lineEndToDelete === text.length && lineStartToDelete > 0) {
+                    const selection = text.substring(lineStartToDelete, lineEndToDelete);
+                    if (selection.indexOf("\n") === -1) {
+                        effectiveLineStart = lineStartToDelete - 1;
+                    }
+                }
                 
-                    // Delete the range
-                    editorArea.setRangeText("", lineStart, lineEnd, "start");
+                const deletingLastLine = (lineEndToDelete === text.length);
+
+                editorArea.setRangeText("", effectiveLineStart, lineEndToDelete, "start");
+            
+                const newText = editorArea.value; 
+                let newCursorPos;
+
+                if (deletingLastLine && newText.length > 0) {
+                    const originalPrevLineStart = text.lastIndexOf("\n", lineStartToDelete - 2) + 1;
+                    const finalPrevLineStart = Math.max(0, originalPrevLineStart);
+                    const finalPrevLineEnd = newText.indexOf("\n", finalPrevLineStart);
+                    const actualPrevLineEnd = (finalPrevLineEnd === -1) ? newText.length : finalPrevLineEnd;
+                    newCursorPos = Math.min(finalPrevLineStart + column, actualPrevLineEnd);
+                } else if (newText.length === 0) {
+                    // All text deleted
+                    newCursorPos = 0;
+                } else {
+                    // Default behavior: cursor at the start of the deleted block's position
+                    newCursorPos = Math.min(lineStartToDelete, newText.length);
+                }
                 
-                    // Re-fetch updated text after deletion
-                    const newText = editorArea.value;
+                editorArea.selectionStart = editorArea.selectionEnd = newCursorPos;
+            
+                syncFile();
+                performed = true;
+            } else {
+                let start, end;
                 
-                    // Place cursor at start of deleted line (or end of buffer if needed)
-                    const newPos = Math.min(lineStart, newText.length);
+                start = editorArea.selectionStart;
+                end = editorArea.selectionEnd;
+
+                // Only delete if there's actually something selected
+                if (start !== end) {
+                    recordUndoState();
+                    const deletedLength = end - start;
+                
+                    // Delete the text
+                    editorArea.setRangeText("", start, end, "start");
+                
+                    // After deletion, the caret has shifted forward in some browsers.
+                    // Reset it back by subtracting the deleted length.
+                    let newPos = editorArea.selectionStart - deletedLength;
+                    if (newPos < 0) newPos = 0;
+                
                     editorArea.selectionStart = editorArea.selectionEnd = newPos;
-                
                     syncFile();
-                    performed = true;
                 } else {
-                    let start, end;
-                    
-                    start = editorArea.selectionStart;
-                    end = editorArea.selectionEnd;
-
-                    // Only delete if there's actually something selected
-                    if (start !== end) {
-                        const deletedLength = end - start;
-                    
-                        // Delete the text
-                        editorArea.setRangeText("", start, end, "start");
-                    
-                        // After deletion, the caret has shifted forward in some browsers.
-                        // Reset it back by subtracting the deleted length.
-                        let newPos = editorArea.selectionStart - deletedLength;
-                        if (newPos < 0) newPos = 0;
-                    
-                        editorArea.selectionStart = editorArea.selectionEnd = newPos;
-                        syncFile();
-                    } else {
-                        mode_deleting = true;
-                    }
+                    mode_deleting = true;
                 }
             }
         }
         // ---------------------------------------------------------------------
 
+        function getVisualSelection() {
+            let start = Math.min(visual_start, visual_end);
+            let end = Math.max(visual_start, visual_end);
+            
+            if (mode_visual_line) {
+                const text = editorArea.value;
+                start = text.lastIndexOf('\n', start - 1) + 1;
+                const endLineEnd = text.indexOf('\n', end);
+                if (endLineEnd !== -1) {
+                    end = endLineEnd + 1;
+                } else {
+                    end = text.length;
+                }
+            }
+            return editorArea.value.substring(start, end);
+        }
+
+        function deleteVisualSelection() {
+            recordUndoState();
+
+            let start = Math.min(visual_start, visual_end);
+            let end = Math.max(visual_start, visual_end);
+
+            console.log("deleteVisualSelection: Initial visual_start:", visual_start, "visual_end:", visual_end);
+
+            if (mode_visual_line) {
+                console.log("deleteVisualSelection: VISUAL LINE mode active.");
+                const text = editorArea.value;
+                console.log("deleteVisualSelection: Original text length:", text.length);
+                console.log("deleteVisualSelection: Initial calculated start:", start, "end:", end);
+
+                start = text.lastIndexOf('\n', start - 1) + 1; // Start of the first selected line
+                const endLineEnd = text.indexOf('\n', end); // Index of the newline *after* the last selected character
+                if (endLineEnd !== -1) {
+                    end = endLineEnd + 1; // Include the newline character itself
+                } else {
+                    end = text.length; // If no newline, select to end of file
+                }
+                console.log("deleteVisualSelection: Adjusted start:", start, "end:", end);
+            }
+            
+            // This part was just changed to use substring
+            const currentContent = editorArea.value;
+            console.log("deleteVisualSelection: currentContent length:", currentContent.length);
+            console.log("deleteVisualSelection: substring parts:", currentContent.substring(0, start).length, currentContent.substring(end).length);
+
+            if (start >= end) {
+                console.error("deleteVisualSelection: Calculated start is greater than or equal to end:", start, end);
+                // Even if start >= end, we still want to exit visual mode etc.
+            } else {
+                editorArea.value = currentContent.substring(0, start) + currentContent.substring(end);
+                editorArea.selectionStart = start; // Place cursor at the start of the deleted block
+                editorArea.selectionEnd = start;
+                console.log("deleteVisualSelection: editorArea.value after deletion length:", editorArea.value.length);
+            }
+            exitVisualMode(); // Exit visual mode after deletion
+        }
+
+        // ---- Visual Keys ----------------------------------------------------
         function visualKeys(e) {
             e.preventDefault();
             
@@ -1762,13 +1944,39 @@
                 case "h": // Move left and extend selection
                     visual_end = Math.max(0, visual_end - mode_repeat);
                     updateVisualSelection();
+                    keyPerformed();
                     return true;
                 case "l": // Move right and extend selection  
                     visual_end = Math.min(editorArea.value.length, visual_end + mode_repeat);
                     updateVisualSelection();
                     keyPerformed();
                     return true;
-                case "d": // Delete selection (no copy)
+                case "j": // Move down
+                    for (let i = 0; i < mode_repeat; i++) moveCursorVertical(1);
+                    keyPerformed();
+                    return true;
+                case "k": // Move up
+                    for (let i = 0; i < mode_repeat; i++) moveCursorVertical(-1);
+                    keyPerformed();
+                    return true;
+                case "w":
+                    for (let i = 0; i < mode_repeat; i++) moveWord(1);
+                    keyPerformed();
+                    return true;
+                case "b":
+                    for (let i = 0; i < mode_repeat; i++) moveWord(-1);
+                    keyPerformed();
+                    return true;
+                case "d": // Delete selection
+                    doVisualDelete(e);
+                    return true;
+                case "x": // Cut selection
+                    vim_clipboard = getVisualSelection();
+                    if (vim_clipboard) {
+                        navigator.clipboard.writeText(vim_clipboard).catch(err => {
+                            console.error("Clipboard write failed:", err);
+                        });
+                    }
                     doVisualDelete(e);
                     return true;
                 case "y": // Yank (copy)
@@ -1777,28 +1985,16 @@
                         navigator.clipboard.writeText(vim_clipboard).catch(err => {
                             console.error("Clipboard write failed:", err);
                         });
+                        showMessage("Selection copied to clipboard");
                     }
                     exitVisualMode();
+                    keyPerformed();
                     return true;
-                case "x": // Cut (copy + delete selection)
-                    vim_clipboard = getVisualSelection();
-                    if (vim_clipboard) {
-                        navigator.clipboard.writeText(vim_clipboard).catch(err => {
-                            console.error("Clipboard write failed:", err);
-                        });
-                    }
-                
-                    doVisualDelete(e);
-                    return true;
-                case "d": // Delete
-                    vim_clipboard = getVisualSelection();
-                    deleteVisualSelection();
-                    return true;
-                // Add more movement commands as needed
             }
 
             return false;
         }
+        // ---------------------------------------------------------------------
 
 
 
@@ -2215,6 +2411,7 @@
                 finalRows.length = 0;
                 finalRows.push(...padded);
             }
+            finalRows.push("");
 
             ta.setRangeText(finalRows.join("\n"), start, end, "select");
         }
@@ -2412,7 +2609,7 @@
             const fileInput = document.getElementById('saveAsFileName');
 
             titleInput.value = defaultTitle || '';
-            fileInput.value = defaultFile || '';
+            fileInput.value = importedFileName || defaultFile || '';
 
             saveAsDialog.style.display = 'block';
             titleInput.focus();
@@ -2432,6 +2629,7 @@
                     document.title = newTitle;
                     closeDialog();
                     saveAsHtml(newFile);
+                    importedFileName = null; // Reset after saving
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
                     closeDialog();
@@ -2701,14 +2899,39 @@
 
 
 
-        //---- Undo / Redo -----------------------------------------------------
-        function doUndo() {
-            editorArea.value = undoValue;
-            syncFile();
+        //---- Visual Mode Helpers ---------------------------------------------
+        function updateVisualSelection() {
+            if (!mode_visual) return;
+
+            if (mode_visual_line) {
+                const text = editorArea.value;
+                let start = Math.min(visual_start, visual_end);
+                let end = Math.max(visual_start, visual_end);
+
+                const startLineBegin = text.lastIndexOf('\n', start - 1) + 1;
+                
+                let endLineEnd = text.indexOf('\n', end);
+                if (endLineEnd === -1) {
+                    endLineEnd = text.length;
+                } else {
+                    endLineEnd += 1; // Include the newline for linewise selection
+                }
+
+                editorArea.selectionStart = startLineBegin;
+                editorArea.selectionEnd = endLineEnd;
+
+            } else { // character-wise
+                const forward = visual_end >= visual_start;
+                if (forward) {
+                    editorArea.selectionStart = visual_start;
+                    editorArea.selectionEnd = visual_end + 1;
+                } else {
+                    editorArea.selectionStart = visual_end;
+                    editorArea.selectionEnd = visual_start + 1;
+                }
+            }
         }
 
-
-        //---- Visual Mode Helpers ---------------------------------------------
         function enterVisualMode(lineMode = false) {
             mode_visual = true;
             mode_visual_line = lineMode;
@@ -2718,17 +2941,21 @@
             updateVisualSelection();
         }
         
-        function exitVisualMode() {
+        function exitVisualMode(positionCursor = true) {
             mode_visual = false;
             mode_visual_line = false;
-            // Position cursor at the end of the selection
-            let cursorPos = Math.max(visual_start, visual_end);
 
-            if (visual_end < visual_start) {
-                cursorPos = Math.min(visual_start, visual_end);
+            if (positionCursor) {
+                // Position cursor at the end of the selection
+                let cursorPos = Math.max(visual_start, visual_end);
+
+                if (visual_end < visual_start) {
+                    cursorPos = Math.min(visual_start, visual_end);
+                }
+
+                editorArea.selectionStart = editorArea.selectionEnd = cursorPos;
             }
 
-            editorArea.selectionStart = editorArea.selectionEnd = cursorPos;
             visual_start = 0;
             visual_end = 0;
             modeEl.textContent = 'NORMAL';
@@ -2774,11 +3001,6 @@
             }
         }
         
-        function deleteVisualSelection() {
-            // Similar logic to getVisualSelection but deletes the text
-            // and exits visual mode
-        }
-
         function doVisualDelete(e) {
             e.stopPropagation();
             let start = Math.min(visual_start, visual_end);
@@ -2791,7 +3013,14 @@
                 const lineEndPos = text.indexOf("\n", end);
                 const lineEnd = lineEndPos === -1 ? text.length : lineEndPos + 1;
                 editorArea.setRangeText("", lineStart, lineEnd, "start");
-                editorArea.selectionStart = editorArea.selectionEnd = lineStart;
+
+                if (lineEndPos === -1 && lineStart > 0) {
+                    // We deleted the last line, move to the start of the previous line.
+                    const prevLineStart = text.lastIndexOf("\n", lineStart - 2) + 1;
+                    editorArea.selectionStart = editorArea.selectionEnd = prevLineStart;
+                } else {
+                    editorArea.selectionStart = editorArea.selectionEnd = lineStart;
+                }
             } else {
                 if (end === start) end += 1;
                 const deletedLength = end - start;
@@ -2801,7 +3030,7 @@
             }
         
             syncFile();
-            exitVisualMode();
+            exitVisualMode(false);
         }
 
 
@@ -3637,6 +3866,7 @@
     document.getElementById("filePicker").addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) {
+            importedFileName = file.name.replace(/\.html$/, '');
             file.text().then(content => {
                 const match = content.match(/let\s+treeData\s*=\s*(\[[\s\S]*?\]);/);
                 if (!match) {
@@ -3684,6 +3914,12 @@
                         }
                     }
 
+                    // Restore nodePort from imported file
+                    const nodePortMatch = content.match(/let\s+nodePort\s*=\s*(\d+);/);
+                    if (nodePortMatch) {
+                        nodePort = parseInt(nodePortMatch[1]);
+                    }
+
                     // Replace theme_styles content from imported file
                     const themeStylesMatch = content.match(/<style id="theme_styles">([\s\S]*?)<\/style>/);
                     if (themeStylesMatch) {
@@ -3702,7 +3938,7 @@
                     alert("Error parsing treeData.");
                 }
             });
-}
+        }
     });
 
     // Theme import functionality
@@ -3846,26 +4082,12 @@
     closeDialogBtn.addEventListener('click', closeTreeDialog);
     
     // --- Triggering logic ---
-    let longPressTimer = null;
-    
     // Double-click anywhere on tree panel
     treeEl.addEventListener('dblclick', (e) => {
         e.preventDefault();
         openTreeDialog();
     });
     
-    // Long press (for mobile)
-    treeEl.addEventListener('touchstart', () => {
-        longPressTimer = setTimeout(() => {
-            openTreeDialog();
-        }, 600); // 600ms = long press
-    });
-    treeEl.addEventListener('touchend', () => {
-        clearTimeout(longPressTimer);
-    });
-
-
-
 
     window.addEventListener('keydown', handleHistoryKey, { capture: true });
     window.addEventListener('keydown', handleLinksKey, { capture: true });
@@ -3874,34 +4096,13 @@
 
 
 
-    //---- Mobile Sizing -------------------------------------------------------
-    function isMobile() {
-        return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    }
-    function setAppHeight() {
-        // document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-    }
-    setAppHeight();
-    window.addEventListener('resize', setAppHeight);
-
-    editorArea.addEventListener('focus', () => {
-//        if (isMobile()) {
-//            document.querySelector('.app').style.height = `60dvh`;
-//        }
-    });
-    
-    editorArea.addEventListener('blur', () => {
-        if (isMobile()) {
-            document.querySelector('.app').style.height = '100dvh';
-            setTimeout(setAppHeight, 100);
-        }
-    });
-
-
-
 
     //---- Init ------------------------------------------------------------
     window.addEventListener('load', function() {
+
+        // Fix Help Data
+        helpVimEnabled.push(...helpVimDisabled);
+
         // Restore historyStack and bookmarks from saved HTML content
         try {
             const htmlContent = document.documentElement.outerHTML;
