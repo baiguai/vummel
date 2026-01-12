@@ -661,6 +661,9 @@ Escape = Deselect the current note's text field,
             });
             addToHistory(node);
         }
+        
+        // Update connectors to highlight selected node's connections
+        updateConnectors();
     }
 
     function addToHistory(node) {
@@ -2626,13 +2629,17 @@ Escape = Deselect the current note's text field,
             svg.style.zIndex = '0';
             svg.style.pointerEvents = 'none';
 
+            // Check if this connector is connected to the selected node
+            const isSelectedConnector = selectedNode && (a === selectedNode || b === selectedNode);
+            const strokeWidth = isSelectedConnector ? "4" : "2";
+
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute("x1", startX - minX);
             line.setAttribute("y1", startY - minY);
             line.setAttribute("x2", endX - minX);
             line.setAttribute("y2", endY - minY);
             line.setAttribute("stroke", currentTheme?.styles?.connector?.stroke || "#ccc");
-            line.setAttribute("stroke-width", "2");
+            line.setAttribute("stroke-width", strokeWidth);
             svg.appendChild(line);
 
             if (arrow) {
