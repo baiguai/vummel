@@ -230,6 +230,8 @@ Escape = Deselect the current note's text field,
     let dragging = false;
     let pickingColor = false;
     let currentTheme = null;
+    let multiSelectMode = false;
+    let selectedNodes = [];
 
     // === VIM-style Marks ===
     let marks = {}; // { letter: nodeId }
@@ -321,6 +323,43 @@ Escape = Deselect the current note's text field,
         badge.style.zIndex = '3';
         node.appendChild(badge);
     }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = '#333';
+        toast.style.color = 'white';
+        toast.style.padding = '10px 20px';
+        toast.style.borderRadius = '5px';
+        toast.style.zIndex = '10000';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+    }
+
+    function updateMultiSelectVisuals() {
+        getAllNodes().forEach(n => {
+            const isSelected = selectedNodes.includes(n);
+            const isActive = (n === selectedNode);
+
+            if (isSelected) {
+                n.style.borderColor = '#FFD700'; // Gold for multi-selected
+                n.style.borderWidth = '2px';
+            } else if (isActive) {
+                n.style.borderColor = '#B5DBFA'; // Light blue for the active node
+                n.style.borderWidth = '2px';
+            } else {
+                n.style.borderColor = '#aaa';
+                n.style.borderWidth = '1px';
+            }
+        });
+    }
+
 
     function removeMarkBadge(node) {
         if (!node) return;
@@ -447,6 +486,8 @@ Escape = Deselect the current note's text field,
     canvas.onclick = e => {
         if (e.target === canvas) {
             setSelectedNode(null);
+            selectedNodes = [];
+            updateMultiSelectVisuals();
         }
     };
 
@@ -647,11 +688,31 @@ Escape = Deselect the current note's text field,
     }
 
     function setSelectedNode(node) {
+        if (multiSelectMode && node) {
+            if (selectedNodes.includes(node)) {
+                // If the node is already in the selection, deselect it.
+                // But keep it as the active selectedNode.
+                selectedNodes = selectedNodes.filter(n => n !== node);
+            } else {
+                // If the node is not in the selection, add it.
+                selectedNodes.push(node);
+            }
+        }
+
         selectedNode = node;
-        nodes.forEach(n => {
-            n.style.borderColor = (n === selectedNode) ? '#B5DBFA' : '#aaa';
-            n.style.borderWidth = (n === selectedNode) ? '2px' : '1px';
-        });
+
+        if (node === null) {
+            if (!multiSelectMode) {
+                selectedNodes = [];
+            }
+        } else {
+            if (!multiSelectMode) {
+                selectedNodes = [node];
+            }
+            addToHistory(node);
+        }
+
+        updateMultiSelectVisuals();
 
         if (selectedNode) {
             selectedNode.scrollIntoView({
@@ -659,7 +720,6 @@ Escape = Deselect the current note's text field,
                 block: 'center',
                 inline: 'center'
             });
-            addToHistory(node);
         }
         
         // Update connectors to highlight selected node's connections
@@ -1113,6 +1173,7 @@ Escape = Deselect the current note's text field,
         }
 
         nodes = nodes.filter(n => n !== node);
+        selectedNodes = selectedNodes.filter(n => n !== node);
         if (selectedNode === node) selectedNode = null;
     }
 
@@ -1207,6 +1268,24 @@ Escape = Deselect the current note's text field,
     }
 
     document.addEventListener('keydown', e => {
+        if (e.shiftKey && e.key === 'M') {
+            multiSelectMode = !multiSelectMode;
+            if (multiSelectMode) {
+                selectedNodes = [];
+                if(selectedNode) {
+                    selectedNodes.push(selectedNode);
+                }
+                showToast(multiSelectMode ? 'Multi-select mode ON' : 'Multi-select mode OFF');
+            } else {
+                selectedNodes = [];
+            }
+            updateMultiSelectVisuals();
+            e.preventDefault();
+            return;
+        }
+
+
+
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
             if (e.key === 'Escape' && selectedNode) {
                 const txt = selectedNode.querySelector('textarea');
@@ -1449,20 +1528,37 @@ Escape = Deselect the current note's text field,
         };
 
         const move = (dx, dy) => {
-            const parent = selectedNode.offsetParent;
-            const currentLeft = selectedNode.offsetLeft;
-            const currentTop = selectedNode.offsetTop;
-            selectedNode.style.left = (currentLeft + dx) + 'px';
-            selectedNode.style.top = (currentTop + dy) + 'px';
-            updateConnectors();
+            if (multiSelectMode && selectedNodes.length > 0) {
+                selectedNodes.forEach(n => {
+                    const currentLeft = n.offsetLeft;
+                    const currentTop = n.offsetTop;
+                    n.style.left = (currentLeft + dx) + 'px';
+                    n.style.top = (currentTop + dy) + 'px';
+                });
+                updateConnectors();
+                if(selectedNode) {
+                    selectedNode.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'center'
+                    });
+                }
+            } else if (selectedNode) {
+                const parent = selectedNode.offsetParent;
+                const currentLeft = selectedNode.offsetLeft;
+                const currentTop = selectedNode.offsetTop;
+                selectedNode.style.left = (currentLeft + dx) + 'px';
+                selectedNode.style.top = (currentTop + dy) + 'px';
+                updateConnectors();
 
-            selectedNode.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-                inline: 'center'
-            });
+                selectedNode.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'center'
+                });
 
-            selectedNode.style.zIndex = 1;
+                selectedNode.style.zIndex = 1;
+            }
         };
 
         switch (e.key) {
@@ -1475,7 +1571,13 @@ Escape = Deselect the current note's text field,
                 break;
 
             case 'D':
-                removeNode(selectedNode);
+                if (multiSelectMode && selectedNodes.length > 0) {
+                    selectedNodes.forEach(n => removeNode(n));
+                    selectedNodes = [];
+                    updateMultiSelectVisuals();
+                } else if (selectedNode) {
+                    removeNode(selectedNode);
+                }
                 break;
             case 'd':
                 detachChild(selectedNode);
@@ -1621,6 +1723,14 @@ Escape = Deselect the current note's text field,
                 break;
 
             case 'Enter':
+                if (multiSelectMode) {
+                    if (selectedNode && !selectedNodes.includes(selectedNode)) {
+                        selectedNodes.push(selectedNode);
+                    }
+                    updateMultiSelectVisuals();
+                    e.preventDefault();
+                    return;
+                }
                 if (disconnecting) {
                     // Remove connector if it exists
                     connectors = connectors.filter(conn => {
