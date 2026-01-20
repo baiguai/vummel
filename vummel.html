@@ -162,6 +162,7 @@ L = Increase selected node's width.
 ^ = Move selected node up by half a step.
 - = Move selected node down by half a step.
 ' = Show history.
+M = Enter select multiple nodes mode (Escape exits)
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
@@ -1312,14 +1313,26 @@ Escape = Deselect the current note's text field,
         if (e.key === 'Escape') {
             repeatCount = 1;
 
+            // If a dialog is open, close it
             if (document.getElementById('helpDialog').style.display === 'block') {
                 document.getElementById('helpDialog').style.display = 'none';
                 e.stopPropagation();
                 return;
-            } else {
-                selectedNode = null;
-                setSelectedNode(null);
             }
+
+            // If in multi-select mode, exit it and clear selection
+            if (multiSelectMode) {
+                multiSelectMode = false;
+                selectedNodes = [];
+                updateMultiSelectVisuals();
+                showToast('Multi-select mode OFF');
+                e.preventDefault(); // Prevent default browser actions
+                return;
+            }
+
+            // Otherwise, deselect the currently active node and clear selection (if any)
+            selectedNode = null;
+            setSelectedNode(null); // This will clear selectedNodes if not in multiSelectMode
         }
 
 
