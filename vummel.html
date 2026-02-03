@@ -233,6 +233,7 @@ Escape = Deselect the current note's text field,
     let pickingColor = false;
     let currentTheme = null;
     let multiSelectMode = false;
+    let editing = false;
     let selectedNodes = [];
 
     // === VIM-style Marks ===
@@ -1303,7 +1304,7 @@ Escape = Deselect the current note's text field,
     }
 
     document.addEventListener('keydown', e => {
-        if (e.shiftKey && e.key === 'M') {
+        if (e.shiftKey && e.key === 'M' && !editing) {
             multiSelectMode = !multiSelectMode;
             if (multiSelectMode) {
                 selectedNodes = [];
@@ -1326,6 +1327,7 @@ Escape = Deselect the current note's text field,
                 const txt = selectedNode.querySelector('textarea');
                 txt.blur();
                 e.stopPropagation();
+                editing = false;
                 return;
             }
         }
@@ -1654,6 +1656,7 @@ Escape = Deselect the current note's text field,
                 if (textarea) {
                     textarea.focus();
                     e.preventDefault();
+                    editing = true;
                 }
                 break;
 
