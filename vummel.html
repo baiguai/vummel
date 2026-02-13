@@ -1529,7 +1529,7 @@ Escape = Deselect the current note's text field,
             return;
         }
 
-        if (e.shiftKey && e.key === 'M') {
+        if (e.shiftKey && e.key === 'M' && !isEditingText) {
             multiSelectMode = !multiSelectMode;
             if (multiSelectMode) {
                 selectedNodes = [];
