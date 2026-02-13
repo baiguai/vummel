@@ -1383,6 +1383,118 @@ Escape = Deselect the current note's text field,
         canvas.appendChild(selectedNode);
     }
 
+    function updateMinimapViewportPosition(dx, dy) {
+        const minimap = document.getElementById('minimap');
+        const minimapViewport = document.getElementById('minimapViewport');
+        if (!minimap || !minimapViewport) return;
+
+        const minimapRect = minimap.getBoundingClientRect();
+        const viewportRect = minimapViewport.getBoundingClientRect();
+
+        let newLeft = parseFloat(minimapViewport.style.left) + dx;
+        let newTop = parseFloat(minimapViewport.style.top) + dy;
+
+        // Keep viewport within minimap bounds
+        newLeft = Math.max(0, Math.min(newLeft, minimapRect.width - parseFloat(minimapViewport.style.width)));
+        newTop = Math.max(0, Math.min(newTop, minimapRect.height - parseFloat(minimapViewport.style.height)));
+
+        minimapViewport.style.left = `${newLeft}px`;
+        minimapViewport.style.top = `${newTop}px`;
+
+        // Calculate scroll for main canvas
+        const minimapWidth = minimap.offsetWidth;
+        const minimapHeight = minimap.offsetHeight;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        getAllNodes().forEach(node => {
+            const rect = node.getBoundingClientRect();
+            minX = Math.min(minX, rect.left);
+            minY = Math.min(minY, rect.top);
+            maxX = Math.max(maxX, rect.right);
+            maxY = Math.max(maxY, rect.bottom);
+        });
+
+        const diagramWidth = maxX - minX;
+        const diagramHeight = maxY - minY;
+
+        const scaleX = minimapWidth / diagramWidth;
+        const scaleY = minimapHeight / diagramHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Adjust for potential minX/minY offset from getBoundingClientRect
+        const offsetX = minX < 0 ? Math.abs(minX) : 0;
+        const offsetY = minY < 0 ? Math.abs(minY) : 0;
+        
+        const canvasScrollLeft = (newLeft / scale) - offsetX;
+        const canvasScrollTop = (newTop / scale) - offsetY;
+
+
+        window.scrollTo({
+            left: canvasScrollLeft,
+            top: canvasScrollTop,
+            behavior: 'auto' // Use 'auto' to avoid animation during rapid movement
+        });
+    }
+
+    // Helper function to find the closest main canvas node to the minimap viewport's center
+    function findClosestNodeInMainCanvas() {
+        const minimapViewport = document.getElementById('minimapViewport');
+        if (!minimapViewport) return null;
+
+        const minimapRect = document.getElementById('minimap').getBoundingClientRect();
+        const viewportRect = minimapViewport.getBoundingClientRect();
+        
+        // Calculate viewport center relative to the minimap's content area
+        const viewportMinimapX = (viewportRect.left - minimapRect.left) + (viewportRect.width / 2);
+        const viewportMinimapY = (viewportRect.top - minimapRect.top) + (viewportRect.height / 2);
+
+        // Need to convert minimap coordinates back to main canvas coordinates
+        const minimapWidth = minimapRect.width;
+        const minimapHeight = minimapRect.height;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        getAllNodes().forEach(node => {
+            const rect = node.getBoundingClientRect();
+            minX = Math.min(minX, rect.left);
+            minY = Math.min(minY, rect.top);
+            maxX = Math.max(maxX, rect.right);
+            maxY = Math.max(maxY, rect.bottom);
+        });
+
+        const diagramWidth = maxX - minX;
+        const diagramHeight = maxY - minY;
+
+        const scaleX = minimapWidth / diagramWidth;
+        const scaleY = minimapHeight / diagramHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Convert minimap viewport center to approximate main canvas coordinates
+        const mainCanvasCenterX = (viewportMinimapX / scale);
+        const mainCanvasCenterY = (viewportMinimapY / scale);
+        
+        let closestNode = null;
+        let minDistance = Infinity;
+
+        getAllNodes().forEach(node => {
+            const nodeRect = node.getBoundingClientRect();
+            const nodeCenter = {
+                x: nodeRect.left + (nodeRect.width / 2),
+                y: nodeRect.top + (nodeRect.height / 2)
+            };
+
+            const dx = nodeCenter.x - mainCanvasCenterX;
+            const dy = nodeCenter.y - mainCanvasCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestNode = node;
+            }
+        });
+
+        return closestNode;
+    }
+
     document.addEventListener('keydown', e => {
         // Check if an input or textarea is focused
         const isEditingText = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
