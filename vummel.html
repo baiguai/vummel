@@ -237,6 +237,7 @@ Escape = Deselect the current note's text field,
     let canvas = document.getElementById('canvas');
     let colorPalettes = {};
     let selectedNode = null;
+    let prevSelectedNode = null;
     let offsetX, offsetY;
     let nodes = [];
     let history = [];
@@ -253,6 +254,7 @@ Escape = Deselect the current note's text field,
     let pickingColor = false;
     let currentTheme = null;
     let multiSelectMode = false;
+    let editing = false;
     let selectedNodes = [];
 
     let minimapVisible = false;
@@ -567,6 +569,24 @@ Escape = Deselect the current note's text field,
         return { left: snappedStartX, top: snappedStartY };
     }
 
+    function doSnapping(step) {
+        const gap = step; // 1 step to the right
+        const targetLeft = parseInt(selectedNode.style.left) || 0;
+        const targetTop = parseInt(selectedNode.style.top) || 0;
+        const targetWidth = parseInt(selectedNode.style.width) || 150;
+        const newLeft = targetLeft + targetWidth + gap;
+
+        snapTarget.style.left = newLeft + 'px';
+        snapTarget.style.top = targetTop + 'px';
+
+        setSelectedNode(snapTarget);
+
+        updateConnectors();
+
+        snapTarget = null;
+        snapping = false;
+    }
+
     canvas.onclick = e => {
         if (e.target === canvas) {
             setSelectedNode(null);
@@ -578,7 +598,13 @@ Escape = Deselect the current note's text field,
     function addNode() {
         const input = prompt("Enter node type:");
         if (!input) return;
+
+        if (!selectedNode) {
+            snapTarget = prevSelectedNode;
+        }
+
         const type = input.trim();
+        let selNode = null;
 
         let div = document.createElement('div');
         div.className = 'node';
@@ -641,6 +667,14 @@ Escape = Deselect the current note's text field,
 
         setSelectedNode(div);
         nodes.push(div);
+        prevSelectedNode = selectedNode;
+
+        if (snapTarget) {
+            // Seems weird, but we're reusing the whole two-step snap process.
+            selectedNode = snapTarget;
+            snapTarget = prevSelectedNode;
+            doSnapping(50);
+        }
     }
 
     function duplicateSelectedNode() {
@@ -794,6 +828,7 @@ Escape = Deselect the current note's text field,
                 selectedNodes = [node];
             }
             addToHistory(node);
+            prevSelectedNode = node;
         }
 
         updateMultiSelectVisuals();
@@ -1049,10 +1084,10 @@ Escape = Deselect the current note's text field,
                     item.style.background = '#444';
                 }
 
-                item.addEventListener('mouseenter', () => {
-                    selectedIndex = index;
-                    renderList();
-                });
+//                item.addEventListener('mouseenter', () => {
+//                    selectedIndex = index;
+//                    renderList();
+//                });
 
                 item.addEventListener('click', () => {
                     // Move selected node to top
@@ -1552,6 +1587,7 @@ Escape = Deselect the current note's text field,
                 const txt = selectedNode.querySelector('textarea');
                 txt.blur();
                 e.stopPropagation();
+                editing = false;
                 return;
             }
         }
@@ -1880,6 +1916,7 @@ Escape = Deselect the current note's text field,
                 if (textarea) {
                     textarea.focus();
                     e.preventDefault();
+                    editing = true;
                 }
                 break;
 
@@ -2020,21 +2057,7 @@ Escape = Deselect the current note's text field,
                     connectStart = null;
                     connecting = false;
                 } else if (snapping) {
-                    const gap = step; // 1 step to the right
-                    const targetLeft = parseInt(selectedNode.style.left) || 0;
-                    const targetTop = parseInt(selectedNode.style.top) || 0;
-                    const targetWidth = parseInt(selectedNode.style.width) || 150;
-                    const newLeft = targetLeft + targetWidth + gap;
-
-                    snapTarget.style.left = newLeft + 'px';
-                    snapTarget.style.top = targetTop + 'px';
-
-                    setSelectedNode(snapTarget);
-
-                    updateConnectors();
-
-                    snapTarget = null;
-                    snapping = false;
+                    doSnapping(step);
                 } else {
                     attachChild(selectedNode);
                 }
