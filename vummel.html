@@ -1585,17 +1585,6 @@ Escape = Deselect the current note's text field,
             e.preventDefault();
             return;
         }
-
-        if (e.key === 'q' && !isEditingText) {
-            if (minimapVisible) {
-                hideMinimap();
-            } else {
-                showMinimap();
-            }
-            e.preventDefault();
-            return;
-        }
-
         if (minimapVisible) {
             const minimapNodes = Array.from(document.querySelectorAll('#minimap .minimap-node'));
             if (minimapNodes.length === 0) {
