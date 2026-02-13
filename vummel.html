@@ -109,9 +109,30 @@
       pointer-events: none;
       z-index: 0;
     }
+    #minimap {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 200px;
+      height: 150px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #888;
+      z-index: 100;
+      display: none;
+    }
+    .minimap-node {
+      position: absolute;
+      background: #555;
+      border: 1px solid #999;
+    }
+    .minimap-node.selected {
+      background: #f4f342;
+      border: 1px solid #fff;
+    }
   </style>
 <style type="text/css" id="operaUserStyle"></style></head>
 <body>
+  <div id="minimap"></div>
   <!-- !@! -->
   <div id="canvas" tabindex="0" style="transform: scale(1);"></div>
   <!-- !@! -->
@@ -236,6 +257,67 @@ Escape = Deselect the current note's text field,
     let editing = false;
     let selectedNodes = [];
 
+    let minimapVisible = false;
+    let minimapSelectedNode = null;
+
+    function showMinimap() {
+        minimapVisible = true;
+        const minimap = document.getElementById('minimap');
+        if (!minimap) {
+            console.error("Minimap element not found!");
+            return;
+        }
+        minimap.style.display = 'block';
+        minimap.innerHTML = ''; // Clear previous minimap nodes
+
+        const minimapWidth = minimap.offsetWidth;
+        const minimapHeight = minimap.offsetHeight;
+
+        // Find the overall bounding box of all nodes to scale them
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        getAllNodes().forEach(node => {
+            const rect = node.getBoundingClientRect();
+            minX = Math.min(minX, rect.left);
+            minY = Math.min(minY, rect.top);
+            maxX = Math.max(maxX, rect.right);
+            maxY = Math.max(maxY, rect.bottom);
+        });
+
+        const diagramWidth = maxX - minX;
+        const diagramHeight = maxY - minY;
+
+        const scaleX = minimapWidth / diagramWidth;
+        const scaleY = minimapHeight / diagramHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        getAllNodes().forEach(node => {
+            const rect = node.getBoundingClientRect();
+            const minimapNode = document.createElement('div');
+            minimapNode.className = 'minimap-node';
+            minimapNode.dataset.nodeId = node.id;
+            minimapNode.style.left = ((rect.left - minX) * scale) + 'px';
+            minimapNode.style.top = ((rect.top - minY) * scale) + 'px';
+            minimapNode.style.width = (rect.width * scale) + 'px';
+            minimapNode.style.height = (rect.height * scale) + 'px';
+            minimap.appendChild(minimapNode);
+        });
+
+        // Select the first node in the minimap if available
+        if (minimap.children.length > 0) {
+            minimapSelectedNode = minimap.children[0];
+            minimapSelectedNode.classList.add('selected');
+        }
+    }
+
+    function hideMinimap() {
+        minimapVisible = false;
+        const minimap = document.getElementById('minimap');
+        if (minimap) {
+            minimap.style.display = 'none';
+        }
+        minimapSelectedNode = null;
+    }
+
     // === VIM-style Marks ===
     let marks = {}; // { letter: nodeId }
     let markMode = false; // waiting for mark letter after 'm'
@@ -243,6 +325,7 @@ Escape = Deselect the current note's text field,
 
     function setMark(letter) {
         if (!selectedNode) return;
+
 
         // Remove from any other node
         Object.keys(marks).forEach(k => {
@@ -1304,7 +1387,184 @@ Escape = Deselect the current note's text field,
     }
 
     document.addEventListener('keydown', e => {
-        if (e.shiftKey && e.key === 'M' && !editing) {
+        // Check if an input or textarea is focused
+        const isEditingText = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+
+        if (e.key === 'q' && !isEditingText) {
+            if (minimapVisible) {
+                hideMinimap();
+            } else {
+                showMinimap();
+            }
+            e.preventDefault();
+            return;
+        }
+
+        if (minimapVisible) {
+            const minimapNodes = Array.from(document.querySelectorAll('#minimap .minimap-node'));
+            if (minimapNodes.length === 0) {
+                if (e.key === 'Escape') {
+                    hideMinimap();
+                }
+                return;
+            }
+
+            let currentSelectedIndex = -1;
+            if (minimapSelectedNode) {
+                currentSelectedIndex = minimapNodes.indexOf(minimapSelectedNode);
+            } else if (minimapNodes.length > 0) {
+                currentSelectedIndex = 0; // Select first node if none is selected
+                minimapSelectedNode = minimapNodes[currentSelectedIndex];
+                minimapSelectedNode.classList.add('selected');
+            }
+
+
+            let nextSelectedIndex = -1;
+
+            switch (e.key) {
+                case 'h': // Left
+                    nextSelectedIndex = (currentSelectedIndex - 1 + minimapNodes.length) % minimapNodes.length;
+                    break;
+                case 'l': // Right
+                    nextSelectedIndex = (currentSelectedIndex + 1) % minimapNodes.length;
+                    break;
+                case 'k': // Up - try to move to a node directly above
+                    // This is a simplified vertical navigation. For true "up" it would need to find the closest node by Y coordinate.
+                    // For now, let's just cycle through
+                    nextSelectedIndex = (currentSelectedIndex - 1 + minimapNodes.length) % minimapNodes.length;
+                    break;
+                case 'j': // Down - try to move to a node directly below
+                    // Simplified vertical navigation.
+                    nextSelectedIndex = (currentSelectedIndex + 1) % minimapNodes.length;
+                    break;
+                case 'Enter':
+                    if (minimapSelectedNode) {
+                        const nodeId = minimapSelectedNode.dataset.nodeId;
+                        const targetNode = document.getElementById(nodeId);
+                        if (targetNode) {
+                            setSelectedNode(targetNode); // Select in main diagram
+                            targetNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        }
+                    }
+                    hideMinimap();
+                    e.preventDefault();
+                    return;
+                case 'Escape':
+                    hideMinimap();
+                    e.preventDefault();
+                    return;
+                default:
+                    // Do nothing for other keys while minimap is open
+                    e.preventDefault(); // Prevent default actions while minimap is active
+                    return;
+            }
+
+            if (nextSelectedIndex !== -1 && minimapNodes[nextSelectedIndex]) {
+                if (minimapSelectedNode) {
+                    minimapSelectedNode.classList.remove('selected');
+                }
+                minimapSelectedNode = minimapNodes[nextSelectedIndex];
+                minimapSelectedNode.classList.add('selected');
+
+                // Scroll main canvas to the selected node
+                const targetNodeId = minimapSelectedNode.dataset.nodeId;
+                const targetNode = document.getElementById(targetNodeId);
+                if (targetNode) {
+                    targetNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                }
+            }
+            e.preventDefault();
+            return;
+        }
+
+        if (e.key === 'q' && !isEditingText) {
+            if (minimapVisible) {
+                hideMinimap();
+            } else {
+                showMinimap();
+            }
+            e.preventDefault();
+            return;
+        }
+
+        if (minimapVisible) {
+            const minimapNodes = Array.from(document.querySelectorAll('#minimap .minimap-node'));
+            if (minimapNodes.length === 0) {
+                if (e.key === 'Escape') {
+                    hideMinimap();
+                }
+                return;
+            }
+
+            let currentSelectedIndex = -1;
+            if (minimapSelectedNode) {
+                currentSelectedIndex = minimapNodes.indexOf(minimapSelectedNode);
+            } else if (minimapNodes.length > 0) {
+                currentSelectedIndex = 0; // Select first node if none is selected
+                minimapSelectedNode = minimapNodes[currentSelectedIndex];
+                minimapSelectedNode.classList.add('selected');
+            }
+
+
+            let nextSelectedIndex = -1;
+
+            switch (e.key) {
+                case 'h': // Left
+                    nextSelectedIndex = (currentSelectedIndex - 1 + minimapNodes.length) % minimapNodes.length;
+                    break;
+                case 'l': // Right
+                    nextSelectedIndex = (currentSelectedIndex + 1) % minimapNodes.length;
+                    break;
+                case 'k': // Up - try to move to a node directly above
+                    // This is a simplified vertical navigation. For true "up" it would need to find the closest node by Y coordinate.
+                    // For now, let's just cycle through
+                    nextSelectedIndex = (currentSelectedIndex - 1 + minimapNodes.length) % minimapNodes.length;
+                    break;
+                case 'j': // Down - try to move to a node directly below
+                    // Simplified vertical navigation.
+                    nextSelectedIndex = (currentSelectedIndex + 1) % minimapNodes.length;
+                    break;
+                case 'Enter':
+                    if (minimapSelectedNode) {
+                        const nodeId = minimapSelectedNode.dataset.nodeId;
+                        const targetNode = document.getElementById(nodeId);
+                        if (targetNode) {
+                            setSelectedNode(targetNode); // Select in main diagram
+                            targetNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        }
+                    }
+                    hideMinimap();
+                    e.preventDefault();
+                    return;
+                case 'Escape':
+                    hideMinimap();
+                    e.preventDefault();
+                    return;
+                default:
+                    // Do nothing for other keys while minimap is open
+                    e.preventDefault(); // Prevent default actions while minimap is active
+                    return;
+            }
+
+            if (nextSelectedIndex !== -1 && minimapNodes[nextSelectedIndex]) {
+                if (minimapSelectedNode) {
+                    minimapSelectedNode.classList.remove('selected');
+                }
+                minimapSelectedNode = minimapNodes[nextSelectedIndex];
+                minimapSelectedNode.classList.add('selected');
+
+                // Scroll main canvas to the selected node
+                const targetNodeId = minimapSelectedNode.dataset.nodeId;
+                const targetNode = document.getElementById(targetNodeId);
+                if (targetNode) {
+                    targetNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                }
+            }
+            e.preventDefault();
+            return;
+        }
+
+        if (e.shiftKey && e.key === 'M' && !isEditingText) {
             multiSelectMode = !multiSelectMode;
             if (multiSelectMode) {
                 selectedNodes = [];
