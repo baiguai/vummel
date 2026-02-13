@@ -306,6 +306,32 @@ Escape = Deselect the current note's text field,
             minimap.appendChild(minimapNode);
         });
 
+        // Create and append minimap viewport
+        let minimapViewport = document.getElementById('minimapViewport');
+        if (!minimapViewport) {
+            minimapViewport = document.createElement('div');
+            minimapViewport.id = 'minimapViewport';
+            minimapViewport.className = 'minimap-viewport';
+            minimap.appendChild(minimapViewport);
+        }
+
+        // Calculate and set initial minimap viewport position and size
+        const canvasRect = canvas.getBoundingClientRect();
+        const viewportX = window.scrollX;
+        const viewportY = window.scrollY;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        const scaledViewportLeft = ((viewportX - canvasRect.left) * scale);
+        const scaledViewportTop = ((viewportY - canvasRect.top) * scale);
+        const scaledViewportWidth = (viewportWidth * scale);
+        const scaledViewportHeight = (viewportHeight * scale);
+
+        minimapViewport.style.left = `${scaledViewportLeft}px`;
+        minimapViewport.style.top = `${scaledViewportTop}px`;
+        minimapViewport.style.width = `${scaledViewportWidth}px`;
+        minimapViewport.style.height = `${scaledViewportHeight}px`;
+
         // Select the first node in the minimap if available
         if (minimap.children.length > 0) {
             minimapSelectedNode = minimap.children[0];
