@@ -185,6 +185,7 @@ L = Increase selected node's width.
 ' = Show history.
 M = Enter select multiple nodes mode (Escape exits)
 q = Show mini-map.
+! = Set auto-saver port (4000-4999, or 0 to disable).
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
@@ -260,6 +261,7 @@ Escape = Deselect the current note's text field,
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
+    let autoSaverPort = 0;
 
     function showMinimap() {
         minimapVisible = true;
@@ -1752,6 +1754,11 @@ Escape = Deselect the current note's text field,
                 repeatCount = 1;
                 break;
 
+            case '!':
+                setAutoSaverPort();
+                repeatCount = 1;
+                break;
+
             case ']': // scroll right
                 window.scrollBy({ left: halfWidth * repeatCount, behavior: 'smooth' });
                 repeatCount = 1;
@@ -3187,6 +3194,17 @@ Escape = Deselect the current note's text field,
             2
         );
 
+        // Save autoSaverPort data
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(autoSaverPort, null, 2);
+
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
@@ -3197,6 +3215,7 @@ Escape = Deselect the current note's text field,
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
+        portScript.remove();
     }
 
     function initializeNodes() {
@@ -3239,7 +3258,7 @@ Escape = Deselect the current note's text field,
         }
     }
 
-    function restoreHistoryFromDOM() {
+function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
     
@@ -3252,13 +3271,36 @@ Escape = Deselect the current note's text field,
             console.error('Failed to restore history:', err);
         }
     }
-      
+
+    function restoreAutoSaverPortFromDOM() {
+        const script = document.getElementById('autosaver-port');
+        if (!script) return;
+
+        try {
+            autoSaverPort = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error('Failed to restore autoSaverPort:', err);
+        }
+    }
+
+    function setAutoSaverPort() {
+        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', autoSaverPort || '');
+        if (input === null) return;
+        const port = parseInt(input, 10);
+        if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
+            alert('Please enter a valid port: 0 (disabled) or 4000-4999');
+            return;
+        }
+        autoSaverPort = port;
+    }
+       
     window.onload = () => {
         initializeNodes();
         restoreThemeFromDOM();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
         restoreHistoryFromDOM();
+        restoreAutoSaverPortFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {
