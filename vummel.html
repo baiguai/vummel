@@ -3320,11 +3320,10 @@ Escape = Deselect the current note's text field,
             return res.text();
         })
         .then(msg => {
-            console.log('Saved:', msg);
+            showToast('Saved');
         })
         .catch(err => {
-            console.error('Save error:', err);
-            alert('Failed to save: ' + err.message);
+            showToast('Save failed: ' + err.message);
         })
         .finally(() => {
             script.remove();
