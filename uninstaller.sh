@@ -18,13 +18,13 @@ FILENAME=$(basename "$FULL_PATH_HTML" .html)
 TARGET_DIR=$(dirname "$FULL_PATH_HTML")
 HTML_FILE="${TARGET_DIR}/${FILENAME}.html"
 SAVER_JS_FILE="${TARGET_DIR}/svr_${FILENAME}.js"
-SCRNODES_SH="$HOME/scrnodes.sh"
+VMLNODES_SH="$HOME/scrnodes.sh"
 PACKAGE_JSON="${TARGET_DIR}/package.json"
 NODE_MODULES_DIR="${TARGET_DIR}/node_modules"
 
 echo "Attempting to uninstall Scribboleth instance for: ${HTML_FILE}"
 echo "Associated saver script: ${SAVER_JS_FILE}"
-echo "This will also remove entries from: ${SCRNODES_SH}"
+echo "This will also remove entries from: ${VMLNODES_SH}"
 read -r -p "Are you sure you want to proceed? (y/N) " response
 if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo "Uninstallation cancelled."
@@ -56,8 +56,8 @@ echo "Removing ${PACKAGE_JSON}..."
 rm -f "${PACKAGE_JSON}"
 
 # --- Clean scrnodes.sh ---
-if [ -f "$SCRNODES_SH" ]; then
-    echo "Cleaning up ${SCRNODES_SH}..."
+if [ -f "$VMLNODES_SH" ]; then
+    echo "Cleaning up ${VMLNODES_SH}..."
     TEMP_SCRNODES=$(mktemp)
 
     # Define the exact lines to match, escaping potential regex characters in paths
@@ -76,7 +76,7 @@ if [ -f "$SCRNODES_SH" ]; then
 
     # Read scrnodes.sh into an array, filter out matching lines, and write back.
     # This approach is more robust and less prone to sed portability issues.
-    mapfile -t SCRNODES_LINES < "$SCRNODES_SH"
+    mapfile -t SCRNODES_LINES < "$VMLNODES_SH"
     
     NEW_SCRNODES_CONTENT=()
     for LINE in "${SCRNODES_LINES[@]}"; do
@@ -100,11 +100,11 @@ if [ -f "$SCRNODES_SH" ]; then
     done
     
     # Write the filtered content back to scrnodes.sh, ensuring empty lines are also handled.
-    printf "%s\n" "${NEW_SCRNODES_CONTENT[@]}" | grep -vE '^\s*$' > "$SCRNODES_SH"
+    printf "%s\n" "${NEW_SCRNODES_CONTENT[@]}" | grep -vE '^\s*$' > "$VMLNODES_SH"
 
-    echo "scrnodes.sh cleaned up. You may need to run 'chmod +x ${SCRNODES_SH}' if permissions were lost."
+    echo "scrnodes.sh cleaned up. You may need to run 'chmod +x ${VMLNODES_SH}' if permissions were lost."
 else
-    echo "Warning: ${SCRNODES_SH} not found. Skipping scrnodes.sh cleanup."
+    echo "Warning: ${VMLNODES_SH} not found. Skipping scrnodes.sh cleanup."
 fi
 
 echo ""

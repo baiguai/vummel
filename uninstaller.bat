@@ -21,13 +21,13 @@ if "%TARGET_DIR:~-1%"=="\" if not "%TARGET_DIR:~0,2%"=="\" set "TARGET_DIR=%TARG
 
 set "HTML_FILE=%TARGET_DIR%\%FILENAME%.html"
 set "SAVER_JS_FILE=%TARGET_DIR%\svr_%FILENAME%.js"
-set "SCRNODES_BAT=%USERPROFILE%\scrnodes.bat"
+set "VMLNODES_BAT=%USERPROFILE%\vmlnodes.bat"
 set "PACKAGE_JSON=%TARGET_DIR%\package.json"
 set "NODE_MODULES_DIR=%TARGET_DIR%\node_modules"
 
 echo Attempting to uninstall Scribboleth instance for: %HTML_FILE%
 echo Associated saver script: %SAVER_JS_FILE%
-echo This will also remove entries from: %SCRNODES_BAT%
+echo This will also remove entries from: %VMLNODES_BAT%
 
 choice /C YN /M "Are you sure you want to proceed?"
 if errorlevel 2 goto :uninstallation_cancelled
@@ -43,7 +43,7 @@ if exist "%HTML_FILE%" (
 )
 
 if not defined PORT (
-    echo Error: Could not find nodePort in %HTML_FILE%. Cannot proceed with scrnodes.bat cleanup.
+    echo Error: Could not find nodePort in %HTML_FILE%. Cannot proceed with vmlnodes.bat cleanup.
     exit /b 1
 ) else (
     echo Identified port from HTML file: %PORT%
@@ -60,9 +60,9 @@ echo Removing %PACKAGE_JSON%...
 if exist "%PACKAGE_JSON%" del /f /q "%PACKAGE_JSON%"
 
 
-REM --- Clean scrnodes.bat ---
-if exist "%SCRNODES_BAT%" (
-    echo Cleaning up %SCRNODES_BAT%...
+REM --- Clean vmlnodes.bat ---
+if exist "%VMLNODES_BAT%" (
+    echo Cleaning up %VMLNODES_BAT%...
 
     REM Escape special characters for PowerShell regex
     set "ESCAPED_TARGET_DIR=%TARGET_DIR:\=\%"
@@ -70,23 +70,23 @@ if exist "%SCRNODES_BAT%" (
 
     REM Remove REM %PORT% line
     if defined PORT (
-        powershell -Command "(Get-Content -path '%SCRNODES_BAT%') | Where-Object { $_ -notmatch 'REM %PORT%' } | Set-Content -path '%SCRNODES_BAT%' -encoding ASCII"
+        powershell -Command "(Get-Content -path '%VMLNODES_BAT%') | Where-Object { $_ -notmatch 'REM %PORT%' } | Set-Content -path '%VMLNODES_BAT%' -encoding ASCII"
     )
 
     REM Remove node service command line
-    powershell -Command "(Get-Content -path '%SCRNODES_BAT%') | Where-Object { $_ -notmatch 'cd /d \"%ESCAPED_TARGET_DIR%\" \\^& start \"Node Server for %FILENAME%\" /b node \"%ESCAPED_SAVER_JS_FILE%\"' } | Set-Content -path '%SCRNODES_BAT%' -encoding ASCII"
+    powershell -Command "(Get-Content -path '%VMLNODES_BAT%') | Where-Object { $_ -notmatch 'cd /d \"%ESCAPED_TARGET_DIR%\" \\^& start \"Node Server for %FILENAME%\" /b node \"%ESCAPED_SAVER_JS_FILE%\"' } | Set-Content -path '%VMLNODES_BAT%' -encoding ASCII"
 
     REM Remove echo %FILENAME%: %PORT% line
     if defined PORT (
-        powershell -Command "(Get-Content -path '%SCRNODES_BAT%') | Where-Object { $_ -notmatch 'echo %FILENAME%: %PORT%' } | Set-Content -path '%SCRNODES_BAT%' -encoding ASCII"
+        powershell -Command "(Get-Content -path '%VMLNODES_BAT%') | Where-Object { $_ -notmatch 'echo %FILENAME%: %PORT%' } | Set-Content -path '%VMLNODES_BAT%' -encoding ASCII"
     )
 
     REM Remove any resulting empty lines
-    powershell -Command "(Get-Content -path '%SCRNODES_BAT%') | Where-Object { $_.Trim() -ne '' } | Set-Content -path '%SCRNODES_BAT%' -encoding ASCII"
+    powershell -Command "(Get-Content -path '%VMLNODES_BAT%') | Where-Object { $_.Trim() -ne '' } | Set-Content -path '%VMLNODES_BAT%' -encoding ASCII"
 
-    echo %SCRNODES_BAT% cleaned up.
+    echo %VMLNODES_BAT% cleaned up.
 ) else (
-    echo Warning: %SCRNODES_BAT% not found. Skipping scrnodes.bat cleanup.
+    echo Warning: %VMLNODES_BAT% not found. Skipping vmlnodes.bat cleanup.
 )
 
 echo.

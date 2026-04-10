@@ -197,6 +197,7 @@ z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
 s = Save the current diagram.
+n = Save via nodejs (requires auto-saver port).
 U = Upgrade from another Vummel diagram file.
 G = Scroll to the top left.
 , = Zoom out.
@@ -1712,6 +1713,11 @@ Escape = Deselect the current note's text field,
                 repeatCount = 1;
                 break;
 
+            case 'n':
+                nodejsSave();
+                repeatCount = 1;
+                break;
+
             case 'U':
                 showUpgradeDialog();
                 repeatCount = 1;
@@ -3216,6 +3222,118 @@ Escape = Deselect the current note's text field,
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
         portScript.remove();
+    }
+
+    function nodejsSave() {
+        if (autoSaverPort === 0) {
+            alert('Auto-saver is disabled. Use ! to set a port first.');
+            return;
+        }
+
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+        document.body.appendChild(script);
+
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
+
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(autoSaverPort, null, 2);
+
+        const html = document.documentElement.outerHTML;
+        const currentFileName = location.pathname.split('/').pop() || 'vummel.html';
+
+        fetch(`http://localhost:${autoSaverPort}/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Filename': currentFileName
+            },
+            body: html
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Save failed');
+            return res.text();
+        })
+        .then(msg => {
+            console.log('Saved:', msg);
+        })
+        .catch(err => {
+            console.error('Save error:', err);
+            alert('Failed to save: ' + err.message);
+        })
+        .finally(() => {
+            script.remove();
+            paletteScript.remove();
+            marksScript.remove();
+            themeScript.remove();
+            historyScript.remove();
+            portScript.remove();
+        });
     }
 
     function initializeNodes() {

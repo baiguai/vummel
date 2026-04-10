@@ -15,7 +15,7 @@ if "%FILENAME%"=="" (
     exit /b 1
 )
 
-set "SCRNODES_BAT=%USERPROFILE%\scrnodes.bat"
+set "VMLNODES_BAT=%USERPROFILE%\vmlnodes.bat"
 set "HTML_FILE=%TARGET_DIR%\%FILENAME%.html"
 set "SAVER_JS_FILE=%TARGET_DIR%\svr_%FILENAME%.js"
 
@@ -31,14 +31,14 @@ if exist "%HTML_FILE%" (
 
 REM Determine the next available port
 set "PORT=3000"
-if exist "%SCRNODES_BAT%" (
-    for /f "tokens=2" %%i in ('findstr /r "^REM [0-9][0-9]*" "%SCRNODES_BAT%"') do (
+if exist "%VMLNODES_BAT%" (
+    for /f "tokens=2" %%i in ('findstr /r "^REM [0-9][0-9]*" "%VMLNODES_BAT%"') do (
         set "LAST_PORT=%%i"
     )
     if defined LAST_PORT (
         set /a "PORT=LAST_PORT + 1"
     ) else (
-        for /f "tokens=3 delims=: " %%i in ('findstr /r "echo.*:[0-9]*" "%SCRNODES_BAT%"') do (
+        for /f "tokens=3 delims=: " %%i in ('findstr /r "echo.*:[0-9]*" "%VMLNODES_BAT%"') do (
             set "LAST_PORT=%%i"
         )
         if defined LAST_PORT (
@@ -48,40 +48,40 @@ if exist "%SCRNODES_BAT%" (
 )
 
 
-REM Create or update the scrnodes.bat script
-if not exist "%SCRNODES_BAT%" (
-    echo @echo off > "%SCRNODES_BAT%"
-    echo. >> "%SCRNODES_BAT%"
-    echo REM 3000 >> "%SCRNODES_BAT%"
-    echo. >> "%SCRNODES_BAT%"
-    echo cd /d "%TARGET_DIR%" ^& start "Node Server for %FILENAME%" /b node "%SAVER_JS_FILE%" >> "%SCRNODES_BAT%"
-    echo. >> "%SCRNODES_BAT%"
-    echo timeout /t 3 /nobreak ^>nul >> "%SCRNODES_BAT%"
-    echo. >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
-    echo echo %FILENAME%: %PORT% >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
-    echo echo. >> "%SCRNODES_BAT%"
+REM Create or update the vmlnodes.bat script
+if not exist "%VMLNODES_BAT%" (
+    echo @echo off > "%VMLNODES_BAT%"
+    echo. >> "%VMLNODES_BAT%"
+    echo REM 3000 >> "%VMLNODES_BAT%"
+    echo. >> "%VMLNODES_BAT%"
+    echo cd /d "%TARGET_DIR%" ^& start "Node Server for %FILENAME%" /b node "%SAVER_JS_FILE%" >> "%VMLNODES_BAT%"
+    echo. >> "%VMLNODES_BAT%"
+    echo timeout /t 3 /nobreak ^>nul >> "%VMLNODES_BAT%"
+    echo. >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
+    echo echo %FILENAME%: %PORT% >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
+    echo echo. >> "%VMLNODES_BAT%"
 ) else (
-    findstr /c:"cd /d \"%TARGET_DIR%\" ^& start \"Node Server for %FILENAME%\" /b node \"%SAVER_JS_FILE%\"" "%SCRNODES_BAT%" >nul
+    findstr /c:"cd /d \"%TARGET_DIR%\" ^& start \"Node Server for %FILENAME%\" /b node \"%SAVER_JS_FILE%\"" "%VMLNODES_BAT%" >nul
     if %errorlevel% neq 0 (
         REM Add the new port comment
-        powershell -Command "(Get-Content -path '%SCRNODES_BAT%') + 'REM %PORT%' | Out-File -filepath '%SCRNODES_BAT%' -encoding ASCII"
+        powershell -Command "(Get-Content -path '%VMLNODES_BAT%') + 'REM %PORT%' | Out-File -filepath '%VMLNODES_BAT%' -encoding ASCII"
         
         REM Add the new node service command before timeout
-        powershell -Command "$content = Get-Content -path '%SCRNODES_BAT%'; $timeoutIndex = $content | Select-String -Pattern 'timeout' | Select -First 1 | ForEach-Object { $_.LineNumber - 1 }; $newContent = $content[0..($timeoutIndex-1)] + 'cd /d \"%TARGET_DIR%\" ^& start \"Node Server for %FILENAME%\" /b node \"%SAVER_JS_FILE%\"' + $content[$timeoutIndex..($content.Length-1)]; $newContent | Out-File -filepath '%SCRNODES_BAT%' -encoding ASCII"
+        powershell -Command "$content = Get-Content -path '%VMLNODES_BAT%'; $timeoutIndex = $content | Select-String -Pattern 'timeout' | Select -First 1 | ForEach-Object { $_.LineNumber - 1 }; $newContent = $content[0..($timeoutIndex-1)] + 'cd /d \"%TARGET_DIR%\" ^& start \"Node Server for %FILENAME%\" /b node \"%SAVER_JS_FILE%\"' + $content[$timeoutIndex..($content.Length-1)]; $newContent | Out-File -filepath '%VMLNODES_BAT%' -encoding ASCII"
 
         REM Add the new echo statement
-        powershell -Command "$content = Get-Content -path '%SCRNODES_BAT%'; $lastEchoIndex = $content | Select-String -Pattern 'echo \".*:[0-9]*\"' | Select -Last 1 | ForEach-Object { $_.LineNumber - 1 }; $newContent = $content[0..$lastEchoIndex] + 'echo %FILENAME%: %PORT%' + $content[($lastEchoIndex+1)..($content.Length-1)]; $newContent | Out-File -filepath '%SCRNODES_BAT%' -encoding ASCII"
+        powershell -Command "$content = Get-Content -path '%VMLNODES_BAT%'; $lastEchoIndex = $content | Select-String -Pattern 'echo \".*:[0-9]*\"' | Select -Last 1 | ForEach-Object { $_.LineNumber - 1 }; $newContent = $content[0..$lastEchoIndex] + 'echo %FILENAME%: %PORT%' + $content[($lastEchoIndex+1)..($content.Length-1)]; $newContent | Out-File -filepath '%VMLNODES_BAT%' -encoding ASCII"
     )
 )
 
 if not exist "%HTML_FILE%" (
-    REM Copy scribboleth.html to the target directory
-    copy "%~dp0scribboleth.html" "%HTML_FILE%" >nul
+    REM Copy vummel.html to the target directory
+    copy "%~dp0vummel.html" "%HTML_FILE%" >nul
 
     REM Update the node port in the new html file
     powershell -Command "(Get-Content -path '%HTML_FILE%') -replace 'let nodePort = 0;', 'let nodePort = %PORT%;' | Set-Content -path '%HTML_FILE%'"
@@ -97,7 +97,7 @@ if not exist "%SAVER_JS_FILE%" (
     copy "%~dp0saver.js" "%SAVER_JS_FILE%" >nul
 
     REM Update the file name and port in the new saver.js file
-    powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const FILE_PATH = \"./scribboleth.html\";', 'const FILE_PATH = \"./%FILENAME%.html\";' | Set-Content -path '%SAVER_JS_FILE%'"
+    powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const FILE_PATH = \"./vummel.html\";', 'const FILE_PATH = \"./%FILENAME%.html\";' | Set-Content -path '%SAVER_JS_FILE%'"
     powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const PORT = 3000;', 'const PORT = %PORT%;' | Set-Content -path '%SAVER_JS_FILE%'"
 ) else (
     REM Update the file name and port in the existing saver.js file
@@ -106,8 +106,8 @@ if not exist "%SAVER_JS_FILE%" (
 )
 
 
-echo New scribboleth instance '%FILENAME%' created in '%TARGET_DIR%' on port %PORT%.
-echo To start the node services, run: %SCRNODES_BAT%
+echo New vummel instance '%FILENAME%' created in '%TARGET_DIR%' on port %PORT%.
+echo To start the node services, run: %VMLNODES_BAT%
 
 cd "%TARGET_DIR%"
 powershell -Command "Set-Content -Path 'package.json' -Value '{ \"dependencies\": { \"express\": \"^5.1.0\", \"body-parser\": \"^1.20.0\" } }' -Encoding ASCII"
