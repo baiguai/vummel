@@ -23,7 +23,7 @@ if [ -f "$HTML_FILE" ] && [ -f "$SAVER_JS_FILE" ]; then
 fi
 
 # Determine the next available port
-PORT=3000
+PORT=4000
 if [ -f "$VMLNODES_SH" ]; then
     # Find the last port number from the comments at the top of the script
     LAST_PORT=$(grep -E '^# [0-9]+$' "$VMLNODES_SH" | tail -n 1 | sed 's/# //')
@@ -100,7 +100,7 @@ if [ ! -f "$SAVER_JS_FILE" ]; then
 
     # Update the file name and port in the new saver.js file
     sed -i "s|const FILE_PATH = \"./vummel.html\";|const FILE_PATH = \"./$FILENAME.html\";|" "$SAVER_JS_FILE"
-    sed -i "s/const PORT = 3000;/const PORT = $PORT;/" "$SAVER_JS_FILE"
+    sed -i "s/const PORT = 4000;/const PORT = $PORT;/" "$SAVER_JS_FILE"
 else
     # Update the file name and port in the existing saver.js file
     sed -i "s|const FILE_PATH = \".*\";|const FILE_PATH = \"./$FILENAME.html\";|" "$SAVER_JS_FILE"

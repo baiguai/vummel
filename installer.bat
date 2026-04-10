@@ -30,7 +30,7 @@ if exist "%HTML_FILE%" (
 )
 
 REM Determine the next available port
-set "PORT=3000"
+set "PORT=4000"
 if exist "%VMLNODES_BAT%" (
     for /f "tokens=2" %%i in ('findstr /r "^REM [0-9][0-9]*" "%VMLNODES_BAT%"') do (
         set "LAST_PORT=%%i"
@@ -52,7 +52,7 @@ REM Create or update the vmlnodes.bat script
 if not exist "%VMLNODES_BAT%" (
     echo @echo off > "%VMLNODES_BAT%"
     echo. >> "%VMLNODES_BAT%"
-    echo REM 3000 >> "%VMLNODES_BAT%"
+    echo REM 4000 >> "%VMLNODES_BAT%"
     echo. >> "%VMLNODES_BAT%"
     echo cd /d "%TARGET_DIR%" ^& start "Node Server for %FILENAME%" /b node "%SAVER_JS_FILE%" >> "%VMLNODES_BAT%"
     echo. >> "%VMLNODES_BAT%"
@@ -98,7 +98,7 @@ if not exist "%SAVER_JS_FILE%" (
 
     REM Update the file name and port in the new saver.js file
     powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const FILE_PATH = \"./vummel.html\";', 'const FILE_PATH = \"./%FILENAME%.html\";' | Set-Content -path '%SAVER_JS_FILE%'"
-    powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const PORT = 3000;', 'const PORT = %PORT%;' | Set-Content -path '%SAVER_JS_FILE%'"
+    powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const PORT = 4000;', 'const PORT = %PORT%;' | Set-Content -path '%SAVER_JS_FILE%'"
 ) else (
     REM Update the file name and port in the existing saver.js file
     powershell -Command "(Get-Content -path '%SAVER_JS_FILE%') -replace 'const FILE_PATH = \".*\";', 'const FILE_PATH = \"./%FILENAME%.html\";' | Set-Content -path '%SAVER_JS_FILE%'"

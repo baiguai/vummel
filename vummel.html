@@ -197,6 +197,7 @@ z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
 s = Save the current diagram.
+S = Save as (enter new file name).
 n = Save via nodejs (requires auto-saver port).
 U = Upgrade from another Vummel diagram file.
 G = Scroll to the top left.
@@ -262,7 +263,8 @@ Escape = Deselect the current note's text field,
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
-    let autoSaverPort = 0;
+    let nodePort = 0;
+    let fileName = "help";
 
     function showMinimap() {
         minimapVisible = true;
@@ -626,6 +628,7 @@ Escape = Deselect the current note's text field,
         textarea.className = 'node-content';
         textarea.spellcheck = 'false';
         textarea.placeholder = 'Enter notes...';
+        textarea.addEventListener('input', () => scheduleAutoSave());
         div.appendChild(textarea);
 
         const dropzone = document.createElement('div');
@@ -1696,20 +1699,33 @@ Escape = Deselect the current note's text field,
             case 'a':
                 addNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case '=':
                 duplicateSelectedNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 'u':
                 addLinkNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 's':
                 download();
+                repeatCount = 1;
+                break;
+
+            case 'S':
+                {
+                    const newName = prompt('Save as (file name without .html):', fileName);
+                    if (newName && newName.trim()) {
+                        downloadWithFileName(newName.trim() + '.html');
+                    }
+                }
                 repeatCount = 1;
                 break;
 
@@ -1901,9 +1917,11 @@ Escape = Deselect the current note's text field,
                 } else if (selectedNode) {
                     removeNode(selectedNode);
                 }
+                scheduleAutoSave();
                 break;
             case 'd':
                 detachChild(selectedNode);
+                scheduleAutoSave();
                 break;
 
             case 'X':
@@ -1914,16 +1932,19 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case '<':
                 move(-(step/2), 0);
+                scheduleAutoSave();
                 break;
 
             case 'H':
                 for (let i=0; i < repeatCount; i++) {
                     resize(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'i':
@@ -1938,42 +1959,50 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '-':
                 move(0, (step/2));
+                scheduleAutoSave();
                 break;
 
             case 'J':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'k':
                 for (let i=0; i < repeatCount; i++) {
                     move(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '^':
                 move(0, -(step/2));
+                scheduleAutoSave();
                 break;
 
             case 'K':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'l':
                 for (let i=0; i < repeatCount; i++) {
                     move(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'r':
                 renameNode();
+                scheduleAutoSave();
                 break;
 
             case '>':
@@ -1981,10 +2010,12 @@ Escape = Deselect the current note's text field,
                     drawConnector(connectStart, selectedNode, true); // pass arrow = true
                     connectStart = null;
                     connecting = false;
+                    scheduleAutoSave();
                     e.preventDefault();
                     return;
                 } else {
                     move((step / 2), 0);
+                    scheduleAutoSave();
                 }
                 break;
 
@@ -1992,6 +2023,7 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resize(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'm':
@@ -2004,12 +2036,14 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(-10);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'Z':
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(10);
                 }
+                scheduleAutoSave();
                 break;
 
             case '#':
@@ -2075,6 +2109,7 @@ Escape = Deselect the current note's text field,
                 } else {
                     attachChild(selectedNode);
                 }
+                scheduleAutoSave();
                 e.stopPropagation();
                 break;
             default:
@@ -2270,10 +2305,14 @@ Escape = Deselect the current note's text field,
                         status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
                         status.style.color = '#7af';
                         
-                        // Download with the same filename after a short delay
+                        // Save via nodejs (keep current nodePort/fileName), or regular save if nodePort is 0
                         setTimeout(() => {
                             dialog.style.display = 'none';
-                            downloadWithFileName(file.name);
+                            if (nodePort === 0) {
+                                download();
+                            } else {
+                                nodejsSave();
+                            }
                             dialog.remove();
                         }, 1000);
                     } else {
@@ -2607,6 +2646,18 @@ Escape = Deselect the current note's text field,
         a.href = URL.createObjectURL(blob);
         a.download = fileName;
         a.click();
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        const baseName = fileName.replace('.html', '');
+        fnScript.textContent = JSON.stringify(baseName, null, 2);
+        fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
@@ -3200,7 +3251,7 @@ Escape = Deselect the current note's text field,
             2
         );
 
-        // Save autoSaverPort data
+        // Save nodePort data
         let portScript = document.querySelector('script[data-autosaverport]');
         if (!portScript) {
             portScript = document.createElement('script');
@@ -3209,14 +3260,23 @@ Escape = Deselect the current note's text field,
             portScript.id = 'autosaver-port';
             document.body.appendChild(portScript);
         }
-        portScript.textContent = JSON.stringify(autoSaverPort, null, 2);
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
 
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
-        let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
         a.href = URL.createObjectURL(blob);
-        a.download = currentFileName;
+        a.download = fileName + '.html';
         a.click();
 
         script.remove(); // Remove after save to avoid duplicate
@@ -3225,7 +3285,7 @@ Escape = Deselect the current note's text field,
     }
 
     function nodejsSave() {
-        if (autoSaverPort === 0) {
+        if (nodePort === 0) {
             alert('Auto-saver is disabled. Use ! to set a port first.');
             return;
         }
@@ -3302,16 +3362,25 @@ Escape = Deselect the current note's text field,
             portScript.id = 'autosaver-port';
             document.body.appendChild(portScript);
         }
-        portScript.textContent = JSON.stringify(autoSaverPort, null, 2);
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
 
         const html = document.documentElement.outerHTML;
-        const currentFileName = location.pathname.split('/').pop() || 'vummel.html';
 
-        fetch(`http://localhost:${autoSaverPort}/save`, {
+        fetch(`http://localhost:${nodePort}/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/plain',
-                'X-Filename': currentFileName
+                'X-Filename': fileName + '.html'
             },
             body: html
         })
@@ -3333,6 +3402,17 @@ Escape = Deselect the current note's text field,
             historyScript.remove();
             portScript.remove();
         });
+    }
+
+    let autoSaveTimer = null;
+
+    function scheduleAutoSave() {
+        if (nodePort === 0) return;
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            nodejsSave();
+        }, 3000);
     }
 
     function initializeNodes() {
@@ -3394,21 +3474,50 @@ function restoreHistoryFromDOM() {
         if (!script) return;
 
         try {
-            autoSaverPort = JSON.parse(script.textContent);
+            nodePort = JSON.parse(script.textContent);
         } catch (err) {
-            console.error('Failed to restore autoSaverPort:', err);
+            console.error('Failed to restore nodePort:', err);
         }
     }
 
+    function restoreFileNameFromDOM() {
+        const script = document.getElementById('filename-data');
+        if (script) {
+            try {
+                fileName = JSON.parse(script.textContent);
+            } catch (err) {
+                console.error('Failed to restore fileName:', err);
+            }
+        } else {
+            const current = location.pathname.split('/').pop();
+            if (current) {
+                fileName = current.replace('.html', '');
+            }
+        }
+    }
+
+    function setFileName(newName) {
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(newName, null, 2);
+        fileName = newName;
+    }
+
     function setAutoSaverPort() {
-        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', autoSaverPort || '');
+        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', nodePort || '');
         if (input === null) return;
         const port = parseInt(input, 10);
         if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
             alert('Please enter a valid port: 0 (disabled) or 4000-4999');
             return;
         }
-        autoSaverPort = port;
+        nodePort = port;
     }
        
     window.onload = () => {
@@ -3418,6 +3527,7 @@ function restoreHistoryFromDOM() {
         restoreConnectorsFromDOM();
         restoreHistoryFromDOM();
         restoreAutoSaverPortFromDOM();
+        restoreFileNameFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {

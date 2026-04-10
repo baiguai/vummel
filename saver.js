@@ -12,7 +12,7 @@ This installs dependencies locally in the current directory.
 You only need to run this once per directory.
 The node_modules folder and package-lock.json will be created automatically.
 
-Copy over your Scribboleth notes file (rename it as desired).
+Copy over your Vummel file (rename it as desired).
 Below: Set the FILE_PATH, PORT, and if needed NODE_IP
 
 
@@ -35,9 +35,9 @@ Then simply open your notes .html file - to save use the key binding: n
 
 
 // Path to the HTML file you want to save
-const FILE_PATH = "./scribboleth.html";
+const FILE_PATH = "./vummel.html";
 const NODE_IP = "localhost";  // or your LAN IP
-const PORT = 3000;
+const PORT = 4000;
 
 // Backup behavior
 const BACKUP_DIR = "./backups";   // where backups go
