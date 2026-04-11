@@ -185,6 +185,7 @@ L = Increase selected node's width.
 ' = Show history.
 M = Enter select multiple nodes mode (Escape exits)
 q = Show mini-map.
+! = Set auto-saver port (4000-4999, or 0 to disable).
                 </pre>
             </td>
             <td style="vertical-align: top; padding-left: 10px;">
@@ -196,6 +197,8 @@ z = Increase selected node's text area.
 Z = Decrease selected node's text area.
 w = Cycles through the nodes.
 s = Save the current diagram.
+S = Save as (enter new file name).
+n = Save via nodejs (requires auto-saver port).
 U = Upgrade from another Vummel diagram file.
 G = Scroll to the top left.
 , = Zoom out.
@@ -260,6 +263,8 @@ Escape = Deselect the current note's text field,
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
+    let nodePort = 0;
+    let fileName = "help";
 
     function showMinimap() {
         minimapVisible = true;
@@ -623,6 +628,7 @@ Escape = Deselect the current note's text field,
         textarea.className = 'node-content';
         textarea.spellcheck = 'false';
         textarea.placeholder = 'Enter notes...';
+        textarea.addEventListener('input', () => scheduleAutoSave());
         div.appendChild(textarea);
 
         const dropzone = document.createElement('div');
@@ -1693,20 +1699,38 @@ Escape = Deselect the current note's text field,
             case 'a':
                 addNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case '=':
                 duplicateSelectedNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 'u':
                 addLinkNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 's':
                 download();
+                repeatCount = 1;
+                break;
+
+            case 'S':
+                {
+                    const newName = prompt('Save as (file name without .html):', fileName);
+                    if (newName && newName.trim()) {
+                        downloadWithFileName(newName.trim() + '.html');
+                    }
+                }
+                repeatCount = 1;
+                break;
+
+            case 'n':
+                nodejsSave();
                 repeatCount = 1;
                 break;
 
@@ -1749,6 +1773,11 @@ Escape = Deselect the current note's text field,
             case 'G':
                 setSelectedNode(null);
                 window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+                repeatCount = 1;
+                break;
+
+            case '!':
+                setAutoSaverPort();
                 repeatCount = 1;
                 break;
 
@@ -1888,9 +1917,11 @@ Escape = Deselect the current note's text field,
                 } else if (selectedNode) {
                     removeNode(selectedNode);
                 }
+                scheduleAutoSave();
                 break;
             case 'd':
                 detachChild(selectedNode);
+                scheduleAutoSave();
                 break;
 
             case 'X':
@@ -1901,16 +1932,19 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case '<':
                 move(-(step/2), 0);
+                scheduleAutoSave();
                 break;
 
             case 'H':
                 for (let i=0; i < repeatCount; i++) {
                     resize(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'i':
@@ -1925,42 +1959,50 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '-':
                 move(0, (step/2));
+                scheduleAutoSave();
                 break;
 
             case 'J':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'k':
                 for (let i=0; i < repeatCount; i++) {
                     move(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '^':
                 move(0, -(step/2));
+                scheduleAutoSave();
                 break;
 
             case 'K':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'l':
                 for (let i=0; i < repeatCount; i++) {
                     move(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'r':
                 renameNode();
+                scheduleAutoSave();
                 break;
 
             case '>':
@@ -1968,10 +2010,12 @@ Escape = Deselect the current note's text field,
                     drawConnector(connectStart, selectedNode, true); // pass arrow = true
                     connectStart = null;
                     connecting = false;
+                    scheduleAutoSave();
                     e.preventDefault();
                     return;
                 } else {
                     move((step / 2), 0);
+                    scheduleAutoSave();
                 }
                 break;
 
@@ -1979,6 +2023,7 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resize(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'm':
@@ -1991,12 +2036,14 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(-10);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'Z':
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(10);
                 }
+                scheduleAutoSave();
                 break;
 
             case '#':
@@ -2062,6 +2109,7 @@ Escape = Deselect the current note's text field,
                 } else {
                     attachChild(selectedNode);
                 }
+                scheduleAutoSave();
                 e.stopPropagation();
                 break;
             default:
@@ -2257,10 +2305,14 @@ Escape = Deselect the current note's text field,
                         status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
                         status.style.color = '#7af';
                         
-                        // Download with the same filename after a short delay
+                        // Save via nodejs (keep current nodePort/fileName), or regular save if nodePort is 0
                         setTimeout(() => {
                             dialog.style.display = 'none';
-                            downloadWithFileName(file.name);
+                            if (nodePort === 0) {
+                                download();
+                            } else {
+                                nodejsSave();
+                            }
                             dialog.remove();
                         }, 1000);
                     } else {
@@ -2594,6 +2646,18 @@ Escape = Deselect the current note's text field,
         a.href = URL.createObjectURL(blob);
         a.download = fileName;
         a.click();
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        const baseName = fileName.replace('.html', '');
+        fnScript.textContent = JSON.stringify(baseName, null, 2);
+        fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
@@ -3187,16 +3251,168 @@ Escape = Deselect the current note's text field,
             2
         );
 
+        // Save nodePort data
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
+
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
-        let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
         a.href = URL.createObjectURL(blob);
-        a.download = currentFileName;
+        a.download = fileName + '.html';
         a.click();
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
+        portScript.remove();
+    }
+
+    function nodejsSave() {
+        if (nodePort === 0) {
+            alert('Auto-saver is disabled. Use ! to set a port first.');
+            return;
+        }
+
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+        document.body.appendChild(script);
+
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
+
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
+
+        const html = document.documentElement.outerHTML;
+
+        fetch(`http://localhost:${nodePort}/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Filename': fileName + '.html'
+            },
+            body: html
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Save failed');
+            return res.text();
+        })
+        .then(msg => {
+            showToast('Saved');
+        })
+        .catch(err => {
+            showToast('Save failed: ' + err.message);
+        })
+        .finally(() => {
+            script.remove();
+            paletteScript.remove();
+            marksScript.remove();
+            themeScript.remove();
+            historyScript.remove();
+            portScript.remove();
+        });
+    }
+
+    let autoSaveTimer = null;
+
+    function scheduleAutoSave() {
+        if (nodePort === 0) return;
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            nodejsSave();
+        }, 3000);
     }
 
     function initializeNodes() {
@@ -3239,7 +3455,7 @@ Escape = Deselect the current note's text field,
         }
     }
 
-    function restoreHistoryFromDOM() {
+function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
     
@@ -3252,13 +3468,66 @@ Escape = Deselect the current note's text field,
             console.error('Failed to restore history:', err);
         }
     }
-      
+
+    function restoreAutoSaverPortFromDOM() {
+        const script = document.getElementById('autosaver-port');
+        if (!script) return;
+
+        try {
+            nodePort = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error('Failed to restore nodePort:', err);
+        }
+    }
+
+    function restoreFileNameFromDOM() {
+        const script = document.getElementById('filename-data');
+        if (script) {
+            try {
+                fileName = JSON.parse(script.textContent);
+            } catch (err) {
+                console.error('Failed to restore fileName:', err);
+            }
+        } else {
+            const current = location.pathname.split('/').pop();
+            if (current) {
+                fileName = current.replace('.html', '');
+            }
+        }
+    }
+
+    function setFileName(newName) {
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(newName, null, 2);
+        fileName = newName;
+    }
+
+    function setAutoSaverPort() {
+        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', nodePort || '');
+        if (input === null) return;
+        const port = parseInt(input, 10);
+        if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
+            alert('Please enter a valid port: 0 (disabled) or 4000-4999');
+            return;
+        }
+        nodePort = port;
+    }
+       
     window.onload = () => {
         initializeNodes();
         restoreThemeFromDOM();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
         restoreHistoryFromDOM();
+        restoreAutoSaverPortFromDOM();
+        restoreFileNameFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {

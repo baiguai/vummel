@@ -12,7 +12,7 @@ This installs dependencies locally in the current directory.
 You only need to run this once per directory.
 The node_modules folder and package-lock.json will be created automatically.
 
-Copy over your Httree notes file (rename it as desired).
+Copy over your Vummel file (rename it as desired).
 Below: Set the FILE_PATH, PORT, and if needed NODE_IP
 
 
@@ -35,9 +35,9 @@ Then simply open your notes .html file - to save use the key binding: n
 
 
 // Path to the HTML file you want to save
-const FILE_PATH = "./vummel_help.html";
+const FILE_PATH = "./vummel.html";
 const NODE_IP = "localhost";  // or your LAN IP
-const PORT = 3006;
+const PORT = 4000;
 
 // Backup behavior
 const BACKUP_DIR = "./backups";   // where backups go
@@ -53,10 +53,10 @@ const MAX_DAYS = 0;               // delete backups older than N days (0 = keep 
 //  (you generally don’t need to edit below this line)
 // ---------------------------------------------------------------------------
 
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const bodyParser = require('body-parser');
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import bodyParser from 'body-parser';
 
 const app = express();
 app.use(bodyParser.text({ limit: "50mb" }));
