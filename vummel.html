@@ -219,7 +219,7 @@
         { key: 'p', desc: 'Start snap (select second node hit Enter).' },
         { key: '#', desc: "Sets a custom color for the node. OR manages color 'palettes'." },
         { key: '@', desc: "Reset a node's color to the theme's default." },
-        { key: '%', desc: 'Import a theme from a JSON file.' },
+        { key: '%', desc: 'Select a theme from the built-in themes list.' },
         { key: '/', desc: 'Search and select a node. (begin with "#" to search by palette).' },
         { key: '`<`>', desc: 'Show a list of current marks.' },
         { key: 'm<letter>', desc: 'Set mark (A-Z, a-z).' },
@@ -318,6 +318,139 @@
     let minimapSelectedNode = null;
     let nodePort = 0;
     let fileName = "help";
+
+    const builtInThemes = [
+      {
+        name: "Dark Theme",
+        description: "Default dark theme",
+        styles: { body: { background: "black", color: "white" }, canvas: { background: "black" }, node: { background: "#111", color: "white", border: "1px solid #aaa" }, nodeHeader: { color: "white" }, nodeContent: { background: "#111", color: "white" }, dropzone: { background: "#111", color: "white" }, dialog: { background: "#222", color: "white", border: "2px solid #444" }, button: { background: "#333", color: "white", border: "1px solid #666" }, connector: { stroke: "#ccc" } }
+      },
+      {
+        name: "Light Theme",
+        description: "Clean light theme",
+        styles: { body: { background: "white", color: "black" }, canvas: { background: "white" }, node: { background: "#f8f9fa", color: "black", border: "1px solid #dee2e6" }, nodeHeader: { color: "black" }, nodeContent: { background: "#ffffff", color: "black" }, dropzone: { background: "#f8f9fa", color: "black" }, dialog: { background: "#ffffff", color: "black", border: "2px solid #dee2e6" }, button: { background: "#e9ecef", color: "black", border: "1px solid #adb5bd" }, connector: { stroke: "#6c757d" } }
+      },
+      {
+        name: "Dracula",
+        description: "Popular Dracula theme",
+        styles: { body: { background: "#282a36", color: "#f8f8f2" }, canvas: { background: "#282a36" }, node: { background: "#44475a", color: "#f8f8f2", border: "1px solid #6272a4" }, nodeHeader: { color: "#f8f8f2", background: "#44475a" }, nodeContent: { background: "#282a36", color: "#f8f8f2", border: "1px solid #6272a4" }, dropzone: { background: "#44475a", color: "#f8f8f2", border: "1px dashed #6272a4" }, dialog: { background: "#44475a", color: "#f8f8f2", border: "2px solid #bd93f9" }, button: { background: "#6272a4", color: "#f8f8f2", border: "1px solid #bd93f9" }, connector: { stroke: "#bd93f9", strokeWidth: "2" } }
+      },
+      {
+        name: "Monokai",
+        description: "Classic Monokai theme",
+        styles: { body: { background: "#272822", color: "#f8f8f2" }, canvas: { background: "#272822" }, node: { background: "#3e3d32", color: "#f8f8f2", border: "1px solid #75715e" }, nodeHeader: { color: "#f8f8f2", background: "#3e3d32" }, nodeContent: { background: "#272822", color: "#f8f8f2" }, dropzone: { background: "#3e3d32", color: "#f8f8f2" }, dialog: { background: "#3e3d32", color: "#f8f8f2", border: "2px solid #f92672" }, button: { background: "#75715e", color: "#f8f8f2", border: "1px solid #f92672" }, connector: { stroke: "#f92672" } }
+      },
+      {
+        name: "VSCode Dark",
+        description: "VS Code dark theme",
+        styles: { body: { background: "#1e1e1e", color: "#d4d4d4" }, canvas: { background: "#1e1e1e" }, node: { background: "#252526", color: "#d4d4d4", border: "1px solid #3c3c3c" }, nodeHeader: { color: "#d4d4d4", background: "#2d2d30" }, nodeContent: { background: "#1e1e1e", color: "#d4d4d4" }, dropzone: { background: "#252526", color: "#d4d4d4" }, dialog: { background: "#252526", color: "#d4d4d4", border: "2px solid #007acc" }, button: { background: "#0e639c", color: "#ffffff" }, connector: { stroke: "#007acc" } }
+      },
+      {
+        name: "GitHub Dark",
+        description: "GitHub dark mode",
+        styles: { body: { background: "#0d1117", color: "#c9d1d9" }, canvas: { background: "#0d1117" }, node: { background: "#161b22", color: "#c9d1d9", border: "1px solid #30363d" }, nodeHeader: { color: "#c9d1d9", background: "#161b22" }, nodeContent: { background: "#0d1117", color: "#c9d1d9" }, dropzone: { background: "#161b22", color: "#c9d1d9" }, dialog: { background: "#161b22", color: "#c9d1d9", border: "2px solid #58a6ff" }, button: { background: "#21262d", color: "#c9d1d9", border: "1px solid #30363d" }, connector: { stroke: "#58a6ff" } }
+      },
+      {
+        name: "Neon Glow",
+        description: "Neon glow aesthetic",
+        styles: { body: { background: "#0a0a0a", color: "#00ffcc" }, canvas: { background: "#0a0a0a" }, node: { background: "#1a1a1a", color: "#00ffcc", border: "1px solid #00ffcc", boxShadow: "0 0 10px #00ffcc" }, nodeHeader: { color: "#00ffcc", textShadow: "0 0 5px #00ffcc" }, nodeContent: { background: "#0a0a0a", color: "#00ffcc" }, dropzone: { background: "#1a1a1a", color: "#00ffcc" }, dialog: { background: "#1a1a1a", color: "#00ffcc", border: "2px solid #00ffcc", boxShadow: "0 0 20px #00ffcc" }, button: { background: "#00ffcc", color: "#0a0a0a", border: "1px solid #00ffcc" }, connector: { stroke: "#00ffcc", strokeWidth: "2" } }
+      },
+      {
+        name: "Synthwave",
+        description: "Synthwave aesthetic",
+        styles: { body: { background: "#2b1d4e", color: "#ff7edb" }, canvas: { background: "#2b1d4e" }, node: { background: "#3a2c6e", color: "#f7d794", border: "1px solid #ff7edb" }, nodeHeader: { color: "#f7d794", background: "#2a1f5e" }, nodeContent: { background: "#2b1d4e", color: "#f7d794" }, dropzone: { background: "#3a2c6e", color: "#f7d794" }, dialog: { background: "#3a2c6e", color: "#f7d794", border: "2px solid #ff7edb" }, button: { background: "#ff7edb", color: "#2b1d4e" }, connector: { stroke: "#ff7edb" } }
+      },
+      {
+        name: "Ocean",
+        description: "Ocean blue theme",
+        styles: { body: { background: "#0a192f", color: "#b8c5d6" }, canvas: { background: "#0a192f" }, node: { background: "#112240", color: "#b8c5d6", border: "1px solid #233554" }, nodeHeader: { color: "#64ffda", background: "#112240" }, nodeContent: { background: "#0a192f", color: "#b8c5d6" }, dropzone: { background: "#112240", color: "#b8c5d6" }, dialog: { background: "#112240", color: "#b8c5d6", border: "2px solid #64ffda" }, button: { background: "#64ffda", color: "#0a192f" }, connector: { stroke: "#64ffda" } }
+      },
+      {
+        name: "Forest",
+        description: "Nature forest theme",
+        styles: { body: { background: "#1a2f1a", color: "#90ee90" }, canvas: { background: "#1a2f1a" }, node: { background: "#2d4a2d", color: "#90ee90", border: "1px solid #3d5c3d" }, nodeHeader: { color: "#90ee90", background: "#264a26" }, nodeContent: { background: "#1a2f1a", color: "#90ee90" }, dropzone: { background: "#2d4a2d", color: "#90ee90" }, dialog: { background: "#2d4a2d", color: "#90ee90", border: "2px solid #32cd32" }, button: { background: "#32cd32", color: "#1a2f1a" }, connector: { stroke: "#32cd32" } }
+      },
+      {
+        name: "Terminal",
+        description: "Classic terminal green",
+        styles: { body: { background: "#000000", color: "#00ff00" }, canvas: { background: "#000000" }, node: { background: "#001100", color: "#00ff00", border: "1px solid #00ff00" }, nodeHeader: { color: "#00ff00", background: "#001100" }, nodeContent: { background: "#000000", color: "#00ff00" }, dropzone: { background: "#001100", color: "#00ff00" }, dialog: { background: "#001100", color: "#00ff00", border: "2px solid #00ff00" }, button: { background: "#00ff00", color: "#000000" }, connector: { stroke: "#00ff00" } }
+      },
+      {
+        name: "Matrix Code",
+        description: "Matrix code rain",
+        styles: { body: { background: "#000000", color: "#00ff00" }, canvas: { background: "#000000" }, node: { background: "#001100", color: "#00ff00", border: "1px solid #003300" }, nodeHeader: { color: "#00ff00", background: "#001100" }, nodeContent: { background: "#000000", color: "#00ff00", fontFamily: "monospace" }, dropzone: { background: "#001100", color: "#00ff00" }, dialog: { background: "#001100", color: "#00ff00", border: "2px solid #00ff00" }, button: { background: "#00ff00", color: "#000000" }, connector: { stroke: "#00ff00" } }
+      },
+      {
+        name: "Corporate Blue",
+        description: "Professional corporate blue",
+        styles: { body: { background: "#f4f7fa", color: "#2c3e50" }, canvas: { background: "#f4f7fa" }, node: { background: "#ffffff", color: "#2c3e50", border: "1px solid #3498db" }, nodeHeader: { color: "#ffffff", background: "#3498db" }, nodeContent: { background: "#f8f9fa", color: "#2c3e50" }, dropzone: { background: "#ecf0f1", color: "#2c3e50" }, dialog: { background: "#ffffff", color: "#2c3e50", border: "2px solid #3498db" }, button: { background: "#3498db", color: "#ffffff" }, connector: { stroke: "#3498db" } }
+      },
+      {
+        name: "Executive",
+        description: "Executive theme",
+        styles: { body: { background: "#1a1a2e", color: "#eaeaea" }, canvas: { background: "#1a1a2e" }, node: { background: "#16213e", color: "#eaeaea", border: "1px solid #0f3460" }, nodeHeader: { color: "#e94560", background: "#16213e" }, nodeContent: { background: "#1a1a2e", color: "#eaeaea" }, dropzone: { background: "#16213e", color: "#eaeaea" }, dialog: { background: "#16213e", color: "#eaeaea", border: "2px solid #e94560" }, button: { background: "#e94560", color: "#ffffff" }, connector: { stroke: "#e94560" } }
+      },
+      {
+        name: "Slate",
+        description: "Slate gray theme",
+        styles: { body: { background: "#1e293b", color: "#e2e8f0" }, canvas: { background: "#1e293b" }, node: { background: "#334155", color: "#e2e8f0", border: "1px solid #475569" }, nodeHeader: { color: "#e2e8f0", background: "#334155" }, nodeContent: { background: "#1e293b", color: "#e2e8f0" }, dropzone: { background: "#334155", color: "#e2e8f0" }, dialog: { background: "#334155", color: "#e2e8f0", border: "2px solid #64748b" }, button: { background: "#475569", color: "#e2e8f0" }, connector: { stroke: "#64748b" } }
+      },
+      {
+        name: "Minimal Gray",
+        description: "Minimal gray theme",
+        styles: { body: { background: "#f5f5f5", color: "#333333" }, canvas: { background: "#f5f5f5" }, node: { background: "#ffffff", color: "#333333", border: "1px solid #dddddd" }, nodeHeader: { color: "#333333" }, nodeContent: { background: "#ffffff", color: "#333333" }, dropzone: { background: "#f0f0f0", color: "#333333" }, dialog: { background: "#ffffff", color: "#333333", border: "2px solid #cccccc" }, button: { background: "#e0e0e0", color: "#333333" }, connector: { stroke: "#999999" } }
+      },
+      {
+        name: "Paper White",
+        description: "Paper white theme",
+        styles: { body: { background: "#ffffff", color: "#222222" }, canvas: { background: "#ffffff" }, node: { background: "#fafafa", color: "#222222", border: "1px solid #e0e0e0" }, nodeHeader: { color: "#222222" }, nodeContent: { background: "#ffffff", color: "#222222" }, dropzone: { background: "#f5f5f5", color: "#222222" }, dialog: { background: "#ffffff", color: "#222222", border: "2px solid #cccccc" }, button: { background: "#f0f0f0", color: "#222222" }, connector: { stroke: "#666666" } }
+      },
+      {
+        name: "Cyber Grid",
+        description: "Cyber grid aesthetic",
+        styles: { body: { background: "#0d1117", color: "#00ffaa" }, canvas: { background: "#0d1117" }, node: { background: "#161b22", color: "#00ffaa", border: "1px solid #00ffaa" }, nodeHeader: { color: "#00ffaa", background: "#161b22" }, nodeContent: { background: "#0d1117", color: "#00ffaa" }, dropzone: { background: "#161b22", color: "#00ffaa" }, dialog: { background: "#161b22", color: "#00ffaa", border: "2px solid #00ffaa" }, button: { background: "#00ffaa", color: "#0d1117" }, connector: { stroke: "#00ffaa" } }
+      },
+      {
+        name: "Cyber City",
+        description: "Cyber city aesthetic",
+        styles: { body: { background: "#0f0f23", color: "#00d4ff" }, canvas: { background: "#0f0f23" }, node: { background: "#1a1a3d", color: "#00d4ff", border: "1px solid #00d4ff" }, nodeHeader: { color: "#ff00ff", background: "#1a1a3d" }, nodeContent: { background: "#0f0f23", color: "#00d4ff" }, dropzone: { background: "#1a1a3d", color: "#00d4ff" }, dialog: { background: "#1a1a3d", color: "#00d4ff", border: "2px solid #ff00ff" }, button: { background: "#ff00ff", color: "#0f0f23" }, connector: { stroke: "#00d4ff" } }
+      },
+      {
+        name: "Digital Punk",
+        description: "Digital punk theme",
+        styles: { body: { background: "#1a0a2e", color: "#ff6b6b" }, canvas: { background: "#1a0a2e" }, node: { background: "#2d1b4e", color: "#ff6b6b", border: "1px solid #ff6b6b" }, nodeHeader: { color: "#00ffff", background: "#2d1b4e" }, nodeContent: { background: "#1a0a2e", color: "#ff6b6b" }, dropzone: { background: "#2d1b4e", color: "#ff6b6b" }, dialog: { background: "#2d1b4e", color: "#ff6b6b", border: "2px solid #00ffff" }, button: { background: "#00ffff", color: "#1a0a2e" }, connector: { stroke: "#ff6b6b" } }
+      },
+      {
+        name: "Space Station",
+        description: "Space station theme",
+        styles: { body: { background: "#0b0d17", color: "#a0aec0" }, canvas: { background: "#0b0d17" }, node: { background: "#1a202c", color: "#a0aec0", border: "1px solid #4a5568" }, nodeHeader: { color: "#fc8181", background: "#1a202c" }, nodeContent: { background: "#0b0d17", color: "#a0aec0" }, dropzone: { background: "#1a202c", color: "#a0aec0" }, dialog: { background: "#1a202c", color: "#a0aec0", border: "2px solid #fc8181" }, button: { background: "#fc8181", color: "#0b0d17" }, connector: { stroke: "#a0aec0" } }
+      },
+      {
+        name: "Holographic",
+        description: "Holographic aesthetic",
+        styles: { body: { background: "#000428", color: "#00d4ff" }, canvas: { background: "#000428" }, node: { background: "#004e92", color: "#ffffff", border: "1px solid #00d4ff" }, nodeHeader: { color: "#ffffff", background: "#004e92" }, nodeContent: { background: "#000428", color: "#ffffff" }, dropzone: { background: "#004e92", color: "#ffffff" }, dialog: { background: "#004e92", color: "#ffffff", border: "2px solid #00d4ff" }, button: { background: "#00d4ff", color: "#000428" }, connector: { stroke: "#00d4ff" } }
+      },
+      {
+        name: "Dark Professional",
+        description: "Dark professional theme",
+        styles: { body: { background: "#1b2838", color: "#c7d5e0" }, canvas: { background: "#1b2838" }, node: { background: "#2a475e", color: "#c7d5e0", border: "1px solid #66a330" }, nodeHeader: { color: "#66a330", background: "#2a475e" }, nodeContent: { background: "#1b2838", color: "#c7d5e0" }, dropzone: { background: "#2a475e", color: "#c7d5e0" }, dialog: { background: "#2a475e", color: "#c7d5e0", border: "2px solid #66a330" }, button: { background: "#66a330", color: "#1b2838" }, connector: { stroke: "#66a330" } }
+      },
+      {
+        name: "Neon Noir",
+        description: "Neon noir theme",
+        styles: { body: { background: "#0d0d0d", color: "#ff00ff" }, canvas: { background: "#0d0d0d" }, node: { background: "#1a1a1a", color: "#ff00ff", border: "1px solid #ff00ff" }, nodeHeader: { color: "#ff00ff", background: "#1a1a1a" }, nodeContent: { background: "#0d0d0d", color: "#ff00ff" }, dropzone: { background: "#1a1a1a", color: "#ff00ff" }, dialog: { background: "#1a1a1a", color: "#ff00ff", border: "2px solid #ff00ff" }, button: { background: "#ff00ff", color: "#0d0d0d" }, connector: { stroke: "#ff00ff" } }
+      },
+      {
+        name: "Acid Rain",
+        description: "Acid rain theme",
+        styles: { body: { background: "#0f0f0f", color: "#39ff14" }, canvas: { background: "#0f0f0f" }, node: { background: "#1a1a1a", color: "#39ff14", border: "1px solid #39ff14" }, nodeHeader: { color: "#ff00ff", background: "#1a1a1a" }, nodeContent: { background: "#0f0f0f", color: "#39ff14" }, dropzone: { background: "#1a1a1a", color: "#39ff14" }, dialog: { background: "#1a1a1a", color: "#39ff14", border: "2px solid #ff00ff" }, button: { background: "#39ff14", color: "#0f0f0f" }, connector: { stroke: "#39ff14" } }
+      },
+      {
+        name: "Vaporwave",
+        description: "Vaporwave aesthetic from grd.html",
+        styles: { body: { background: "#000000", color: "#00d4ff" }, canvas: { background: "repeating-linear-gradient(0deg, #091f23, #091f23 1px, transparent 1px, transparent 20px), repeating-linear-gradient(90deg, #091f23, #091f23 1px, transparent 1px, transparent 20px)" }, node: { background: "#16213e", color: "#00d4ff", border: "1px solid #aaa" }, nodeHeader: { color: "#00d4ff", background: "#0f3460" }, nodeContent: { background: "#0a1628", color: "#00d4ff", border: "1px solid #00d4ff" }, dropzone: { background: "#050a15", color: "#00d4ff", border: "1px dashed #00d4ff" }, dialog: { background: "#16213e", color: "#00d4ff", border: "2px solid #00d4ff" }, button: { background: "#0f3460", color: "#00d4ff", border: "1px solid #00d4ff" }, connector: { stroke: "#00d4ff" } }
+      }
+    ];
 
     function showMinimap() {
         minimapVisible = true;
@@ -2192,7 +2325,6 @@
     });
 
     function showThemeImportDialog() {
-        // Remove any existing dialog
         const existing = document.getElementById('themeImportDialog');
         if (existing) existing.remove();
 
@@ -2202,95 +2334,134 @@
         dialog.style.top = '10%';
         dialog.style.left = '50%';
         dialog.style.transform = 'translateX(-50%)';
-        dialog.style.width = '500px';
+        dialog.style.width = '400px';
         dialog.style.maxHeight = '70%';
         dialog.style.overflow = 'hidden';
-        dialog.style.background = '#222';
-        dialog.style.color = '#fff';
-        dialog.style.border = '2px solid #444';
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
         dialog.style.borderRadius = '10px';
         dialog.style.zIndex = 9999;
         dialog.style.fontFamily = 'monospace';
-        dialog.style.padding = '20px';
+        dialog.style.padding = '10px';
         dialog.style.display = 'flex';
         dialog.style.flexDirection = 'column';
         dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
 
         const title = document.createElement('h3');
-        title.textContent = 'Import Theme';
-        title.style.margin = '0 0 15px 0';
+        title.textContent = 'Select Theme';
+        title.style.margin = '0 0 10px 0';
+        if (currentTheme && currentTheme.styles.nodeHeader) {
+            Object.assign(title.style, currentTheme.styles.nodeHeader);
+        }
         dialog.appendChild(title);
 
-        const instructions = document.createElement('p');
-        instructions.textContent = 'Select a theme file to import:';
-        instructions.style.margin = '0 0 15px 0';
-        instructions.style.fontSize = '14px';
-        dialog.appendChild(instructions);
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
 
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json';
-        fileInput.style.marginBottom = '15px';
-        fileInput.style.background = '#111';
-        fileInput.style.color = '#fff';
-        fileInput.style.border = '1px solid #555';
-        fileInput.style.padding = '5px';
+        let selectedIndex = 0;
 
-        const status = document.createElement('div');
-        status.style.marginBottom = '15px';
-        status.style.fontSize = '12px';
-        status.style.color = '#aaa';
+        function renderList() {
+            listContainer.innerHTML = '';
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            builtInThemes.forEach((theme, index) => {
+                const item = document.createElement('div');
+                item.textContent = theme.name;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const themeData = JSON.parse(event.target.result);
-                    if (validateTheme(themeData)) {
-                        applyTheme(themeData);
-                        status.textContent = `Theme "${themeData.name}" applied successfully!`;
-                        status.style.color = '#7af';
-                        setTimeout(() => {
-                            dialog.remove();
-                        }, 1500);
-                    } else {
-                        status.textContent = 'Invalid theme file format.';
-                        status.style.color = '#f77';
-                    }
-                } catch (error) {
-                    status.textContent = 'Error parsing theme file: ' + error.message;
-                    status.style.color = '#f77';
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
                 }
-            };
-            reader.readAsText(file);
-        });
 
-        dialog.appendChild(fileInput);
-        dialog.appendChild(status);
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
 
-        const closeButton = document.createElement('button');
-        closeButton.textContent = 'Cancel (ESC)';
-        closeButton.style.background = '#333';
-        closeButton.style.color = '#fff';
-        closeButton.style.border = '1px solid #666';
-        closeButton.style.padding = '5px 10px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.onclick = () => dialog.remove();
-        dialog.appendChild(closeButton);
+                item.addEventListener('click', () => {
+                    applyTheme(builtInThemes[selectedIndex]);
+                    dialog.remove();
+                });
 
-        document.body.appendChild(dialog);
-        fileInput.focus();
+                listContainer.appendChild(item);
+            });
+        }
+
+        let previewTheme = null;
+        const previousTheme = currentTheme;
 
         dialog.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'j' || e.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, builtInThemes.length - 1);
+                previewTheme = builtInThemes[selectedIndex];
+                applyTheme(previewTheme);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'k' || e.key === 'ArrowUp') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                previewTheme = builtInThemes[selectedIndex];
+                applyTheme(previewTheme);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                applyTheme(builtInThemes[selectedIndex]);
+                previewTheme = null;
                 e.preventDefault();
                 e.stopPropagation();
                 dialog.remove();
+            } else if (e.key === 'Escape') {
+                if (previousTheme) {
+                    applyTheme(previousTheme);
+                } else {
+                    document.body.style.background = '';
+                    document.body.style.color = '';
+                    if (canvas) {
+                        canvas.style.background = '';
+                    }
+                    document.querySelectorAll('.node').forEach(node => {
+                        node.style.background = '';
+                        node.style.color = '';
+                        node.style.border = '';
+                        const header = node.querySelector('.node-header');
+                        if (header) {
+                            header.style.background = '';
+                            header.style.color = '';
+                        }
+                        const textarea = node.querySelector('textarea');
+                        if (textarea) {
+                            textarea.style.background = '';
+                            textarea.style.color = '';
+                        }
+                        const dropzone = node.querySelector('.dropzone');
+                        if (dropzone) {
+                            dropzone.style.background = '';
+                            dropzone.style.color = '';
+                        }
+                    });
+                    currentTheme = null;
+                }
+                previewTheme = null;
+                dialog.remove();
+                e.stopPropagation();
             }
         });
+
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+        renderList();
+        dialog.tabIndex = -1;
+        dialog.focus();
     }
 
     function showUpgradeDialog() {
