@@ -18,7 +18,7 @@ FILENAME=$(basename "$FULL_PATH_HTML" .html)
 TARGET_DIR=$(dirname "$FULL_PATH_HTML")
 HTML_FILE="${TARGET_DIR}/${FILENAME}.html"
 SAVER_JS_FILE="${TARGET_DIR}/svr_${FILENAME}.js"
-VMLNODES_SH="$HOME/scrnodes.sh"
+VMLNODES_SH="$HOME/vmlnodes.sh"
 PACKAGE_JSON="${TARGET_DIR}/package.json"
 NODE_MODULES_DIR="${TARGET_DIR}/node_modules"
 
@@ -41,7 +41,7 @@ if [ -f "$HTML_FILE" ]; then
 fi
 
 if [ -z "$PORT" ]; then
-    echo "Error: Could not find nodePort in ${HTML_FILE}. Cannot proceed with scrnodes.sh cleanup."
+    echo "Error: Could not find nodePort in ${HTML_FILE}. Cannot proceed with vmlnodes.sh cleanup."
     exit 1
 else
     echo "Identified port from HTML file: ${PORT}"
@@ -55,7 +55,7 @@ rm -f "${SAVER_JS_FILE}"
 echo "Removing ${PACKAGE_JSON}..."
 rm -f "${PACKAGE_JSON}"
 
-# --- Clean scrnodes.sh ---
+# --- Clean vmlnodes.sh ---
 if [ -f "$VMLNODES_SH" ]; then
     echo "Cleaning up ${VMLNODES_SH}..."
     TEMP_SCRNODES=$(mktemp)
@@ -74,7 +74,7 @@ if [ -f "$VMLNODES_SH" ]; then
     ECHO_PATTERN="^echo \"?${FILENAME}: ${PORT}\"?$"
     
 
-    # Read scrnodes.sh into an array, filter out matching lines, and write back.
+    # Read vmlnodes.sh into an array, filter out matching lines, and write back.
     # This approach is more robust and less prone to sed portability issues.
     mapfile -t SCRNODES_LINES < "$VMLNODES_SH"
     
@@ -99,12 +99,12 @@ if [ -f "$VMLNODES_SH" ]; then
         fi
     done
     
-    # Write the filtered content back to scrnodes.sh, ensuring empty lines are also handled.
+    # Write the filtered content back to vmlnodes.sh, ensuring empty lines are also handled.
     printf "%s\n" "${NEW_SCRNODES_CONTENT[@]}" | grep -vE '^\s*$' > "$VMLNODES_SH"
 
-    echo "scrnodes.sh cleaned up. You may need to run 'chmod +x ${VMLNODES_SH}' if permissions were lost."
+    echo "vmlnodes.sh cleaned up. You may need to run 'chmod +x ${VMLNODES_SH}' if permissions were lost."
 else
-    echo "Warning: ${VMLNODES_SH} not found. Skipping scrnodes.sh cleanup."
+    echo "Warning: ${VMLNODES_SH} not found. Skipping vmlnodes.sh cleanup."
 fi
 
 echo ""
