@@ -148,93 +148,149 @@
       padding: 20px;
       z-index: 9999;
       font-family: monospace;
-      max-width: 820px;
+      width: 700px;
       text-align: left;
       box-shadow: rgb(0, 0, 0) 0px 0px 40px;">
     <h3>Key Bindings</h3>
-    <p></p>
-    <table style="border-collapse: collapse; border: none; width: 100%;">
-        <tr>
-            <td style="vertical-align: top; padding-right: 10px;">
-                <pre>
-a = Add a new node.
-= = Duplicate current node.
-r = Rename node (change its type).
-u = Add a new link node.
-c = Start connection (select the second node
-    and hit Enter).
-X = Disconnects two nodes in the same manner as
-    connecting them.
-D = Delete the selected node.
-i = Select current node's text field.
-1-9 = How many times to repeat certain actions.
-h = Move selected node left.
-H = Reduce width of selected node.
-j = Move selected node down.
-J = Increase selected node's height.
-k = Move selected node up.
-K = Reduce selected node's height.
-l = Move selected node right.
-L = Increase selected node's width.
-&lt; = Move selected node left by half a step.
-&gt; = (while connecting) Creates a line pointed
-    from the first selected node to the second one.
-&gt; = Move selected node right by half a step.
-^ = Move selected node up by half a step.
-- = Move selected node down by half a step.
-' = Show history.
-M = Enter select multiple nodes mode (Escape exits)
-q = Show mini-map.
-                </pre>
-            </td>
-            <td style="vertical-align: top; padding-left: 10px;">
-                <pre>
-Enter = When a node is on top of another, moves
-        it into that node.
-d = Detaches a child node from its parent.
-z = Increase selected node's text area.
-Z = Decrease selected node's text area.
-w = Cycles through the nodes.
-s = Save the current diagram.
-U = Upgrade from another Vummel diagram file.
-G = Scroll to the top left.
-, = Zoom out.
-. = Zoom in.
-] = Scroll half screen right.
-[ = Scroll half screen left.
-} = Scroll half screen down.
-} = Scroll half screen up.
-0 = Reset zoom.
-p = Start snap (select the second node
-    and hit Enter). The selected node will
-    snap to the right of the second node.
-# = Sets a custom color for the node.
-    OR manages existing color 'palettes'.
-@ = Reset a node's color to the theme's
-    default.
-% = Import a theme from a JSON file.
-/ = Search and select a node.
-    (begin search with '#' to search by palette)
-m&lt;letter&gt; = Set mark (A-Z, a-z).
-`&lt;`&gt; = Show a list of current marks.
-`&lt;letter&gt; = Go to mark (A-Z, a-z).
-m- = Remove mark.
-Escape = Deselect the current note's text field,
-         or deselect the current node.
-                </pre>
-            </td>
-        </tr>
-    </table>
+    <input type="text" id="helpFilter" placeholder="Filter (prepend ':' to search keys only)..." style="
+        width: 100%;
+        padding: 5px;
+        margin-bottom: 10px;
+        background: #111;
+        color: #fff;
+        border: 1px solid #555;
+        font-family: monospace;
+    ">
+    <div id="helpListContainer" style="max-height: 500px; overflow-y: auto; border: 1px solid #333;">
+    </div>
     <p></p>
     <p>
       <a href="https://hcjsuite.infinityfreeapp.com/vummel_help.html" target="_blank" style="color: #fff; text-decoration: underline;">
         Full Documentation
       </a>
     </p>
-    <p>Press ESC to close.</p>
+    <p>Press ESC to close. Prepend ':' to filter keys only.</p>
   </div>
 
 <script>
+    const keyBindings = [
+        { key: 'a', desc: 'Add a new node.' },
+        { key: '=', desc: 'Duplicate current node.' },
+        { key: 'r', desc: 'Rename node (change its type).' },
+        { key: 'u', desc: 'Add a new link node.' },
+        { key: 'c', desc: 'Start connection (select the second node and hit Enter).' },
+        { key: 'X', desc: 'Disconnects two nodes in the same manner as connecting them.' },
+        { key: 'D', desc: 'Delete the selected node.' },
+        { key: 'i', desc: "Select current node's text field." },
+        { key: '1-9', desc: 'How many times to repeat certain actions.' },
+        { key: 'h', desc: 'Move selected node left.' },
+        { key: 'H', desc: 'Reduce width of selected node.' },
+        { key: 'j', desc: 'Move selected node down.' },
+        { key: 'J', desc: "Increase selected node's height." },
+        { key: 'k', desc: 'Move selected node up.' },
+        { key: 'K', desc: 'Reduce selected node\'s height.' },
+        { key: 'l', desc: 'Move selected node right.' },
+        { key: 'L', desc: 'Increase selected node\'s width.' },
+        { key: '<', desc: 'Move selected node left half step.' },
+        { key: '>', desc: 'Move selected node right half step (if connecting create arrow).' },
+        { key: '^', desc: 'Move selected node up half step.' },
+        { key: '-', desc: 'Move selected node down half step.' },
+        { key: "'", desc: 'Show history.' },
+        { key: 'M', desc: 'Enter select multiple nodes mode (Escape exits).' },
+        { key: 'q', desc: 'Show mini-map.' },
+        { key: '!', desc: 'Set auto-saver port (4000-4999, or 0 to disable).' },
+        { key: 'Enter', desc: 'When a node is on top of another, moves it into that node.' },
+        { key: 'd', desc: 'Detaches a child node from its parent.' },
+        { key: 'z', desc: "Increase selected node's text area." },
+        { key: 'Z', desc: "Decrease selected node's text area." },
+        { key: 'w', desc: 'Cycles through the nodes.' },
+        { key: 's', desc: 'Save the current diagram.' },
+        { key: 'S', desc: 'Save as (enter new file name).' },
+        { key: 'n', desc: 'Save via nodejs (requires auto-saver port).' },
+        { key: 'U', desc: 'Upgrade from another Vummel diagram file.' },
+        { key: 'G', desc: 'Scroll to the top left.' },
+        { key: ',', desc: 'Zoom out.' },
+        { key: '.', desc: 'Zoom in.' },
+        { key: ']', desc: 'Scroll half screen right.' },
+        { key: '[', desc: 'Scroll half screen left.' },
+        { key: '}', desc: 'Scroll half screen down.' },
+        { key: '{', desc: 'Scroll half screen up.' },
+        { key: '0', desc: 'Reset zoom.' },
+        { key: 'p', desc: 'Start snap (select second node hit Enter).' },
+        { key: '#', desc: "Sets a custom color for the node. OR manages color 'palettes'." },
+        { key: '@', desc: "Reset a node's color to the theme's default." },
+        { key: '%', desc: 'Import a theme from a JSON file.' },
+        { key: '/', desc: 'Search and select a node. (begin with "#" to search by palette).' },
+        { key: '`<`>', desc: 'Show a list of current marks.' },
+        { key: 'm<letter>', desc: 'Set mark (A-Z, a-z).' },
+        { key: '`<letter>', desc: 'Go to mark (A-Z, a-z).' },
+        { key: 'm-', desc: 'Remove mark.' },
+        { key: 'Escape', desc: "Deselect current note's text, or deselect current node." },
+    ];
+
+    let helpFilterMode = false;
+
+    function renderHelpFilter() {
+        const filterInput = document.getElementById('helpFilter');
+        const container = document.getElementById('helpListContainer');
+        if (!filterInput || !container) return;
+
+        const searchTerm = filterInput.value;
+        let keysOnly = false;
+        let search = searchTerm;
+
+        if (searchTerm.startsWith(':')) {
+            keysOnly = true;
+            search = searchTerm.substring(1).toLowerCase();
+        } else {
+            search = searchTerm.toLowerCase();
+        }
+
+        const filtered = keyBindings.filter(kb => {
+            if (keysOnly) {
+                return kb.key.toLowerCase().includes(search);
+            }
+            return kb.key.toLowerCase().includes(search) || kb.desc.toLowerCase().includes(search);
+        });
+
+        const pre = document.createElement('pre');
+        pre.style.margin = '0';
+        pre.style.lineHeight = '1.4';
+
+        filtered.forEach(kb => {
+            pre.textContent += kb.key + ' = ' + kb.desc + '\n';
+        });
+
+        container.innerHTML = '';
+        container.appendChild(pre);
+    }
+
+    function showHelpDialogWithFilter() {
+        const dialog = document.getElementById('helpDialog');
+        const filterInput = document.getElementById('helpFilter');
+
+        dialog.style.display = 'block';
+        helpFilterMode = true;
+
+        filterInput.value = '';
+        setTimeout(() => filterInput.focus(), 0);
+
+        filterInput.oninput = () => {
+            renderHelpFilter();
+        };
+
+        filterInput.onkeydown = (e) => {
+            if (e.key === 'Escape') {
+                dialog.style.display = 'none';
+                helpFilterMode = false;
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        };
+
+        renderHelpFilter();
+    }
+
     let canvas = document.getElementById('canvas');
     let colorPalettes = {};
     let selectedNode = null;
@@ -260,6 +316,8 @@ Escape = Deselect the current note's text field,
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
+    let nodePort = 0;
+    let fileName = "help";
 
     function showMinimap() {
         minimapVisible = true;
@@ -623,6 +681,7 @@ Escape = Deselect the current note's text field,
         textarea.className = 'node-content';
         textarea.spellcheck = 'false';
         textarea.placeholder = 'Enter notes...';
+        textarea.addEventListener('input', () => scheduleAutoSave());
         div.appendChild(textarea);
 
         const dropzone = document.createElement('div');
@@ -1596,8 +1655,25 @@ Escape = Deselect the current note's text field,
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
         if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-            document.getElementById('helpDialog').style.display = 'block';
+            showHelpDialogWithFilter();
             e.preventDefault();
+            return;
+        }
+
+        if (document.getElementById('helpDialog').style.display === 'block') {
+            const filterInput = document.getElementById('helpFilter');
+            if (e.key === 'Escape') {
+                document.getElementById('helpDialog').style.display = 'none';
+                helpFilterMode = false;
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            if (document.activeElement === filterInput) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
             return;
         }
 
@@ -1610,9 +1686,10 @@ Escape = Deselect the current note's text field,
         if (e.key === 'Escape') {
             repeatCount = 1;
 
-            // If a dialog is open, close it
+            // If help dialog is open, close it
             if (document.getElementById('helpDialog').style.display === 'block') {
                 document.getElementById('helpDialog').style.display = 'none';
+                helpFilterMode = false;
                 e.stopPropagation();
                 return;
             }
@@ -1693,20 +1770,38 @@ Escape = Deselect the current note's text field,
             case 'a':
                 addNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case '=':
                 duplicateSelectedNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 'u':
                 addLinkNode();
                 repeatCount = 1;
+                scheduleAutoSave();
                 break;
 
             case 's':
                 download();
+                repeatCount = 1;
+                break;
+
+            case 'S':
+                {
+                    const newName = prompt('Save as (file name without .html):', fileName);
+                    if (newName && newName.trim()) {
+                        downloadWithFileName(newName.trim() + '.html');
+                    }
+                }
+                repeatCount = 1;
+                break;
+
+            case 'n':
+                nodejsSave();
                 repeatCount = 1;
                 break;
 
@@ -1749,6 +1844,11 @@ Escape = Deselect the current note's text field,
             case 'G':
                 setSelectedNode(null);
                 window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+                repeatCount = 1;
+                break;
+
+            case '!':
+                setAutoSaverPort();
                 repeatCount = 1;
                 break;
 
@@ -1888,9 +1988,11 @@ Escape = Deselect the current note's text field,
                 } else if (selectedNode) {
                     removeNode(selectedNode);
                 }
+                scheduleAutoSave();
                 break;
             case 'd':
                 detachChild(selectedNode);
+                scheduleAutoSave();
                 break;
 
             case 'X':
@@ -1901,16 +2003,19 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case '<':
                 move(-(step/2), 0);
+                scheduleAutoSave();
                 break;
 
             case 'H':
                 for (let i=0; i < repeatCount; i++) {
                     resize(-step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'i':
@@ -1925,42 +2030,50 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     move(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '-':
                 move(0, (step/2));
+                scheduleAutoSave();
                 break;
 
             case 'J':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'k':
                 for (let i=0; i < repeatCount; i++) {
                     move(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case '^':
                 move(0, -(step/2));
+                scheduleAutoSave();
                 break;
 
             case 'K':
                 for (let i=0; i < repeatCount; i++) {
                     resize(0, -step);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'l':
                 for (let i=0; i < repeatCount; i++) {
                     move(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'r':
                 renameNode();
+                scheduleAutoSave();
                 break;
 
             case '>':
@@ -1968,10 +2081,12 @@ Escape = Deselect the current note's text field,
                     drawConnector(connectStart, selectedNode, true); // pass arrow = true
                     connectStart = null;
                     connecting = false;
+                    scheduleAutoSave();
                     e.preventDefault();
                     return;
                 } else {
                     move((step / 2), 0);
+                    scheduleAutoSave();
                 }
                 break;
 
@@ -1979,6 +2094,7 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resize(step, 0);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'm':
@@ -1991,12 +2107,14 @@ Escape = Deselect the current note's text field,
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(-10);
                 }
+                scheduleAutoSave();
                 break;
 
             case 'Z':
                 for (let i=0; i < repeatCount; i++) {
                     resizeDropzone(10);
                 }
+                scheduleAutoSave();
                 break;
 
             case '#':
@@ -2062,6 +2180,7 @@ Escape = Deselect the current note's text field,
                 } else {
                     attachChild(selectedNode);
                 }
+                scheduleAutoSave();
                 e.stopPropagation();
                 break;
             default:
@@ -2257,10 +2376,14 @@ Escape = Deselect the current note's text field,
                         status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
                         status.style.color = '#7af';
                         
-                        // Download with the same filename after a short delay
+                        // Save via nodejs (keep current nodePort/fileName), or regular save if nodePort is 0
                         setTimeout(() => {
                             dialog.style.display = 'none';
-                            downloadWithFileName(file.name);
+                            if (nodePort === 0) {
+                                download();
+                            } else {
+                                nodejsSave();
+                            }
                             dialog.remove();
                         }, 1000);
                     } else {
@@ -2594,6 +2717,18 @@ Escape = Deselect the current note's text field,
         a.href = URL.createObjectURL(blob);
         a.download = fileName;
         a.click();
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        const baseName = fileName.replace('.html', '');
+        fnScript.textContent = JSON.stringify(baseName, null, 2);
+        fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
@@ -3187,16 +3322,168 @@ Escape = Deselect the current note's text field,
             2
         );
 
+        // Save nodePort data
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
+
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
-        let currentFileName = location.pathname.split('/').pop() || 'vummel.html';
         a.href = URL.createObjectURL(blob);
-        a.download = currentFileName;
+        a.download = fileName + '.html';
         a.click();
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
+        portScript.remove();
+    }
+
+    function nodejsSave() {
+        if (nodePort === 0) {
+            alert('Auto-saver is disabled. Use ! to set a port first.');
+            return;
+        }
+
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
+
+        document.querySelectorAll('textarea.node-content').forEach(t => {
+            t.textContent = t.value;
+        });
+
+        document.querySelectorAll('script[data-connectors]').forEach(s => s.remove());
+        const connectorData = connectors.map(({ a, b, arrow }) => ({
+            a: a.id,
+            b: b.id,
+            arrow: !!arrow
+        }));
+
+        const script = document.createElement('script');
+        script.type = 'application/json';
+        script.dataset.connectors = 'true';
+        script.id = 'connector-data';
+        script.textContent = JSON.stringify(connectorData, null, 2);
+        document.body.appendChild(script);
+
+        let paletteScript = document.querySelector('script[data-colorpalettes]');
+        if (!paletteScript) {
+            paletteScript = document.createElement('script');
+            paletteScript.type = 'application/json';
+            paletteScript.dataset.colorpalettes = 'true';
+            paletteScript.id = 'color-palettes';
+            document.body.appendChild(paletteScript);
+        }
+        paletteScript.textContent = JSON.stringify(colorPalettes, null, 2);
+
+        let marksScript = document.querySelector('script[data-marks]');
+        if (!marksScript) {
+            marksScript = document.createElement('script');
+            marksScript.type = 'application/json';
+            marksScript.dataset.marks = 'true';
+            marksScript.id = 'marks-data';
+            document.body.appendChild(marksScript);
+        }
+        marksScript.textContent = JSON.stringify(marks, null, 2);
+
+        let themeScript = document.querySelector('script[data-theme]');
+        if (!themeScript) {
+            themeScript = document.createElement('script');
+            themeScript.type = 'application/json';
+            themeScript.dataset.theme = 'true';
+            themeScript.id = 'theme-data';
+            document.body.appendChild(themeScript);
+        }
+        themeScript.textContent = JSON.stringify(currentTheme, null, 2);
+
+        let historyScript = document.querySelector('script[data-history]');
+        if (!historyScript) {
+            historyScript = document.createElement('script');
+            historyScript.type = 'application/json';
+            historyScript.dataset.history = 'true';
+            historyScript.id = 'history-data';
+            document.body.appendChild(historyScript);
+        }
+        historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
+
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
+
+        const html = document.documentElement.outerHTML;
+
+        fetch(`http://localhost:${nodePort}/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Filename': fileName + '.html'
+            },
+            body: html
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Save failed');
+            return res.text();
+        })
+        .then(msg => {
+            showToast('Saved');
+        })
+        .catch(err => {
+            showToast('Save failed: ' + err.message);
+        })
+        .finally(() => {
+            script.remove();
+            paletteScript.remove();
+            marksScript.remove();
+            themeScript.remove();
+            historyScript.remove();
+            portScript.remove();
+        });
+    }
+
+    let autoSaveTimer = null;
+
+    function scheduleAutoSave() {
+        if (nodePort === 0) return;
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            nodejsSave();
+        }, 3000);
     }
 
     function initializeNodes() {
@@ -3239,7 +3526,7 @@ Escape = Deselect the current note's text field,
         }
     }
 
-    function restoreHistoryFromDOM() {
+function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
     
@@ -3252,17 +3539,70 @@ Escape = Deselect the current note's text field,
             console.error('Failed to restore history:', err);
         }
     }
-      
+
+    function restoreAutoSaverPortFromDOM() {
+        const script = document.getElementById('autosaver-port');
+        if (!script) return;
+
+        try {
+            nodePort = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error('Failed to restore nodePort:', err);
+        }
+    }
+
+    function restoreFileNameFromDOM() {
+        const script = document.getElementById('filename-data');
+        if (script) {
+            try {
+                fileName = JSON.parse(script.textContent);
+            } catch (err) {
+                console.error('Failed to restore fileName:', err);
+            }
+        } else {
+            const current = location.pathname.split('/').pop();
+            if (current) {
+                fileName = current.replace('.html', '');
+            }
+        }
+    }
+
+    function setFileName(newName) {
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(newName, null, 2);
+        fileName = newName;
+    }
+
+    function setAutoSaverPort() {
+        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', nodePort || '');
+        if (input === null) return;
+        const port = parseInt(input, 10);
+        if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
+            alert('Please enter a valid port: 0 (disabled) or 4000-4999');
+            return;
+        }
+        nodePort = port;
+    }
+       
     window.onload = () => {
         initializeNodes();
         restoreThemeFromDOM();
         restoreMarksFromDOM();
         restoreConnectorsFromDOM();
         restoreHistoryFromDOM();
+        restoreAutoSaverPortFromDOM();
+        restoreFileNameFromDOM();
         updateConnectors();
 
         if (canvas.innerHTML === "") {
-            document.getElementById('helpDialog').style.display = 'block';
+            showHelpDialogWithFilter();
         }
 
         canvas.focus();
