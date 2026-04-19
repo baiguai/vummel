@@ -3532,11 +3532,11 @@
             return;
         }
 
-        selectedNode = null;
-        nodes.forEach(n => {
-            n.style.borderColor = '#aaa';
-            n.style.borderWidth = '1px';
-        });
+        const prevSelectedNode = selectedNode;
+        const prevSelectedNodes = [...selectedNodes];
+        const prevActiveElement = document.activeElement;
+        const isEditing = prevActiveElement?.classList?.contains('node-content');
+        const cursorPos = prevActiveElement?.selectionStart || 0;
 
         document.querySelectorAll('textarea.node-content').forEach(t => {
             t.textContent = t.value;
@@ -3643,6 +3643,20 @@
             themeScript.remove();
             historyScript.remove();
             portScript.remove();
+
+            if (prevSelectedNode) {
+                setSelectedNode(prevSelectedNode);
+            } else {
+                selectedNode = null;
+                selectedNodes = [];
+            }
+
+            if (isEditing && prevActiveElement) {
+                prevActiveElement.focus();
+                if (prevActiveElement.setSelectionRange) {
+                    prevActiveElement.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
         });
     }
 
@@ -3697,7 +3711,7 @@
         }
     }
 
-function restoreHistoryFromDOM() {
+    function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
     
