@@ -2780,13 +2780,11 @@
                         status.style.color = '#7af';
                         
                         // Save using the imported file name
-                        const importedName = file.name.replace('.html', '');
                         setTimeout(() => {
                             dialog.style.display = 'none';
                             if (nodePort === 0) {
-                                downloadWithFileName(importedName + '.html');
+                                downloadWithFileName(fileName + '.html');
                             } else {
-                                fileName = importedName;
                                 canvas.dataset.fileName = fileName;
                                 nodejsSave();
                             }
@@ -2909,6 +2907,31 @@
                 data.history = JSON.parse(historyScript.textContent);
             } catch (e) {
                 console.warn('Could not parse history:', e);
+            }
+        }
+        
+        // Extract nodePort from canvas data attribute (new format) or script element (old format)
+        const sourceCanvasEl = doc.querySelector('#canvas');
+        if (sourceCanvasEl && sourceCanvasEl.dataset.nodePort) {
+            data.nodePort = parseInt(sourceCanvasEl.dataset.nodePort, 10) || 0;
+        } else {
+            const portScript = doc.querySelector('script[data-autosaverport]');
+            if (portScript) {
+                try {
+                    data.nodePort = JSON.parse(portScript.textContent);
+                } catch (e) {}
+            }
+        }
+        
+        // Extract fileName from canvas data attribute (new format) or script element (old format)
+        if (sourceCanvasEl && sourceCanvasEl.dataset.fileName) {
+            data.fileName = sourceCanvasEl.dataset.fileName;
+        } else {
+            const fnScript = doc.querySelector('script[data-filename]');
+            if (fnScript) {
+                try {
+                    data.fileName = JSON.parse(fnScript.textContent);
+                } catch (e) {}
             }
         }
         
@@ -3037,6 +3060,18 @@
                     return newId ? document.getElementById(newId) : null;
                 })
                 .filter(n => n); // remove nulls
+        }
+        
+        // Apply nodePort if present and non-zero
+        if (data.nodePort !== undefined && data.nodePort !== null && data.nodePort !== 0) {
+            nodePort = data.nodePort;
+            canvas.dataset.nodePort = nodePort;
+        }
+        
+        // Apply fileName if present
+        if (data.fileName) {
+            fileName = data.fileName;
+            canvas.dataset.fileName = fileName;
         }
     }
 
