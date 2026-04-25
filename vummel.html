@@ -3076,6 +3076,8 @@
 
     function downloadWithFileName(fileName) {
         selectedNode = null;
+        const originalPort = canvas.dataset.nodePort;
+        canvas.dataset.nodePort = 0;
         nodes.forEach(n => {
             n.style.borderColor = '#aaa';
             n.style.borderWidth = '1px';
@@ -3155,7 +3157,7 @@
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = getFileName();
+        a.download = fileName;
         a.click();
 
         const baseName = getFileName().replace('.html', '');
@@ -3163,6 +3165,8 @@
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
+
+        canvas.dataset.nodePort = originalPort;
     }
 
     function validateTheme(theme) {
