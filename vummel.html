@@ -2779,12 +2779,15 @@
                         status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
                         status.style.color = '#7af';
                         
-                        // Save via nodejs (keep current nodePort/fileName), or regular save if nodePort is 0
+                        // Save using the imported file name
+                        const importedName = file.name.replace('.html', '');
                         setTimeout(() => {
                             dialog.style.display = 'none';
                             if (nodePort === 0) {
-                                download();
+                                downloadWithFileName(importedName + '.html');
                             } else {
+                                fileName = importedName;
+                                canvas.dataset.fileName = fileName;
                                 nodejsSave();
                             }
                             dialog.remove();
