@@ -930,9 +930,80 @@
         const displayText = prompt("Enter link display text:");
         if (!displayText) return;
 
-        const url = prompt("Enter the full URL (include https://):");
-        if (!url) return;
+        const url = prompt("Enter the full URL (include https://), or # to link to another node:");
+        if (url === null) return;
 
+        if (url.startsWith('#')) {
+            showNodeSelectorDialogForLink((targetNode) => {
+                if (targetNode) {
+                    createLinkNodeInternal(displayText, targetNode);
+                }
+            }, '');
+            return;
+        }
+
+        createLinkNodeExternal(displayText, url);
+    }
+
+    function createLinkNodeExternal(displayText, url) {
+        const div = createLinkNodeBase(displayText);
+        div.dataset.linkType = 'external';
+        div.dataset.url = url;
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.textContent = url;
+        link.style.color = '#7af';
+        link.style.padding = '6px';
+        link.style.fontSize = '12px';
+        link.style.textDecoration = 'underline';
+        link.style.wordBreak = 'break-word';
+        
+        link.onclick = (e) => {
+            e.stopPropagation();
+        };
+        
+        div.appendChild(link);
+
+        finishAddingLinkNode(div);
+    }
+
+    function createLinkNodeInternal(displayText, targetNode) {
+        const div = createLinkNodeBase(displayText);
+        div.dataset.linkType = 'internal';
+        div.dataset.targetId = targetNode.id;
+
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = '→ ' + (targetNode.dataset.type || 'node');
+        link.style.color = '#7f7';
+        link.style.padding = '6px';
+        link.style.fontSize = '12px';
+        link.style.textDecoration = 'underline';
+        link.style.wordBreak = 'break-word';
+        link.style.cursor = 'pointer';
+        
+        link.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const linkNode = e.target.closest('.node');
+            if (!linkNode) return;
+            const targetId = linkNode.dataset.targetId;
+            if (!targetId) return;
+            const target = document.getElementById(targetId);
+            if (target) {
+                setSelectedNode(target);
+                target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        };
+        
+        div.appendChild(link);
+
+        finishAddingLinkNode(div);
+    }
+
+    function createLinkNodeBase(displayText) {
         const div = document.createElement('div');
         div.className = 'node';
         div.style.width = '150px';
@@ -945,17 +1016,10 @@
         header.textContent = displayText;
         div.appendChild(header);
 
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.textContent = url;
-        link.style.color = '#7af';
-        link.style.padding = '6px';
-        link.style.fontSize = '12px';
-        link.style.textDecoration = 'underline';
-        link.style.wordBreak = 'break-word';
-        div.appendChild(link);
+        return div;
+    }
 
+    function finishAddingLinkNode(div) {
         const { left, top } = findEmptySpot();
         div.style.left = left + 'px';
         div.style.top = top + 'px';
@@ -992,6 +1056,146 @@
 
         nodes.push(div);
         setSelectedNode(div);
+    }
+
+    function showNodeSelectorDialogForLink(callback, initialFilter = '') {
+        const existing = document.getElementById('nodeSelectorDialogForLink');
+        if (existing) existing.remove();
+
+        const dialog = document.createElement('div');
+        dialog.id = 'nodeSelectorDialogForLink';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '10%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '400px';
+        dialog.style.maxHeight = '70%';
+        dialog.style.overflow = 'hidden';
+        if (currentTheme && currentTheme.styles.dialog) {
+            Object.assign(dialog.style, currentTheme.styles.dialog);
+        } else {
+            dialog.style.background = '#222';
+            dialog.style.color = '#fff';
+            dialog.style.border = '2px solid #444';
+        }
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+        dialog.style.padding = '10px';
+        dialog.style.display = 'flex';
+        dialog.style.flexDirection = 'column';
+        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
+
+        const filter = document.createElement('input');
+        filter.type = 'text';
+        filter.value = initialFilter;
+        filter.placeholder = 'Filter nodes...';
+        filter.style.padding = '5px';
+        filter.style.marginBottom = '10px';
+        if (currentTheme && currentTheme.styles.nodeContent) {
+            filter.style.background = currentTheme.styles.nodeContent.background;
+            filter.style.color = currentTheme.styles.nodeContent.color;
+            filter.style.border = '1px solid #555';
+        } else {
+            filter.style.background = '#111';
+            filter.style.color = '#fff';
+            filter.style.border = '1px solid #555';
+        }
+
+        const listContainer = document.createElement('div');
+        listContainer.style.overflowY = 'auto';
+        listContainer.style.flex = '1';
+        listContainer.style.borderTop = '1px solid #333';
+        listContainer.style.borderBottom = '1px solid #333';
+
+        const nodesList = Array.from(document.querySelectorAll('.node'));
+        let filteredList = [];
+        let selectedIndex = 0;
+
+        function renderList() {
+            listContainer.innerHTML = '';
+            const search = filter.value.toLowerCase();
+
+            filteredList = nodesList.filter(n => {
+                const type = n.dataset.type?.toLowerCase() || '';
+                const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
+                const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
+                return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
+            });
+
+            filteredList.forEach((node, index) => {
+                const type = node.dataset.type || '(no type)';
+                let preview = '';
+                const textarea = node.querySelector('textarea');
+                const text = textarea?.value || '';
+                preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+
+                const item = document.createElement('div');
+                item.textContent = `[${type}] — "${preview}"`;
+                item.style.padding = '5px 8px';
+                item.style.cursor = 'pointer';
+                item.style.whiteSpace = 'nowrap';
+                item.style.overflow = 'hidden';
+                item.style.textOverflow = 'ellipsis';
+
+                if (index === selectedIndex) {
+                    item.style.background = '#444';
+                }
+
+                item.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    renderList();
+                });
+
+                item.addEventListener('click', () => {
+                    callback(filteredList[selectedIndex]);
+                    dialog.remove();
+                });
+
+                listContainer.appendChild(item);
+            });
+
+            if (filteredList.length === 0) {
+                const empty = document.createElement('div');
+                empty.textContent = '(no matching nodes)';
+                empty.style.padding = '5px';
+                empty.style.color = '#888';
+                listContainer.appendChild(empty);
+            }
+        }
+
+        filter.addEventListener('input', () => {
+            selectedIndex = 0;
+            renderList();
+        });
+
+        filter.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                renderList();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (filteredList[selectedIndex]) {
+                    callback(filteredList[selectedIndex]);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dialog.remove();
+                }
+            } else if (e.key === 'Escape') {
+                dialog.remove();
+                e.stopPropagation();
+            }
+        });
+
+        dialog.appendChild(filter);
+        dialog.appendChild(listContainer);
+        document.body.appendChild(dialog);
+        filter.focus();
+        renderList();
     }
 
     function getAllNodes() {
@@ -1455,6 +1659,24 @@
                 e.stopPropagation();
                 removeNode(div);
             };
+        }
+
+        // Set up internal link click handlers
+        if (type === 'Link' && div.dataset.linkType === 'internal') {
+            const link = div.querySelector('a');
+            if (link) {
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const targetId = div.dataset.targetId;
+                    if (!targetId) return;
+                    const target = document.getElementById(targetId);
+                    if (target) {
+                        setSelectedNode(target);
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    }
+                };
+            }
         }
 
         div.draggable = false;
