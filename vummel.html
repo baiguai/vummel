@@ -3955,24 +3955,16 @@
     }
 
     function restoreAutoSaverPortFromDOM() {
-        const script = document.getElementById('autosaver-port');
-        if (!script) return;
-
-        try {
-            nodePort = JSON.parse(script.textContent);
-        } catch (err) {
-            console.error('Failed to restore nodePort:', err);
+        const port = canvas.dataset.nodePort;
+        if (port) {
+            nodePort = parseInt(port, 10) || 0;
         }
     }
 
     function restoreFileNameFromDOM() {
-        const script = document.getElementById('filename-data');
-        if (script) {
-            try {
-                fileName = JSON.parse(script.textContent);
-            } catch (err) {
-                console.error('Failed to restore fileName:', err);
-            }
+        const fn = canvas.dataset.fileName;
+        if (fn) {
+            fileName = fn;
         } else {
             const current = location.pathname.split('/').pop();
             if (current) {
@@ -3995,6 +3987,7 @@
             return;
         }
         nodePort = port;
+        canvas.dataset.nodePort = nodePort;
     }
        
     window.onload = () => {
