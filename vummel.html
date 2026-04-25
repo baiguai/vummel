@@ -3124,16 +3124,8 @@
         a.download = fileName;
         a.click();
 
-        let fnScript = document.querySelector('script[data-filename]');
-        if (!fnScript) {
-            fnScript = document.createElement('script');
-            fnScript.type = 'application/json';
-            fnScript.dataset.filename = 'true';
-            fnScript.id = 'filename-data';
-            document.body.appendChild(fnScript);
-        }
         const baseName = fileName.replace('.html', '');
-        fnScript.textContent = JSON.stringify(baseName, null, 2);
+        canvas.dataset.fileName = baseName;
         fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
@@ -3728,26 +3720,9 @@
             2
         );
 
-        // Save nodePort data
-        let portScript = document.querySelector('script[data-autosaverport]');
-        if (!portScript) {
-            portScript = document.createElement('script');
-            portScript.type = 'application/json';
-            portScript.dataset.autosaverport = 'true';
-            portScript.id = 'autosaver-port';
-            document.body.appendChild(portScript);
-        }
-        portScript.textContent = JSON.stringify(nodePort, null, 2);
-
-        let fnScript = document.querySelector('script[data-filename]');
-        if (!fnScript) {
-            fnScript = document.createElement('script');
-            fnScript.type = 'application/json';
-            fnScript.dataset.filename = 'true';
-            fnScript.id = 'filename-data';
-            document.body.appendChild(fnScript);
-        }
-        fnScript.textContent = JSON.stringify(fileName, null, 2);
+        // Save nodePort and fileName as data attributes on canvas
+        canvas.dataset.nodePort = nodePort;
+        canvas.dataset.fileName = fileName;
 
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
@@ -3831,25 +3806,9 @@
         }
         historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
 
-        let portScript = document.querySelector('script[data-autosaverport]');
-        if (!portScript) {
-            portScript = document.createElement('script');
-            portScript.type = 'application/json';
-            portScript.dataset.autosaverport = 'true';
-            portScript.id = 'autosaver-port';
-            document.body.appendChild(portScript);
-        }
-        portScript.textContent = JSON.stringify(nodePort, null, 2);
-
-        let fnScript = document.querySelector('script[data-filename]');
-        if (!fnScript) {
-            fnScript = document.createElement('script');
-            fnScript.type = 'application/json';
-            fnScript.dataset.filename = 'true';
-            fnScript.id = 'filename-data';
-            document.body.appendChild(fnScript);
-        }
-        fnScript.textContent = JSON.stringify(fileName, null, 2);
+        // Save nodePort and fileName as data attributes on canvas
+        canvas.dataset.nodePort = nodePort;
+        canvas.dataset.fileName = fileName;
 
         const html = document.documentElement.outerHTML;
 
@@ -3988,15 +3947,7 @@
     }
 
     function setFileName(newName) {
-        let fnScript = document.querySelector('script[data-filename]');
-        if (!fnScript) {
-            fnScript = document.createElement('script');
-            fnScript.type = 'application/json';
-            fnScript.dataset.filename = 'true';
-            fnScript.id = 'filename-data';
-            document.body.appendChild(fnScript);
-        }
-        fnScript.textContent = JSON.stringify(newName, null, 2);
+        canvas.dataset.fileName = newName;
         fileName = newName;
     }
 
