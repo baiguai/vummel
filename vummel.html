@@ -316,8 +316,8 @@
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
-    let nodePort = 0;
-    let fileName = "help";
+    // nodePort and fileName are stored in canvas.dataset instead of variables
+    // Use getNodePort() and getFileName() to access them
 
     const builtInThemes = [
       {
@@ -2149,7 +2149,7 @@
 
             case 'S':
                 {
-                    const newName = prompt('Save as (file name without .html):', fileName);
+                    const newName = prompt('Save as (file name without .html):', getFileName());
                     if (newName && newName.trim()) {
                         downloadWithFileName(newName.trim() + '.html');
                     }
@@ -2205,7 +2205,7 @@
                 break;
 
             case '!':
-                setAutoSaverPort();
+                showAutoSaverSettingsDialog();
                 repeatCount = 1;
                 break;
 
@@ -2782,10 +2782,9 @@
                         // Save using the imported file name
                         setTimeout(() => {
                             dialog.style.display = 'none';
-                            if (nodePort === 0) {
-                                downloadWithFileName(fileName + '.html');
+                            if (getNodePort() === 0) {
+                                downloadWithFileName(getFileName() + '.html');
                             } else {
-                                canvas.dataset.fileName = fileName;
                                 nodejsSave();
                             }
                             dialog.remove();
@@ -3064,14 +3063,12 @@
         
         // Apply nodePort if present and non-zero
         if (data.nodePort !== undefined && data.nodePort !== null && data.nodePort !== 0) {
-            nodePort = data.nodePort;
-            canvas.dataset.nodePort = nodePort;
+            canvas.dataset.nodePort = data.nodePort;
         }
         
         // Apply fileName if present
         if (data.fileName) {
-            fileName = data.fileName;
-            canvas.dataset.fileName = fileName;
+            canvas.dataset.fileName = data.fileName;
         }
     }
 
@@ -3156,12 +3153,11 @@
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = fileName;
+        a.download = getFileName();
         a.click();
 
-        const baseName = fileName.replace('.html', '');
+        const baseName = getFileName().replace('.html', '');
         canvas.dataset.fileName = baseName;
-        fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
@@ -3756,14 +3752,14 @@
         );
 
         // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = nodePort;
-        canvas.dataset.fileName = fileName;
+        canvas.dataset.nodePort = getNodePort();
+        canvas.dataset.fileName = getFileName();
 
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = fileName + '.html';
+        a.download = getFileName() + '.html';
         a.click();
 
         script.remove(); // Remove after save to avoid duplicate
@@ -3772,7 +3768,7 @@
     }
 
     function nodejsSave() {
-        if (nodePort === 0) {
+        if (getNodePort() === 0) {
             alert('Auto-saver is disabled. Use ! to set a port first.');
             return;
         }
@@ -3842,16 +3838,16 @@
         historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
 
         // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = nodePort;
-        canvas.dataset.fileName = fileName;
+        canvas.dataset.nodePort = getNodePort();
+        canvas.dataset.fileName = getFileName();
 
         const html = document.documentElement.outerHTML;
 
-        fetch(`http://localhost:${nodePort}/save`, {
+        fetch(`http://localhost:${getNodePort()}/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/plain',
-                'X-Filename': fileName + '.html'
+                'X-Filename': getFileName() + '.html'
             },
             body: html
         })
@@ -3892,7 +3888,7 @@
     let autoSaveTimer = null;
 
     function scheduleAutoSave() {
-        if (nodePort === 0) return;
+        if (getNodePort() === 0) return;
 
         clearTimeout(autoSaveTimer);
         autoSaveTimer = setTimeout(() => {
@@ -3955,41 +3951,124 @@
     }
 
     function restoreAutoSaverPortFromDOM() {
-        const port = canvas.dataset.nodePort;
-        if (port) {
-            nodePort = parseInt(port, 10) || 0;
-        }
+        // nodePort is now stored in canvas.dataset.nodePort
+        // getNodePort() handles fallback automatically
     }
 
     function restoreFileNameFromDOM() {
-        const fn = canvas.dataset.fileName;
-        if (fn) {
-            fileName = fn;
-        } else {
-            const current = location.pathname.split('/').pop();
-            if (current) {
-                fileName = current.replace('.html', '');
-            }
-        }
+        // fileName is now stored in canvas.dataset.fileName
+        // getFileName() handles fallback automatically
     }
 
     function setFileName(newName) {
         canvas.dataset.fileName = newName;
-        fileName = newName;
     }
 
-    function setAutoSaverPort() {
-        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', nodePort || '');
-        if (input === null) return;
-        const port = parseInt(input, 10);
-        if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
-            alert('Please enter a valid port: 0 (disabled) or 4000-4999');
-            return;
-        }
-        nodePort = port;
-        canvas.dataset.nodePort = nodePort;
+    function getNodePort() {
+        return parseInt(canvas.dataset.nodePort, 10) || 0;
     }
-       
+
+    function getFileName() {
+        return canvas.dataset.fileName || 'vummel';
+    }
+
+    function showAutoSaverSettingsDialog() {
+        const existing = document.getElementById('autoSaverSettingsDialog');
+        if (existing) existing.remove();
+
+        const currentPort = canvas.dataset.nodePort || 0;
+        const currentName = canvas.dataset.fileName || 'vummel';
+
+        const dialog = document.createElement('div');
+        dialog.id = 'autoSaverSettingsDialog';
+        dialog.style.position = 'fixed';
+        dialog.style.top = '20%';
+        dialog.style.left = '50%';
+        dialog.style.transform = 'translateX(-50%)';
+        dialog.style.width = '300px';
+        dialog.style.padding = '20px';
+        dialog.style.background = currentTheme ? currentTheme.styles.dialog?.background : '#222';
+        dialog.style.color = currentTheme ? currentTheme.styles.dialog?.color : '#fff';
+        dialog.style.border = currentTheme ? currentTheme.styles.dialog?.border : '2px solid #444';
+        dialog.style.borderRadius = '10px';
+        dialog.style.zIndex = 9999;
+        dialog.style.fontFamily = 'monospace';
+
+        const portLabel = document.createElement('div');
+        portLabel.textContent = 'Auto-save port (0 to disable, 4000-4999 to enable):';
+        portLabel.style.marginBottom = '5px';
+
+        const portInput = document.createElement('input');
+        portInput.type = 'text';
+        portInput.value = currentPort;
+        portInput.style.width = '100%';
+        portInput.style.marginBottom = '15px';
+        portInput.style.padding = '5px';
+        portInput.style.background = '#111';
+        portInput.style.color = '#fff';
+        portInput.style.border = '1px solid #555';
+
+        const nameLabel = document.createElement('div');
+        nameLabel.textContent = 'File name:';
+        nameLabel.style.marginBottom = '5px';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = currentName;
+        nameInput.style.width = '100%';
+        nameInput.style.marginBottom = '15px';
+        nameInput.style.padding = '5px';
+        nameInput.style.background = '#111';
+        nameInput.style.color = '#fff';
+        nameInput.style.border = '1px solid #555';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.style.marginRight = '10px';
+        saveBtn.style.padding = '5px 15px';
+        saveBtn.style.background = '#333';
+        saveBtn.style.color = '#fff';
+        saveBtn.style.border = '1px solid #555';
+        saveBtn.style.cursor = 'pointer';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel (ESC)';
+        cancelBtn.style.padding = '5px 15px';
+        cancelBtn.style.background = '#333';
+        cancelBtn.style.color = '#fff';
+        cancelBtn.style.border = '1px solid #555';
+        cancelBtn.style.cursor = 'pointer';
+
+        saveBtn.onclick = () => {
+            const port = parseInt(portInput.value, 10);
+            if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
+                alert('Please enter a valid port: 0 (disabled) or 4000-4999');
+                return;
+            }
+            canvas.dataset.nodePort = port;
+            canvas.dataset.fileName = nameInput.value.trim() || 'vummel';
+            dialog.remove();
+            showToast('Settings saved');
+            scheduleAutoSave();
+        };
+
+        cancelBtn.onclick = () => dialog.remove();
+        cancelBtn.onkeydown = (e) => {
+            if (e.key === 'Escape') {
+                dialog.remove();
+            }
+        };
+
+        dialog.appendChild(portLabel);
+        dialog.appendChild(portInput);
+        dialog.appendChild(nameLabel);
+        dialog.appendChild(nameInput);
+        dialog.appendChild(saveBtn);
+        dialog.appendChild(cancelBtn);
+        document.body.appendChild(dialog);
+        portInput.focus();
+    }
+
     window.onload = () => {
         initializeNodes();
         restoreThemeFromDOM();
