@@ -2285,6 +2285,14 @@
                 break;
 
             case 'Enter':
+                if (selectedNode && selectedNode.dataset.type === 'Link') {
+                    const link = selectedNode.querySelector('a');
+                    if (link) {
+                        link.click();
+                    }
+                    e.preventDefault();
+                    return;
+                }
                 if (multiSelectMode) {
                     if (selectedNode && !selectedNodes.includes(selectedNode)) {
                         selectedNodes.push(selectedNode);
