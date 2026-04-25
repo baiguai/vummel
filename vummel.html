@@ -2138,6 +2138,8 @@
                 addLinkNode();
                 repeatCount = 1;
                 scheduleAutoSave();
+                e.preventDefault();
+                e.stopPropagation();
                 break;
 
             case 's':
