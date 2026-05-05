@@ -173,14 +173,11 @@
   </div>
 
 <script>
-    // Clear any stuck toast notifications on load
-    document.querySelectorAll('.vummel-toast').forEach(t => t.remove());
-
     const keyBindings = [
         { key: 'a', desc: 'Add a new node.' },
         { key: '=', desc: 'Duplicate current node.' },
         { key: 'r', desc: 'Rename node (change its type).' },
-        { key: 'u', desc: 'Add a new link node (use # for URL - to link to another node).' },
+        { key: 'u', desc: 'Add a new link node.' },
         { key: 'c', desc: 'Start connection (select the second node and hit Enter).' },
         { key: 'X', desc: 'Disconnects two nodes in the same manner as connecting them.' },
         { key: 'D', desc: 'Delete the selected node.' },
@@ -201,7 +198,7 @@
         { key: "'", desc: 'Show history.' },
         { key: 'M', desc: 'Enter select multiple nodes mode (Escape exits).' },
         { key: 'q', desc: 'Show mini-map.' },
-        { key: '!', desc: 'Set auto-saver port (4000-4999, or 0 to disable) / filename.' },
+        { key: '!', desc: 'Set auto-saver port (4000-4999, or 0 to disable).' },
         { key: 'Enter', desc: 'When a node is on top of another, moves it into that node.' },
         { key: 'd', desc: 'Detaches a child node from its parent.' },
         { key: 'z', desc: "Increase selected node's text area." },
@@ -319,8 +316,8 @@
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
-    // nodePort and fileName are stored in canvas.dataset instead of variables
-    // Use getNodePort() and getFileName() to access them
+    let nodePort = 0;
+    let fileName = "help";
 
     const builtInThemes = [
       {
@@ -607,7 +604,6 @@
 
     function showToast(message) {
         const toast = document.createElement('div');
-        toast.className = 'vummel-toast';
         toast.textContent = message;
         toast.style.position = 'fixed';
         toast.style.bottom = '20px';
@@ -934,80 +930,9 @@
         const displayText = prompt("Enter link display text:");
         if (!displayText) return;
 
-        const url = prompt("Enter the full URL (include https://), or # to link to another node:");
-        if (url === null) return;
+        const url = prompt("Enter the full URL (include https://):");
+        if (!url) return;
 
-        if (url.startsWith('#')) {
-            showNodeSelectorDialogForLink((targetNode) => {
-                if (targetNode) {
-                    createLinkNodeInternal(displayText, targetNode);
-                }
-            }, '');
-            return;
-        }
-
-        createLinkNodeExternal(displayText, url);
-    }
-
-    function createLinkNodeExternal(displayText, url) {
-        const div = createLinkNodeBase(displayText);
-        div.dataset.linkType = 'external';
-        div.dataset.url = url;
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.textContent = url;
-        link.style.color = '#7af';
-        link.style.padding = '6px';
-        link.style.fontSize = '12px';
-        link.style.textDecoration = 'underline';
-        link.style.wordBreak = 'break-word';
-        
-        link.onclick = (e) => {
-            e.stopPropagation();
-        };
-        
-        div.appendChild(link);
-
-        finishAddingLinkNode(div);
-    }
-
-    function createLinkNodeInternal(displayText, targetNode) {
-        const div = createLinkNodeBase(displayText);
-        div.dataset.linkType = 'internal';
-        div.dataset.targetId = targetNode.id;
-
-        const link = document.createElement('a');
-        link.href = '#';
-        link.textContent = '→ ' + (targetNode.dataset.type || 'node');
-        link.style.color = '#7f7';
-        link.style.padding = '6px';
-        link.style.fontSize = '12px';
-        link.style.textDecoration = 'underline';
-        link.style.wordBreak = 'break-word';
-        link.style.cursor = 'pointer';
-        
-        link.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const linkNode = e.target.closest('.node');
-            if (!linkNode) return;
-            const targetId = linkNode.dataset.targetId;
-            if (!targetId) return;
-            const target = document.getElementById(targetId);
-            if (target) {
-                setSelectedNode(target);
-                target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            }
-        };
-        
-        div.appendChild(link);
-
-        finishAddingLinkNode(div);
-    }
-
-    function createLinkNodeBase(displayText) {
         const div = document.createElement('div');
         div.className = 'node';
         div.style.width = '150px';
@@ -1020,10 +945,17 @@
         header.textContent = displayText;
         div.appendChild(header);
 
-        return div;
-    }
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.textContent = url;
+        link.style.color = '#7af';
+        link.style.padding = '6px';
+        link.style.fontSize = '12px';
+        link.style.textDecoration = 'underline';
+        link.style.wordBreak = 'break-word';
+        div.appendChild(link);
 
-    function finishAddingLinkNode(div) {
         const { left, top } = findEmptySpot();
         div.style.left = left + 'px';
         div.style.top = top + 'px';
@@ -1060,146 +992,6 @@
 
         nodes.push(div);
         setSelectedNode(div);
-    }
-
-    function showNodeSelectorDialogForLink(callback, initialFilter = '') {
-        const existing = document.getElementById('nodeSelectorDialogForLink');
-        if (existing) existing.remove();
-
-        const dialog = document.createElement('div');
-        dialog.id = 'nodeSelectorDialogForLink';
-        dialog.style.position = 'fixed';
-        dialog.style.top = '10%';
-        dialog.style.left = '50%';
-        dialog.style.transform = 'translateX(-50%)';
-        dialog.style.width = '400px';
-        dialog.style.maxHeight = '70%';
-        dialog.style.overflow = 'hidden';
-        if (currentTheme && currentTheme.styles.dialog) {
-            Object.assign(dialog.style, currentTheme.styles.dialog);
-        } else {
-            dialog.style.background = '#222';
-            dialog.style.color = '#fff';
-            dialog.style.border = '2px solid #444';
-        }
-        dialog.style.borderRadius = '10px';
-        dialog.style.zIndex = 9999;
-        dialog.style.fontFamily = 'monospace';
-        dialog.style.padding = '10px';
-        dialog.style.display = 'flex';
-        dialog.style.flexDirection = 'column';
-        dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.8)';
-
-        const filter = document.createElement('input');
-        filter.type = 'text';
-        filter.value = initialFilter;
-        filter.placeholder = 'Filter nodes...';
-        filter.style.padding = '5px';
-        filter.style.marginBottom = '10px';
-        if (currentTheme && currentTheme.styles.nodeContent) {
-            filter.style.background = currentTheme.styles.nodeContent.background;
-            filter.style.color = currentTheme.styles.nodeContent.color;
-            filter.style.border = '1px solid #555';
-        } else {
-            filter.style.background = '#111';
-            filter.style.color = '#fff';
-            filter.style.border = '1px solid #555';
-        }
-
-        const listContainer = document.createElement('div');
-        listContainer.style.overflowY = 'auto';
-        listContainer.style.flex = '1';
-        listContainer.style.borderTop = '1px solid #333';
-        listContainer.style.borderBottom = '1px solid #333';
-
-        const nodesList = Array.from(document.querySelectorAll('.node'));
-        let filteredList = [];
-        let selectedIndex = 0;
-
-        function renderList() {
-            listContainer.innerHTML = '';
-            const search = filter.value.toLowerCase();
-
-            filteredList = nodesList.filter(n => {
-                const type = n.dataset.type?.toLowerCase() || '';
-                const textareaText = n.querySelector('textarea')?.value.toLowerCase() || '';
-                const anchorText = n.querySelector('a')?.textContent.toLowerCase() || '';
-                return type.includes(search) || textareaText.includes(search) || anchorText.includes(search);
-            });
-
-            filteredList.forEach((node, index) => {
-                const type = node.dataset.type || '(no type)';
-                let preview = '';
-                const textarea = node.querySelector('textarea');
-                const text = textarea?.value || '';
-                preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
-
-                const item = document.createElement('div');
-                item.textContent = `[${type}] — "${preview}"`;
-                item.style.padding = '5px 8px';
-                item.style.cursor = 'pointer';
-                item.style.whiteSpace = 'nowrap';
-                item.style.overflow = 'hidden';
-                item.style.textOverflow = 'ellipsis';
-
-                if (index === selectedIndex) {
-                    item.style.background = '#444';
-                }
-
-                item.addEventListener('mouseenter', () => {
-                    selectedIndex = index;
-                    renderList();
-                });
-
-                item.addEventListener('click', () => {
-                    callback(filteredList[selectedIndex]);
-                    dialog.remove();
-                });
-
-                listContainer.appendChild(item);
-            });
-
-            if (filteredList.length === 0) {
-                const empty = document.createElement('div');
-                empty.textContent = '(no matching nodes)';
-                empty.style.padding = '5px';
-                empty.style.color = '#888';
-                listContainer.appendChild(empty);
-            }
-        }
-
-        filter.addEventListener('input', () => {
-            selectedIndex = 0;
-            renderList();
-        });
-
-        filter.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowDown') {
-                selectedIndex = Math.min(selectedIndex + 1, filteredList.length - 1);
-                renderList();
-                e.preventDefault();
-            } else if (e.key === 'ArrowUp') {
-                selectedIndex = Math.max(selectedIndex - 1, 0);
-                renderList();
-                e.preventDefault();
-            } else if (e.key === 'Enter') {
-                if (filteredList[selectedIndex]) {
-                    callback(filteredList[selectedIndex]);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dialog.remove();
-                }
-            } else if (e.key === 'Escape') {
-                dialog.remove();
-                e.stopPropagation();
-            }
-        });
-
-        dialog.appendChild(filter);
-        dialog.appendChild(listContainer);
-        document.body.appendChild(dialog);
-        filter.focus();
-        renderList();
     }
 
     function getAllNodes() {
@@ -1665,24 +1457,6 @@
             };
         }
 
-        // Set up internal link click handlers
-        if (type === 'Link' && div.dataset.linkType === 'internal') {
-            const link = div.querySelector('a');
-            if (link) {
-                link.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const targetId = div.dataset.targetId;
-                    if (!targetId) return;
-                    const target = document.getElementById(targetId);
-                    if (target) {
-                        setSelectedNode(target);
-                        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                    }
-                };
-            }
-        }
-
         div.draggable = false;
         div.ondragstart = e => {
             e.dataTransfer.setData("text/plain", div.id);
@@ -2142,8 +1916,6 @@
                 addLinkNode();
                 repeatCount = 1;
                 scheduleAutoSave();
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case 's':
@@ -2153,7 +1925,7 @@
 
             case 'S':
                 {
-                    const newName = prompt('Save as (file name without .html):', getFileName());
+                    const newName = prompt('Save as (file name without .html):', fileName);
                     if (newName && newName.trim()) {
                         downloadWithFileName(newName.trim() + '.html');
                     }
@@ -2209,10 +1981,8 @@
                 break;
 
             case '!':
-                showAutoSaverSettingsDialog();
+                setAutoSaverPort();
                 repeatCount = 1;
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case ']': // scroll right
@@ -2515,14 +2285,6 @@
                 break;
 
             case 'Enter':
-                if (selectedNode && selectedNode.dataset.type === 'Link') {
-                    const link = selectedNode.querySelector('a');
-                    if (link) {
-                        link.click();
-                    }
-                    e.preventDefault();
-                    return;
-                }
                 if (multiSelectMode) {
                     if (selectedNode && !selectedNodes.includes(selectedNode)) {
                         selectedNodes.push(selectedNode);
@@ -2785,11 +2547,11 @@
                         status.textContent = `Successfully loaded data from "${file.name}". Upgrading...`;
                         status.style.color = '#7af';
                         
-                        // Save using the imported file name
+                        // Save via nodejs (keep current nodePort/fileName), or regular save if nodePort is 0
                         setTimeout(() => {
                             dialog.style.display = 'none';
-                            if (getNodePort() === 0) {
-                                downloadWithFileName(getFileName() + '.html');
+                            if (nodePort === 0) {
+                                download();
                             } else {
                                 nodejsSave();
                             }
@@ -2912,31 +2674,6 @@
                 data.history = JSON.parse(historyScript.textContent);
             } catch (e) {
                 console.warn('Could not parse history:', e);
-            }
-        }
-        
-        // Extract nodePort from canvas data attribute (new format) or script element (old format)
-        const sourceCanvasEl = doc.querySelector('#canvas');
-        if (sourceCanvasEl && sourceCanvasEl.dataset.nodePort) {
-            data.nodePort = parseInt(sourceCanvasEl.dataset.nodePort, 10) || 0;
-        } else {
-            const portScript = doc.querySelector('script[data-autosaverport]');
-            if (portScript) {
-                try {
-                    data.nodePort = JSON.parse(portScript.textContent);
-                } catch (e) {}
-            }
-        }
-        
-        // Extract fileName from canvas data attribute (new format) or script element (old format)
-        if (sourceCanvasEl && sourceCanvasEl.dataset.fileName) {
-            data.fileName = sourceCanvasEl.dataset.fileName;
-        } else {
-            const fnScript = doc.querySelector('script[data-filename]');
-            if (fnScript) {
-                try {
-                    data.fileName = JSON.parse(fnScript.textContent);
-                } catch (e) {}
             }
         }
         
@@ -3066,22 +2803,10 @@
                 })
                 .filter(n => n); // remove nulls
         }
-        
-        // Apply nodePort if present and non-zero
-        if (data.nodePort !== undefined && data.nodePort !== null && data.nodePort !== 0) {
-            canvas.dataset.nodePort = data.nodePort;
-        }
-        
-        // Apply fileName if present
-        if (data.fileName) {
-            canvas.dataset.fileName = data.fileName;
-        }
     }
 
     function downloadWithFileName(fileName) {
         selectedNode = null;
-        const originalPort = canvas.dataset.nodePort;
-        canvas.dataset.nodePort = 0;
         nodes.forEach(n => {
             n.style.borderColor = '#aaa';
             n.style.borderWidth = '1px';
@@ -3164,13 +2889,20 @@
         a.download = fileName;
         a.click();
 
-        const baseName = getFileName().replace('.html', '');
-        canvas.dataset.fileName = baseName;
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        const baseName = fileName.replace('.html', '');
+        fnScript.textContent = JSON.stringify(baseName, null, 2);
+        fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
-
-        canvas.dataset.nodePort = originalPort;
     }
 
     function validateTheme(theme) {
@@ -3761,15 +3493,32 @@
             2
         );
 
-        // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = getNodePort();
-        canvas.dataset.fileName = getFileName();
+        // Save nodePort data
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
 
         const html = document.documentElement.outerHTML;
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = getFileName() + '.html';
+        a.download = fileName + '.html';
         a.click();
 
         script.remove(); // Remove after save to avoid duplicate
@@ -3778,16 +3527,16 @@
     }
 
     function nodejsSave() {
-        if (getNodePort() === 0) {
+        if (nodePort === 0) {
             alert('Auto-saver is disabled. Use ! to set a port first.');
             return;
         }
 
-        const prevSelectedNode = selectedNode;
-        const prevSelectedNodes = [...selectedNodes];
-        const prevActiveElement = document.activeElement;
-        const isEditing = prevActiveElement?.classList?.contains('node-content');
-        const cursorPos = prevActiveElement?.selectionStart || 0;
+        selectedNode = null;
+        nodes.forEach(n => {
+            n.style.borderColor = '#aaa';
+            n.style.borderWidth = '1px';
+        });
 
         document.querySelectorAll('textarea.node-content').forEach(t => {
             t.textContent = t.value;
@@ -3847,17 +3596,33 @@
         }
         historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
 
-        // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = getNodePort();
-        canvas.dataset.fileName = getFileName();
+        let portScript = document.querySelector('script[data-autosaverport]');
+        if (!portScript) {
+            portScript = document.createElement('script');
+            portScript.type = 'application/json';
+            portScript.dataset.autosaverport = 'true';
+            portScript.id = 'autosaver-port';
+            document.body.appendChild(portScript);
+        }
+        portScript.textContent = JSON.stringify(nodePort, null, 2);
+
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(fileName, null, 2);
 
         const html = document.documentElement.outerHTML;
 
-        fetch(`http://localhost:${getNodePort()}/save`, {
+        fetch(`http://localhost:${nodePort}/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/plain',
-                'X-Filename': getFileName() + '.html'
+                'X-Filename': fileName + '.html'
             },
             body: html
         })
@@ -3878,27 +3643,13 @@
             themeScript.remove();
             historyScript.remove();
             portScript.remove();
-
-            if (prevSelectedNode) {
-                setSelectedNode(prevSelectedNode);
-            } else {
-                selectedNode = null;
-                selectedNodes = [];
-            }
-
-            if (isEditing && prevActiveElement) {
-                prevActiveElement.focus();
-                if (prevActiveElement.setSelectionRange) {
-                    prevActiveElement.setSelectionRange(cursorPos, cursorPos);
-                }
-            }
         });
     }
 
     let autoSaveTimer = null;
 
     function scheduleAutoSave() {
-        if (getNodePort() === 0) return;
+        if (nodePort === 0) return;
 
         clearTimeout(autoSaveTimer);
         autoSaveTimer = setTimeout(() => {
@@ -3946,7 +3697,7 @@
         }
     }
 
-    function restoreHistoryFromDOM() {
+function restoreHistoryFromDOM() {
         const script = document.getElementById('history-data');
         if (!script) return;
     
@@ -3961,126 +3712,56 @@
     }
 
     function restoreAutoSaverPortFromDOM() {
-        // nodePort is now stored in canvas.dataset.nodePort
-        // getNodePort() handles fallback automatically
+        const script = document.getElementById('autosaver-port');
+        if (!script) return;
+
+        try {
+            nodePort = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error('Failed to restore nodePort:', err);
+        }
     }
 
     function restoreFileNameFromDOM() {
-        // fileName is now stored in canvas.dataset.fileName
-        // getFileName() handles fallback automatically
+        const script = document.getElementById('filename-data');
+        if (script) {
+            try {
+                fileName = JSON.parse(script.textContent);
+            } catch (err) {
+                console.error('Failed to restore fileName:', err);
+            }
+        } else {
+            const current = location.pathname.split('/').pop();
+            if (current) {
+                fileName = current.replace('.html', '');
+            }
+        }
     }
 
     function setFileName(newName) {
-        canvas.dataset.fileName = newName;
+        let fnScript = document.querySelector('script[data-filename]');
+        if (!fnScript) {
+            fnScript = document.createElement('script');
+            fnScript.type = 'application/json';
+            fnScript.dataset.filename = 'true';
+            fnScript.id = 'filename-data';
+            document.body.appendChild(fnScript);
+        }
+        fnScript.textContent = JSON.stringify(newName, null, 2);
+        fileName = newName;
     }
 
-    function getNodePort() {
-        return parseInt(canvas.dataset.nodePort, 10) || 0;
+    function setAutoSaverPort() {
+        const input = prompt('Enter port number (4000-4999, or 0 to disable auto-saver):', nodePort || '');
+        if (input === null) return;
+        const port = parseInt(input, 10);
+        if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
+            alert('Please enter a valid port: 0 (disabled) or 4000-4999');
+            return;
+        }
+        nodePort = port;
     }
-
-    function getFileName() {
-        return canvas.dataset.fileName || 'vummel';
-    }
-
-    function showAutoSaverSettingsDialog() {
-        const existing = document.getElementById('autoSaverSettingsDialog');
-        if (existing) existing.remove();
-
-        const currentPort = canvas.dataset.nodePort || 0;
-        const currentName = canvas.dataset.fileName || 'vummel';
-
-        const dialog = document.createElement('div');
-        dialog.id = 'autoSaverSettingsDialog';
-        dialog.style.position = 'fixed';
-        dialog.style.top = '20%';
-        dialog.style.left = '50%';
-        dialog.style.transform = 'translateX(-50%)';
-        dialog.style.width = '300px';
-        dialog.style.padding = '20px';
-        dialog.style.background = currentTheme ? currentTheme.styles.dialog?.background : '#222';
-        dialog.style.color = currentTheme ? currentTheme.styles.dialog?.color : '#fff';
-        dialog.style.border = currentTheme ? currentTheme.styles.dialog?.border : '2px solid #444';
-        dialog.style.borderRadius = '10px';
-        dialog.style.zIndex = 9999;
-        dialog.style.fontFamily = 'monospace';
-
-        const portLabel = document.createElement('div');
-        portLabel.textContent = 'Auto-save port (0 to disable, 4000-4999 to enable):';
-        portLabel.style.marginBottom = '5px';
-
-const portInput = document.createElement('input');
-        portInput.type = 'text';
-        portInput.value = currentPort;
-        portInput.style.width = '100%';
-        portInput.style.marginBottom = '15px';
-        portInput.style.padding = '5px';
-        portInput.style.background = '#111';
-        portInput.style.color = '#fff';
-        portInput.style.border = '1px solid #555';
-
-        const nameLabel = document.createElement('div');
-        nameLabel.textContent = 'File name:';
-        nameLabel.style.marginBottom = '5px';
-
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = currentName;
-        nameInput.style.width = '100%';
-        nameInput.style.marginBottom = '15px';
-        nameInput.style.padding = '5px';
-        nameInput.style.background = '#111';
-        nameInput.style.color = '#fff';
-        nameInput.style.border = '1px solid #555';
-        
-        // Handle Enter and Escape keys
-        portInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const port = parseInt(portInput.value, 10);
-                if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
-                    alert('Please enter a valid port: 0 (disabled) or 4000-4999');
-                    return;
-                }
-                canvas.dataset.nodePort = port;
-                canvas.dataset.fileName = nameInput.value.trim() || 'vummel';
-                dialog.remove();
-                showToast('Settings saved');
-                scheduleAutoSave();
-            } else if (e.key === 'Escape') {
-                dialog.remove();
-            }
-        });
-        
-        // Handle Enter and Escape on name input too
-        nameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const port = parseInt(portInput.value, 10);
-                if (isNaN(port) || port < 0 || port > 4999 || (port > 0 && port < 4000)) {
-                    alert('Please enter a valid port: 0 (disabled) or 4000-4999');
-                    return;
-                }
-                canvas.dataset.nodePort = port;
-                canvas.dataset.fileName = nameInput.value.trim() || 'vummel';
-                dialog.remove();
-                showToast('Settings saved');
-                scheduleAutoSave();
-            } else if (e.key === 'Escape') {
-                dialog.remove();
-            }
-        });
-
-        const btnContainer = document.createElement('div');
-        btnContainer.style.marginTop = '10px';
-        btnContainer.innerHTML = '<span style="font-size: 11px; color: #888;">Press Enter to save, Escape to cancel</span>';
-
-        dialog.appendChild(portLabel);
-        dialog.appendChild(portInput);
-        dialog.appendChild(nameLabel);
-        dialog.appendChild(nameInput);
-        dialog.appendChild(btnContainer);
-        document.body.appendChild(dialog);
-        portInput.focus();
-    }
-
+       
     window.onload = () => {
         initializeNodes();
         restoreThemeFromDOM();
