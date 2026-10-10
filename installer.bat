@@ -82,15 +82,14 @@ if not exist "%VMLNODES_BAT%" (
 if not exist "%HTML_FILE%" (
     REM Copy vummel.html to the target directory
     copy "%~dp0vummel.html" "%HTML_FILE%" >nul
-
-    REM Update the node port in the new html file
-    powershell -Command "(Get-Content -path '%HTML_FILE%') -replace 'let nodePort = 0;', 'let nodePort = %PORT%;' | Set-Content -path '%HTML_FILE%'"
-    powershell -Command "(Get-Content -path '%HTML_FILE%') -replace 'let fileName = \"help\";', 'let fileName = \"%FILENAME%\";' | Set-Content -path '%HTML_FILE%'"
-) else (
-    REM Update the node port and file name in the existing html file
-    powershell -Command "(Get-Content -path '%HTML_FILE%') -replace 'let nodePort = [0-9]*;', 'let nodePort = %PORT%;' | Set-Content -path '%HTML_FILE%'"
-    powershell -Command "(Get-Content -path '%HTML_FILE%') -replace 'let fileName = \".*\";', 'let fileName = \"%FILENAME%\";' | Set-Content -path '%HTML_FILE%'"
 )
+
+REM Update the nodePort and fileName variables in the html file so the page can
+REM auto-save through the saver script in this directory. The patterns are
+REM anchored to the start of the line so they only match the variable
+REM declarations and not the serialization helper.
+powershell -Command "(Get-Content -path '%HTML_FILE%') -replace '^\s*let nodePort = [0-9]*;', '    let nodePort = %PORT%;' | Set-Content -path '%HTML_FILE%'"
+powershell -Command "(Get-Content -path '%HTML_FILE%') -replace '^\s*let fileName = \".*\";', '    let fileName = \"%FILENAME%\";' | Set-Content -path '%HTML_FILE%'"
 
 if not exist "%SAVER_JS_FILE%" (
     REM Copy saver.js to the target directory

@@ -319,8 +319,10 @@
 
     let minimapVisible = false;
     let minimapSelectedNode = null;
-    // nodePort and fileName are stored in canvas.dataset instead of variables
-    // Use getNodePort() and getFileName() to access them
+    // Auto-saver settings. The installer updates these variables in copies of
+    // this file so the page can auto-save via the saver script in its folder.
+    let nodePort = 0;
+    let fileName = "vummel";
 
     const builtInThemes = [
       {
@@ -2915,28 +2917,40 @@
             }
         }
         
-        // Extract nodePort from canvas data attribute (new format) or script element (old format)
-        const sourceCanvasEl = doc.querySelector('#canvas');
-        if (sourceCanvasEl && sourceCanvasEl.dataset.nodePort) {
-            data.nodePort = parseInt(sourceCanvasEl.dataset.nodePort, 10) || 0;
+        // Extract nodePort/fileName from the JavaScript variables (new format),
+        // falling back to the canvas data attributes and script elements (old format)
+        const sourceHtml = doc.documentElement.outerHTML;
+        const portMatch = sourceHtml.match(/let\s+nodePort\s*=\s*(\d+);/);
+        if (portMatch) {
+            data.nodePort = parseInt(portMatch[1], 10) || 0;
         } else {
-            const portScript = doc.querySelector('script[data-autosaverport]');
-            if (portScript) {
-                try {
-                    data.nodePort = JSON.parse(portScript.textContent);
-                } catch (e) {}
+            const sourceCanvasEl = doc.querySelector('#canvas');
+            if (sourceCanvasEl && sourceCanvasEl.dataset.nodePort) {
+                data.nodePort = parseInt(sourceCanvasEl.dataset.nodePort, 10) || 0;
+            } else {
+                const portScript = doc.querySelector('script[data-autosaverport]');
+                if (portScript) {
+                    try {
+                        data.nodePort = JSON.parse(portScript.textContent);
+                    } catch (e) {}
+                }
             }
         }
-        
-        // Extract fileName from canvas data attribute (new format) or script element (old format)
-        if (sourceCanvasEl && sourceCanvasEl.dataset.fileName) {
-            data.fileName = sourceCanvasEl.dataset.fileName;
+
+        const nameMatch = sourceHtml.match(/let\s+fileName\s*=\s*"([^"]*)";/);
+        if (nameMatch) {
+            data.fileName = nameMatch[1];
         } else {
-            const fnScript = doc.querySelector('script[data-filename]');
-            if (fnScript) {
-                try {
-                    data.fileName = JSON.parse(fnScript.textContent);
-                } catch (e) {}
+            const sourceCanvasEl = doc.querySelector('#canvas');
+            if (sourceCanvasEl && sourceCanvasEl.dataset.fileName) {
+                data.fileName = sourceCanvasEl.dataset.fileName;
+            } else {
+                const fnScript = doc.querySelector('script[data-filename]');
+                if (fnScript) {
+                    try {
+                        data.fileName = JSON.parse(fnScript.textContent);
+                    } catch (e) {}
+                }
             }
         }
         
@@ -3069,19 +3083,17 @@
         
         // Apply nodePort if present and non-zero
         if (data.nodePort !== undefined && data.nodePort !== null && data.nodePort !== 0) {
-            canvas.dataset.nodePort = data.nodePort;
+            nodePort = data.nodePort;
         }
         
         // Apply fileName if present
         if (data.fileName) {
-            canvas.dataset.fileName = data.fileName;
+            fileName = data.fileName;
         }
     }
 
-    function downloadWithFileName(fileName) {
+    function downloadWithFileName(downloadName) {
         selectedNode = null;
-        const originalPort = canvas.dataset.nodePort;
-        canvas.dataset.nodePort = 0;
         nodes.forEach(n => {
             n.style.borderColor = '#aaa';
             n.style.borderWidth = '1px';
@@ -3157,20 +3169,17 @@
             2
         );
 
-        const html = document.documentElement.outerHTML;
+        // Exported copy is a standalone file, so disable auto-save and apply the new name
+        const baseName = downloadName.replace(/\.html$/, '');
+        const html = serializeCurrentHtml(0, baseName);
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = fileName;
+        a.download = downloadName;
         a.click();
-
-        const baseName = getFileName().replace('.html', '');
-        canvas.dataset.fileName = baseName;
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
-
-        canvas.dataset.nodePort = originalPort;
     }
 
     function validateTheme(theme) {
@@ -3761,11 +3770,7 @@
             2
         );
 
-        // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = getNodePort();
-        canvas.dataset.fileName = getFileName();
-
-        const html = document.documentElement.outerHTML;
+        const html = serializeCurrentHtml();
         const blob = new Blob([html], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -3774,7 +3779,6 @@
 
         script.remove(); // Remove after save to avoid duplicate
         paletteScript.remove();
-        portScript.remove();
     }
 
     function nodejsSave() {
@@ -3847,11 +3851,7 @@
         }
         historyScript.textContent = JSON.stringify(history.map(n => n.id), null, 2);
 
-        // Save nodePort and fileName as data attributes on canvas
-        canvas.dataset.nodePort = getNodePort();
-        canvas.dataset.fileName = getFileName();
-
-        const html = document.documentElement.outerHTML;
+        const html = serializeCurrentHtml();
 
         fetch(`http://localhost:${getNodePort()}/save`, {
             method: 'POST',
@@ -3877,7 +3877,6 @@
             marksScript.remove();
             themeScript.remove();
             historyScript.remove();
-            portScript.remove();
 
             if (prevSelectedNode) {
                 setSelectedNode(prevSelectedNode);
@@ -3961,33 +3960,42 @@
     }
 
     function restoreAutoSaverPortFromDOM() {
-        // nodePort is now stored in canvas.dataset.nodePort
-        // getNodePort() handles fallback automatically
+        // nodePort is a JavaScript variable set by the installer
     }
 
     function restoreFileNameFromDOM() {
-        // fileName is now stored in canvas.dataset.fileName
-        // getFileName() handles fallback automatically
+        // fileName is a JavaScript variable set by the installer
     }
 
     function setFileName(newName) {
-        canvas.dataset.fileName = newName;
+        fileName = newName;
     }
 
     function getNodePort() {
-        return parseInt(canvas.dataset.nodePort, 10) || 0;
+        return parseInt(nodePort, 10) || 0;
     }
 
     function getFileName() {
-        return canvas.dataset.fileName || 'vummel';
+        return fileName || 'vummel';
+    }
+
+    // Serialize the document, writing the current nodePort/fileName into the
+    // exported HTML so the saved copy keeps its auto-save settings.
+    function serializeCurrentHtml(portOverride, nameOverride) {
+        const port = (portOverride === undefined) ? getNodePort() : portOverride;
+        const name = (nameOverride === undefined) ? getFileName() : nameOverride;
+        let html = document.documentElement.outerHTML;
+        html = html.replace(/let\s+nodePort\s*=\s*\d+;/, () => `let nodePort = ${port};`);
+        html = html.replace(/let\s+fileName\s*=\s*"[^"]*";/, () => `let fileName = "${name}";`);
+        return html;
     }
 
     function showAutoSaverSettingsDialog() {
         const existing = document.getElementById('autoSaverSettingsDialog');
         if (existing) existing.remove();
 
-        const currentPort = canvas.dataset.nodePort || 0;
-        const currentName = canvas.dataset.fileName || 'vummel';
+        const currentPort = getNodePort();
+        const currentName = getFileName();
 
         const dialog = document.createElement('div');
         dialog.id = 'autoSaverSettingsDialog';
@@ -4040,8 +4048,8 @@ const portInput = document.createElement('input');
                     alert('Please enter a valid port: 0 (disabled) or 4000-4999');
                     return;
                 }
-                canvas.dataset.nodePort = port;
-                canvas.dataset.fileName = nameInput.value.trim() || 'vummel';
+                nodePort = port;
+                fileName = nameInput.value.trim() || 'vummel';
                 dialog.remove();
                 showToast('Settings saved');
                 scheduleAutoSave();
@@ -4058,8 +4066,8 @@ const portInput = document.createElement('input');
                     alert('Please enter a valid port: 0 (disabled) or 4000-4999');
                     return;
                 }
-                canvas.dataset.nodePort = port;
-                canvas.dataset.fileName = nameInput.value.trim() || 'vummel';
+                nodePort = port;
+                fileName = nameInput.value.trim() || 'vummel';
                 dialog.remove();
                 showToast('Settings saved');
                 scheduleAutoSave();
