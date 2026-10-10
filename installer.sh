@@ -84,15 +84,14 @@ fi
 if [ ! -f "$HTML_FILE" ]; then
     # Copy vummel.html to the target directory
     cp vummel.html "$HTML_FILE"
-
-    # Update the node port and file name in the new html file
-    sed -i "s/let nodePort = 0;/let nodePort = $PORT;/" "$HTML_FILE"
-    sed -i "s/let fileName = \"help\";/let fileName = \"$FILENAME\";/" "$HTML_FILE"
-else
-    # Update the node port and file name in the existing html file
-    sed -i "s/let nodePort = [0-9]*;/let nodePort = $PORT;/" "$HTML_FILE"
-    sed -i "s/let fileName = \".*\";/let fileName = \"$FILENAME\";/" "$HTML_FILE"
 fi
+
+# Update the nodePort and fileName variables in the html file so the page can
+# auto-save through the saver script in this directory. The patterns are
+# anchored to the start of the line (after indentation) so they only match the
+# variable declarations and not the serialization helper.
+sed -i "s/^\([[:space:]]*\)let nodePort = [0-9]*;/\1let nodePort = $PORT;/" "$HTML_FILE"
+sed -i "s/^\([[:space:]]*\)let fileName = \".*\";/\1let fileName = \"$FILENAME\";/" "$HTML_FILE"
 
 if [ ! -f "$SAVER_JS_FILE" ]; then
     # Copy saver.js to the target directory
